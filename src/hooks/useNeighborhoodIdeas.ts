@@ -100,8 +100,8 @@ export const useNeighborhoodIdeas = () => {
   const createIdea = async (question: string, imageUrl: string, neighborhood: string) => {
     if (!user) {
       toast({
-        title: "שגיאה",
-        description: "עליך להיות מחובר כדי לפרסם רעיון",
+        title: "Error",
+        description: "You need to be logged in to post an idea",
         variant: "destructive"
       });
       return false;
@@ -123,8 +123,8 @@ export const useNeighborhoodIdeas = () => {
       if (error) {
         console.error('Error creating idea:', error);
         toast({
-          title: "שגיאה",
-          description: "לא ניתן לפרסם את הרעיון",
+          title: "Error",
+          description: "Unable to post the idea",
           variant: "destructive"
         });
         return false;
@@ -140,8 +140,8 @@ export const useNeighborhoodIdeas = () => {
     } catch (error) {
       console.error('Unexpected error creating idea:', error);
       toast({
-        title: "שגיאה",
-        description: "אירעה שגיאה בלתי צפויה",
+        title: "Error",
+        description: "An unexpected error occurred",
         variant: "destructive"
       });
       return false;
@@ -151,8 +151,8 @@ export const useNeighborhoodIdeas = () => {
   const voteOnIdea = async (ideaId: string, vote: boolean) => {
     if (!user) {
       toast({
-        title: "שגיאה",
-        description: "עליך להיות מחובר כדי להצביע",
+        title: "Error",
+        description: "You need to be logged in to vote",
         variant: "destructive"
       });
       return false;

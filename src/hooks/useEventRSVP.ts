@@ -135,8 +135,8 @@ export const useEventRSVP = (eventId: string) => {
       }
       console.error('RSVP error:', error);
       toast({
-        title: "שגיאה",
-        description: "לא ניתן לעדכן את ה-RSVP",
+        title: "Error",
+        description: "Unable to update RSVP",
         variant: "destructive",
       });
     },
@@ -178,8 +178,8 @@ export const useEventRSVP = (eventId: string) => {
       }
       console.error('Remove RSVP error:', error);
       toast({
-        title: "שגיאה",
-        description: "לא ניתן להסיר את ה-RSVP",
+        title: "Error",
+        description: "Unable to remove RSVP",
         variant: "destructive",
       });
     },
@@ -197,8 +197,8 @@ export const useEventRSVP = (eventId: string) => {
   const handleRSVP = useCallback((status: string) => {
     if (!user) {
       toast({
-        title: "נדרשת התחברות",
-        description: "יש להתחבר כדי להגיב לאירוע",
+        title: "Login Required",
+        description: "You need to log in to respond to events",
         variant: "destructive",
       });
       return;

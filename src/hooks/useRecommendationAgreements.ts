@@ -42,8 +42,8 @@ export const useRecommendationAgreements = (recommendationId: string) => {
   const toggleAgreement = async () => {
     if (!user) {
       toast({
-        title: "התחברות נדרשת",
-        description: "יש להתחבר כדי להסכים עם המלצות",
+        title: "Login Required",
+        description: "You need to log in to agree with recommendations",
         variant: "destructive",
       });
       return;
@@ -76,8 +76,8 @@ export const useRecommendationAgreements = (recommendationId: string) => {
     } catch (error) {
       console.error('Error toggling agreement:', error);
       toast({
-        title: "שגיאה",
-        description: "לא ניתן לעדכן את ההסכמה",
+        title: "Error",
+        description: "Unable to update agreement",
         variant: "destructive",
       });
     } finally {

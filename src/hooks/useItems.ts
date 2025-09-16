@@ -47,8 +47,8 @@ export const useItems = () => {
     } catch (error) {
       console.error('Error fetching items:', error);
       toast({
-        title: "שגיאה",
-        description: "לא ניתן לטעון את הפריטים",
+        title: "Error",
+        description: "Unable to load items",
         variant: "destructive",
       });
     } finally {
@@ -78,8 +78,8 @@ export const useItems = () => {
       if (authError) {
         console.error('Anonymous sign in failed:', authError);
         toast({
-          title: "שגיאת התחברות",
-          description: "לא ניתן להתחבר למערכת",
+          title: "Authentication Error",
+          description: "Unable to connect to the system",
           variant: "destructive",
         });
         return null;
@@ -96,8 +96,8 @@ export const useItems = () => {
       if (!currentUser) {
         console.error('Still no user after anonymous sign in');
         toast({
-          title: "שגיאה",
-          description: "לא ניתן להתחבר למערכת",
+          title: "Error",
+          description: "Unable to connect to the system",
           variant: "destructive",
         });
         return null;
@@ -122,8 +122,8 @@ export const useItems = () => {
       if (error) throw error;
 
       toast({
-        title: "פריט נוסף בהצלחה!",
-        description: "הפריט שלך נוסף למרקט פליס",
+        title: "Item added successfully!",
+        description: "Your item has been added to the marketplace",
       });
 
       // Refresh items list
@@ -132,8 +132,8 @@ export const useItems = () => {
     } catch (error) {
       console.error('Error creating item:', error);
       toast({
-        title: "שגיאה",
-        description: "לא ניתן להוסיף את הפריט",
+        title: "Error",
+        description: "Unable to add item",
         variant: "destructive",
       });
       return null;
@@ -166,8 +166,8 @@ export const useItems = () => {
     } catch (error) {
       console.error('Error updating item:', error);
       toast({
-        title: "שגיאה",
-        description: "לא ניתן לעדכן את הפריט",
+        title: "Error",
+        description: "Unable to update item",
         variant: "destructive",
       });
       return null;
@@ -196,8 +196,8 @@ export const useItems = () => {
     } catch (error) {
       console.error('Error deleting item:', error);
       toast({
-        title: "שגיאה",
-        description: "לא ניתן למחוק את הפריט",
+        title: "Error",
+        description: "Unable to delete item",
         variant: "destructive",
       });
       return false;

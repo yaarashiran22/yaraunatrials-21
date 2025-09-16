@@ -37,8 +37,8 @@ export const useNeighborQuestions = () => {
       if (error) {
         console.error('Error fetching neighbor questions:', error);
         toast({
-          title: "שגיאה",
-          description: "שגיאה בטעינת ההודעות",
+          title: "Error",
+          description: "Error loading messages",
           variant: "destructive",
         });
       } else {
@@ -47,8 +47,8 @@ export const useNeighborQuestions = () => {
     } catch (err) {
       console.error('Unexpected error:', err);
       toast({
-        title: "שגיאה",
-        description: "שגיאה בטעינת ההודעות",
+        title: "Error",
+        description: "Error loading messages",
         variant: "destructive",
       });
     } finally {
@@ -83,8 +83,8 @@ export const useNeighborQuestions = () => {
       if (error) {
         console.error('Error creating neighbor question:', error);
         toast({
-          title: "שגיאה",
-          description: "שגיאה בפרסום ההודעה",
+          title: "Error",
+          description: "Error posting message",
           variant: "destructive",
         });
         return false;
@@ -101,8 +101,8 @@ export const useNeighborQuestions = () => {
     } catch (err) {
       console.error('Unexpected error:', err);
       toast({
-        title: "שגיאה",
-        description: "שגיאה בפרסום ההודעה",
+        title: "Error",
+        description: "Error posting message",
         variant: "destructive",
       });
       return false;
@@ -114,8 +114,8 @@ export const useNeighborQuestions = () => {
   const deleteQuestion = async (id: string) => {
     if (!user) {
       toast({
-        title: "שגיאה",
-        description: "יש להתחבר כדי למחוק הודעה",
+        title: "Error",
+        description: "You need to log in to delete message",
         variant: "destructive",
       });
       return false;
@@ -131,8 +131,8 @@ export const useNeighborQuestions = () => {
       if (error) {
         console.error('Error deleting neighbor question:', error);
         toast({
-          title: "שגיאה",
-          description: "שגיאה במחיקת ההודעה",
+          title: "Error",
+          description: "Error deleting message",
           variant: "destructive",
         });
         return false;
@@ -149,8 +149,8 @@ export const useNeighborQuestions = () => {
     } catch (err) {
       console.error('Unexpected error:', err);
       toast({
-        title: "שגיאה",
-        description: "שגיאה במחיקת ההודעה",
+        title: "Error",
+        description: "Error deleting message",
         variant: "destructive",
       });
       return false;

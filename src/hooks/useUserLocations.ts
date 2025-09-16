@@ -115,7 +115,7 @@ export const useUserLocations = () => {
             clearTimeout(timeoutId);
             console.log('Method 3 failed:', error.message);
             
-            let errorMessage = 'לא ניתן לקבל מיקום';
+            let errorMessage = 'Unable to get location';
             switch (error.code) {
               case error.PERMISSION_DENIED:
                 errorMessage = 'הגישה למיקום נדחתה. אנא אפשר גישה למיקום בהגדרות הדפדפן.';

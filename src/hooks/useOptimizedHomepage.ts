@@ -162,8 +162,8 @@ const fetchHomepageData = async () => {
   } catch (error) {
     console.error('Homepage data fetch error:', error);
     toast({
-      title: "שגיאה",
-      description: "לא ניתן לטעון את הנתונים",
+      title: "Error",
+      description: "Unable to load data",
       variant: "destructive",
     });
     throw error;

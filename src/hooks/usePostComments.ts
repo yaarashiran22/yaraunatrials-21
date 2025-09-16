@@ -40,12 +40,12 @@ export const usePostComments = (postId: string) => {
   // Add a comment
   const addComment = async (content: string) => {
     if (!user) {
-      toast.error('יש להתחבר כדי להגיב');
+      toast.error('You need to log in to comment');
       return false;
     }
 
     if (!content.trim()) {
-      toast.error('נא להזין תוכן לתגובה');
+      toast.error('Please enter comment content');
       return false;
     }
 
@@ -69,16 +69,16 @@ export const usePostComments = (postId: string) => {
 
       if (error) {
         console.error('Error adding comment:', error);
-        toast.error('שגיאה בהוספת התגובה');
+        toast.error('Error adding comment');
         return false;
       }
 
       setComments(prev => [...prev, data]);
-      toast.success('התגובה נוספה בהצלחה');
+      toast.success('Comment added successfully');
       return true;
     } catch (error) {
       console.error('Error adding comment:', error);
-      toast.error('שגיאה בהוספת התגובה');
+      toast.error('Error adding comment');
       return false;
     } finally {
       setSubmitting(false);
@@ -98,15 +98,15 @@ export const usePostComments = (postId: string) => {
 
       if (error) {
         console.error('Error deleting comment:', error);
-        toast.error('שגיאה במחיקת התגובה');
+        toast.error('Error deleting comment');
         return;
       }
 
       setComments(prev => prev.filter(comment => comment.id !== commentId));
-      toast.success('התגובה נמחקה בהצלחה');
+      toast.success('Comment deleted successfully');
     } catch (error) {
       console.error('Error deleting comment:', error);
-      toast.error('שגיאה במחיקת התגובה');
+      toast.error('Error deleting comment');
     }
   };
 

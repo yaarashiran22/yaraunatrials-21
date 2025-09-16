@@ -54,7 +54,7 @@ export const usePostLikes = (postId: string) => {
 
         if (error) {
           console.error('Error removing like:', error);
-          toast.error('שגיאה בהסרת הלייק');
+          toast.error('Error removing like');
           return;
         }
 
@@ -71,7 +71,7 @@ export const usePostLikes = (postId: string) => {
 
         if (error) {
           console.error('Error adding like:', error);
-          toast.error('שגיאה בהוספת לייק');
+          toast.error('Error adding like');
           return;
         }
 
@@ -80,7 +80,7 @@ export const usePostLikes = (postId: string) => {
       }
     } catch (error) {
       console.error('Error toggling like:', error);
-      toast.error('שגיאה בעדכון הלייק');
+      toast.error('Error updating like');
     }
   };
 

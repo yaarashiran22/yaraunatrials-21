@@ -40,8 +40,8 @@ export const useUserPosts = (userId?: string) => {
         }
         
         toast({
-          title: "שגיאה",
-          description: "שגיאה בטעינת הפוסטים",
+          title: "Error",
+          description: "Failed to load posts",
           variant: "destructive",
         });
       } else {
@@ -50,8 +50,8 @@ export const useUserPosts = (userId?: string) => {
     } catch (err) {
       console.error('Unexpected error:', err);
       toast({
-        title: "שגיאה",
-        description: "שגיאה בטעינת הפוסטים",
+        title: "Error",
+        description: "Failed to load posts",
         variant: "destructive",
       });
     } finally {

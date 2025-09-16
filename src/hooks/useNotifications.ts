@@ -63,8 +63,8 @@ export const useNotifications = () => {
         }
         
         toast({
-          title: "שגיאה",
-          description: "לא ניתן לטעון התראות",
+          title: "Error",
+          description: "Unable to load notifications",
           variant: "destructive",
         });
         return;

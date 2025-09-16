@@ -41,8 +41,8 @@ export const usePosts = () => {
     } catch (error) {
       console.error('Error fetching posts:', error);
       toast({
-        title: "שגיאה",
-        description: "לא ניתן לטעון את הפוסטים",
+        title: "Error",
+        description: "Unable to load posts",
         variant: "destructive",
       });
     } finally {
@@ -61,16 +61,16 @@ export const usePosts = () => {
       if (!currentUser) {
         console.log('No user found, signing in anonymously...');
         toast({
-          title: "מתחבר למערכת...",
-          description: "מתחבר אוטומטית כדי לשמור את הפוסט",
+          title: "Connecting to system...",
+          description: "Automatically connecting to save your post",
         });
         
         const { error: authError } = await signInAnonymously();
         if (authError) {
           console.error('Auth error:', authError);
           toast({
-            title: "שגיאת התחברות",
-            description: "לא ניתן להתחבר למערכת",
+            title: "Authentication Error",
+            description: "Unable to connect to system",
             variant: "destructive",
           });
           return null;
@@ -83,8 +83,8 @@ export const usePosts = () => {
         
         if (!currentUser) {
           toast({
-            title: "שגיאה",
-            description: "לא ניתן להתחבר למערכת",
+            title: "Error",
+            description: "Unable to connect to system",
             variant: "destructive",
           });
           return null;
@@ -107,8 +107,8 @@ export const usePosts = () => {
       if (error) throw error;
 
       toast({
-        title: "פוסט נוצר בהצלחה!",
-        description: "הפוסט שלך נוסף לפיד הקהילה",
+        title: "Post created successfully!",
+        description: "Your post has been added to the community feed",
       });
 
       // Refresh posts list
@@ -117,8 +117,8 @@ export const usePosts = () => {
     } catch (error) {
       console.error('Error creating post:', error);
       toast({
-        title: "שגיאה",
-        description: "לא ניתן ליצור את הפוסט",
+        title: "Error",
+        description: "Unable to create post",
         variant: "destructive",
       });
       return null;
@@ -142,8 +142,8 @@ export const usePosts = () => {
       if (error) throw error;
       
       toast({
-        title: "פוסט עודכן",
-        description: "הפוסט עודכן בהצלחה",
+        title: "Post updated",
+        description: "Post updated successfully",
       });
 
       fetchPosts();
@@ -151,8 +151,8 @@ export const usePosts = () => {
     } catch (error) {
       console.error('Error updating post:', error);
       toast({
-        title: "שגיאה",
-        description: "לא ניתן לעדכן את הפוסט",
+        title: "Error",
+        description: "Unable to update post",
         variant: "destructive",
       });
       return null;
@@ -172,8 +172,8 @@ export const usePosts = () => {
       if (error) throw error;
 
       toast({
-        title: "פוסט נמחק",
-        description: "הפוסט נמחק בהצלחה",
+        title: "Post deleted",
+        description: "Post deleted successfully",
       });
 
       fetchPosts();
@@ -181,8 +181,8 @@ export const usePosts = () => {
     } catch (error) {
       console.error('Error deleting post:', error);
       toast({
-        title: "שגיאה",
-        description: "לא ניתן למחוק את הפוסט",
+        title: "Error",
+        description: "Unable to delete post",
         variant: "destructive",
       });
       return false;

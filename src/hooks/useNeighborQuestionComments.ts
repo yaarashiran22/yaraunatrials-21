@@ -54,8 +54,8 @@ export const useNeighborQuestionComments = (questionId?: string) => {
       if (error) {
         console.error('Error fetching comments:', error);
         toast({
-          title: "שגיאה",
-          description: "שגיאה בטעינת התגובות",
+          title: "Error",
+          description: "Error loading comments",
           variant: "destructive",
         });
       } else {
@@ -64,8 +64,8 @@ export const useNeighborQuestionComments = (questionId?: string) => {
     } catch (err) {
       console.error('Unexpected error:', err);
       toast({
-        title: "שגיאה",
-        description: "שגיאה בטעינת התגובות",
+        title: "Error",
+        description: "Error loading comments",
         variant: "destructive",
       });
     } finally {
@@ -76,8 +76,8 @@ export const useNeighborQuestionComments = (questionId?: string) => {
   const createComment = async (commentData: CreateCommentData) => {
     if (!user) {
       toast({
-        title: "שגיאה",
-        description: "יש להתחבר כדי להגיב",
+        title: "Error",
+        description: "You need to log in to comment",
         variant: "destructive",
       });
       return false;
@@ -101,8 +101,8 @@ export const useNeighborQuestionComments = (questionId?: string) => {
       if (error) {
         console.error('Error creating comment:', error);
         toast({
-          title: "שגיאה",
-          description: "שגיאה בפרסום התגובה",
+          title: "Error",
+          description: "Error posting comment",
           variant: "destructive",
         });
         return false;
@@ -121,8 +121,8 @@ export const useNeighborQuestionComments = (questionId?: string) => {
     } catch (err) {
       console.error('Unexpected error:', err);
       toast({
-        title: "שגיאה",
-        description: "שגיאה בפרסום התגובה",
+        title: "Error",
+        description: "Error posting comment",
         variant: "destructive",
       });
       return false;
@@ -134,8 +134,8 @@ export const useNeighborQuestionComments = (questionId?: string) => {
   const deleteComment = async (commentId: string) => {
     if (!user) {
       toast({
-        title: "שגיאה",
-        description: "יש להתחבר כדי למחוק תגובה",
+        title: "Error",
+        description: "You need to log in to delete comment",
         variant: "destructive",
       });
       return false;
@@ -151,8 +151,8 @@ export const useNeighborQuestionComments = (questionId?: string) => {
       if (error) {
         console.error('Error deleting comment:', error);
         toast({
-          title: "שגיאה",
-          description: "שגיאה במחיקת התגובה",
+          title: "Error",
+          description: "Error deleting comment",
           variant: "destructive",
         });
         return false;
@@ -171,8 +171,8 @@ export const useNeighborQuestionComments = (questionId?: string) => {
     } catch (err) {
       console.error('Unexpected error:', err);
       toast({
-        title: "שגיאה",
-        description: "שגיאה במחיקת התגובה",
+        title: "Error",
+        description: "Error deleting comment",
         variant: "destructive",
       });
       return false;

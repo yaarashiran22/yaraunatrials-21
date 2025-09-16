@@ -57,8 +57,8 @@ export const useFriends = () => {
       
       if (!user) {
         toast({
-          title: "שגיאה",
-          description: "עליך להתחבר כדי להוסיף חברים",
+          title: "Error",
+          description: "You need to log in to add friends",
           variant: "destructive",
         });
         return false;
@@ -79,8 +79,8 @@ export const useFriends = () => {
           });
         } else {
           toast({
-            title: "שגיאה בהוספת חבר",
-            description: "אנא נסה שוב",
+            title: "Error adding friend",
+            description: "Please try again",
             variant: "destructive",
           });
         }
@@ -88,7 +88,7 @@ export const useFriends = () => {
       }
 
       toast({
-        title: "החבר נוסף בהצלחה!",
+        title: "Friend added successfully!",
       });
 
       fetchFriends(); // Refresh the friends list
@@ -96,8 +96,8 @@ export const useFriends = () => {
     } catch (error) {
       console.error('Error adding friend:', error);
       toast({
-        title: "שגיאה בהוספת חבר",
-        description: "אנא נסה שוב",
+        title: "Error adding friend",
+        description: "Please try again",
         variant: "destructive",
       });
       return false;
@@ -118,15 +118,15 @@ export const useFriends = () => {
 
       if (error) {
         toast({
-          title: "שגיאה בהסרת חבר",
-          description: "אנא נסה שוב",
+          title: "Error removing friend",
+          description: "Please try again",
           variant: "destructive",
         });
         return false;
       }
 
       toast({
-        title: "החבר הוסר בהצלחה",
+        title: "Friend removed successfully",
       });
 
       fetchFriends(); // Refresh the friends list

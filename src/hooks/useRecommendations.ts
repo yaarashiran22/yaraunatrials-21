@@ -29,8 +29,8 @@ const fetchRecommendationItems = async () => {
   } catch (error) {
     console.error('Error fetching recommendation items:', error);
     toast({
-      title: "שגיאה",
-      description: "לא ניתן לטעון את ההצעות",
+      title: "Error",
+      description: "Unable to load recommendations",
       variant: "destructive",
     });
     throw error;

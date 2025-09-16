@@ -32,8 +32,8 @@ export const useUserItems = (userId?: string) => {
     } catch (error) {
       console.error('Error fetching user items:', error);
       toast({
-        title: "שגיאה",
-        description: "לא ניתן לטעון את הפריטים",
+        title: "Error",
+        description: "Unable to load items",
         variant: "destructive",
       });
     } finally {
@@ -54,8 +54,8 @@ export const useUserItems = (userId?: string) => {
       if (error) throw error;
 
       toast({
-        title: "פריט נמחק",
-        description: "הפריט נמחק בהצלחה",
+        title: "Item deleted",
+        description: "Item deleted successfully",
       });
 
       // Remove item from local state
@@ -64,8 +64,8 @@ export const useUserItems = (userId?: string) => {
     } catch (error) {
       console.error('Error deleting item:', error);
       toast({
-        title: "שגיאה",
-        description: "לא ניתן למחוק את הפריט",
+        title: "Error",
+        description: "Unable to delete item",
         variant: "destructive",
       });
       return false;

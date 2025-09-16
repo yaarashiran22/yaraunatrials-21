@@ -14,8 +14,8 @@ export const useSecureAuth = () => {
     
     if (!user) {
       toast({
-        title: "נדרשת התחברות",
-        description: "יש להתחבר כדי לבצע פעולה זו",
+        title: "Login Required",
+        description: "You need to log in to perform this action",
         variant: "destructive",
       });
       navigate(redirectTo);
@@ -31,8 +31,8 @@ export const useSecureAuth = () => {
     const allowed = checkRateLimit(user.id, action, maxRequests, windowMs);
     if (!allowed) {
       toast({
-        title: "יותר מדי בקשות",
-        description: "אנא המתן מעט לפני ביצוע פעולה זו שוב",
+        title: "Too Many Requests",
+        description: "Please wait a moment before performing this action again",
         variant: "destructive",
       });
     }
@@ -45,8 +45,8 @@ export const useSecureAuth = () => {
     
     if (!validateUUID(resourceUserId)) {
       toast({
-        title: "שגיאה",
-        description: "מזהה משתמש לא תקין",
+        title: "Error",
+        description: "Invalid user ID",
         variant: "destructive",
       });
       return false;

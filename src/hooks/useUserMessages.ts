@@ -44,8 +44,8 @@ export const useUserMessages = (userId?: string) => {
         }
         
         toast({
-          title: "שגיאה",
-          description: "לא ניתן לטעון את ההודעות",
+          title: "Error",
+          description: "Unable to load messages",
           variant: "destructive",
         });
       } else {
@@ -77,8 +77,8 @@ export const useUserMessages = (userId?: string) => {
       if (error) {
         console.error('Error creating message:', error);
         toast({
-          title: "שגיאה",
-          description: "לא ניתן לשמור את ההודעה",
+          title: "Error",
+          description: "Unable to save message",
           variant: "destructive",
         });
         return false;
@@ -86,8 +86,8 @@ export const useUserMessages = (userId?: string) => {
 
       setMessages(prev => [...prev, data]);
       toast({
-        title: "הצלחה",
-        description: "ההודעה נשמרה בהצלחה",
+        title: "Success",
+        description: "Message saved successfully",
       });
       return true;
     } catch (err) {
@@ -116,8 +116,8 @@ export const useUserMessages = (userId?: string) => {
       if (error) {
         console.error('Error updating message:', error);
         toast({
-          title: "שגיאה",
-          description: "לא ניתן לעדכן את ההודעה",
+          title: "Error",
+          description: "Unable to update message",
           variant: "destructive",
         });
         return false;
@@ -127,8 +127,8 @@ export const useUserMessages = (userId?: string) => {
         prev.map(msg => msg.id === messageId ? data : msg)
       );
       toast({
-        title: "הצלחה",
-        description: "ההודעה עודכנה בהצלחה",
+        title: "Success",
+        description: "Message updated successfully",
       });
       return true;
     } catch (err) {
@@ -154,8 +154,8 @@ export const useUserMessages = (userId?: string) => {
       if (error) {
         console.error('Error deleting message:', error);
         toast({
-          title: "שגיאה",
-          description: "לא ניתן למחוק את ההודעה",
+          title: "Error",
+          description: "Unable to delete message",
           variant: "destructive",
         });
         return false;
@@ -163,8 +163,8 @@ export const useUserMessages = (userId?: string) => {
 
       setMessages(prev => prev.filter(msg => msg.id !== messageId));
       toast({
-        title: "הצלחה",
-        description: "ההודעה נמחקה בהצלחה",
+        title: "Success",
+        description: "Message deleted successfully",
       });
       return true;
     } catch (err) {
