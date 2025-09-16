@@ -24,6 +24,7 @@ export default {
 				'display': ['"SF Pro Display"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
 				'lxgw': ['LXGW WenKai TC', 'sans-serif'],
 				'nunito': ['Nunito', 'sans-serif'],
+				'playfair': ['Playfair Display', 'serif'],
 			},
 			fontSize: {
 				// Mobile-first app-like font sizes

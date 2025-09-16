@@ -188,7 +188,7 @@ const LoginPage = () => {
               </div>
             </div>
             
-            <p className="text-sm font-medium mt-2 mb-6" style={{ color: 'hsl(var(--coral))' }}>
+            <p className="text-lg font-playfair font-medium mt-2 mb-6 italic bg-gradient-to-r from-coral via-primary to-coral bg-clip-text text-transparent tracking-wide">
               Everything Worth Knowing
             </p>
             
