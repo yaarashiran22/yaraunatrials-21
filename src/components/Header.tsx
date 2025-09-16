@@ -76,16 +76,14 @@ const Header = ({
           
           {/* Right side - AI Assistant */}
           <div className="flex items-center gap-2 w-32 justify-end">
-            {user && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="p-2.5 h-10 w-10 bg-white text-primary hover:bg-gray-100 border-gray-200 rounded-full"
-                onClick={() => setShowAIAssistant(true)}
-              >
-                <Sparkles className="h-5 w-5" />
-              </Button>
-            )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="p-2.5 h-10 w-10 bg-white text-primary hover:bg-gray-100 border-gray-200 rounded-full"
+              onClick={() => setShowAIAssistant(true)}
+            >
+              <Sparkles className="h-5 w-5" />
+            </Button>
           </div>
           
         </div>
