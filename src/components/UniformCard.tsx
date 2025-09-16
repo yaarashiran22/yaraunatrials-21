@@ -1,8 +1,11 @@
 
+import React from "react";
 import { Heart, CalendarCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFavorites } from "@/contexts/FavoritesContext";
-import React from "react";
+import { useEventRSVP } from "@/hooks/useEventRSVP";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
 
 interface UniformCardProps {
   id?: string;
@@ -46,6 +49,12 @@ const UniformCard = ({
   onProfileClick
 }: UniformCardProps) => {
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { user } = useAuth();
+  
+  // RSVP functionality for events
+  const { userRSVP, handleRSVP: handleEventRSVP, isUpdating } = useEventRSVP(
+    type === 'event' ? id : ''
+  );
   
   // Check favorites context for all items
   const isCurrentlyFavorited = isFavorite(id, type);
@@ -66,6 +75,21 @@ const UniformCard = ({
       };
       toggleFavorite(favoriteItem);
     }
+  };
+
+  const handleRSVPClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!user) {
+      toast({
+        title: "נדרשת התחברות",
+        description: "יש להתחבר כדי להגיב לאירוע",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    handleEventRSVP('going');
   };
 
   // Extract string from title for alt text
@@ -172,14 +196,17 @@ const UniformCard = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-all duration-300 border shadow-lg hover:scale-110 active:scale-95 text-white bg-white/20 border-white/30 hover:bg-white/30 hover:text-primary"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // TODO: Implement RSVP functionality
-                  console.log('RSVP clicked for event:', id);
-                }}
+                disabled={isUpdating}
+                className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-all duration-300 border shadow-lg hover:scale-110 active:scale-95 ${
+                  userRSVP?.status === 'going'
+                    ? 'text-green-600 bg-green-100/90 border-green-200 hover:bg-green-200'
+                    : 'text-white bg-white/20 border-white/30 hover:bg-white/30 hover:text-primary'
+                }`}
+                onClick={handleRSVPClick}
               >
-                <CalendarCheck className="h-4 w-4 transition-all duration-300" />
+                <CalendarCheck className={`h-4 w-4 transition-all duration-300 ${
+                  userRSVP?.status === 'going' ? 'fill-current' : ''
+                }`} />
               </Button>
             ) : (type === 'marketplace' || type === 'artwork' || type === 'business') && (
               <Button
