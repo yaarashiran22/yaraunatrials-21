@@ -77,8 +77,8 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
     
     if (!user) {
       toast({
-        title: "Error",
-        description: "You must be logged in to create an event",
+        title: "🔐 Login Required",
+        description: "Please sign in to create amazing events and connect with your community!",
         variant: "destructive",
       });
       return;
