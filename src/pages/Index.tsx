@@ -372,7 +372,7 @@ const Index = () => {
         {/* Community Members Section - Horizontal Carousel */}
         <section className="-mb-1 lg:-mb-1">
           <div className="px-1 lg:px-5 mb-3">
-            <h3 className="title-section-white">viral organizers</h3>
+            <h3 className="title-section-white">top spots</h3>
           </div>
           <div className="relative">
             <div className="flex overflow-x-auto gap-2 pb-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40" dir="ltr" style={{
