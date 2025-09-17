@@ -14,7 +14,9 @@ const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const { signIn, signUp, resetPassword } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -64,6 +66,28 @@ const LoginPage = () => {
           description: "Logged in successfully",
         });
         navigate('/');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      const { error } = await resetPassword(resetEmail);
+      
+      if (!error) {
+        setShowForgotPassword(false);
+        setResetEmail("");
       }
     } catch (error) {
       toast({
@@ -239,7 +263,17 @@ const LoginPage = () => {
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                Forgot your password?
+              </button>
+            </div>
+
+            <div className="mt-4 text-center">
               <button
                 type="button"
                 onClick={() => setIsLogin(false)}
@@ -248,6 +282,59 @@ const LoginPage = () => {
                 Don't have an account? Sign up
               </button>
             </div>
+
+            {/* Forgot Password Modal */}
+            {showForgotPassword && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-semibold text-foreground">Reset Password</h2>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowForgotPassword(false)}
+                      className="p-1"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  <form onSubmit={handleForgotPassword} className="space-y-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Enter your email address and we'll send you a link to reset your password.
+                      </p>
+                      <Input
+                        type="email"
+                        placeholder="Email address"
+                        value={resetEmail}
+                        onChange={(e) => setResetEmail(e.target.value)}
+                        className="w-full h-12 bg-white border-primary-200/40 focus:border-primary focus:ring-primary/20 rounded-lg"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="flex gap-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowForgotPassword(false)}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={isLoading}
+                        className="flex-1 bg-gradient-to-r from-primary to-coral hover:from-primary-600 hover:to-coral-600 text-white"
+                      >
+                        {isLoading ? 'Sending...' : 'Send Reset Link'}
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -10,6 +10,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, name?: string, mobileNumber?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   signInAnonymously: () => Promise<{ error: any }>;
+  resetPassword: (email: string) => Promise<{ error: any }>;
   // Backward compatibility
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
@@ -145,6 +146,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error };
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      const redirectUrl = `${window.location.origin}/reset-password`;
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
+
+      if (error) {
+        console.error('Password reset error:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to send reset email",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Password Reset Email Sent",
+          description: "Check your email for a link to reset your password",
+          variant: "default",
+        });
+      }
+
+      return { error };
+    } catch (error) {
+      console.error('Password reset error:', error);
+      return { error };
+    }
+  };
+
   // Backward compatibility methods
   const login = async (email: string, password: string): Promise<boolean> => {
     const { error } = await signIn(email, password);
@@ -163,6 +194,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signUp,
       signOut,
       signInAnonymously,
+      resetPassword,
       login,
       logout,
     }}>

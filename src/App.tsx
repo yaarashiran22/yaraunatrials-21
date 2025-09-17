@@ -14,6 +14,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import NewItemPopup from "@/components/NewItemPopup";
 import { useNewItem } from "@/contexts/NewItemContext";
 import LoginPage from "./pages/LoginPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import Index from "./pages/Index";
 import ProfilePage from "./pages/ProfilePage";
 import FeedPage from "./pages/FeedPage";
@@ -75,6 +76,7 @@ const AppContent = () => {
           <div className="flex-1 ml-64">
             <Routes>
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/" element={<Index />} />
               <Route path="/profile/:id" element={<ProfilePage />} />
@@ -133,6 +135,7 @@ const AppContent = () => {
         <div className="lg:hidden w-full min-h-screen">
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/" element={<Index />} />
             <Route path="/profile/:id" element={<ProfilePage />} />
