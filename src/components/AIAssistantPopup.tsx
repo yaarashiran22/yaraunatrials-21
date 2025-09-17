@@ -172,8 +172,8 @@ const AIAssistantPopup: React.FC<AIAssistantPopupProps> = ({ isOpen, onClose }) 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50">
       <Card className="w-full max-w-2xl lg:max-w-3xl max-h-[85vh] lg:max-h-[80vh] min-h-[500px] lg:min-h-[600px] flex flex-col bg-white border shadow-2xl rounded-2xl mx-auto my-auto">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 flex-shrink-0 bg-white rounded-t-2xl border-b">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2 text-foreground">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 flex-shrink-0 bg-white border-b">
+          <CardTitle className="text-lg font-semibold flex items-center gap-2 text-gray-900">
             <Sparkles className="w-5 h-5 text-primary" />
             Una's AI Assistant
           </CardTitle>
@@ -181,13 +181,13 @@ const AIAssistantPopup: React.FC<AIAssistantPopupProps> = ({ isOpen, onClose }) 
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="h-8 w-8 hover:bg-accent"
+            className="h-8 w-8 hover:bg-gray-100 text-gray-700"
           >
             <X className="w-4 h-4" />
           </Button>
         </CardHeader>
         
-        <CardContent className="flex-1 flex flex-col p-4 lg:p-6 space-y-4 min-h-0 bg-white rounded-b-2xl">
+        <CardContent className="flex-1 flex flex-col p-4 lg:p-6 space-y-4 min-h-0 bg-white">
           <ScrollArea className="flex-1 pr-4 overflow-y-auto">
             <div className="space-y-4">
               {messages.map((message) => (
@@ -205,15 +205,15 @@ const AIAssistantPopup: React.FC<AIAssistantPopupProps> = ({ isOpen, onClose }) 
                   <div
                     className={`max-w-[75%] rounded-lg p-3 lg:p-4 break-words ${
                       message.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-gray-100 text-gray-800'
+                        ? 'bg-primary text-white'
+                        : 'bg-gray-100 text-gray-900'
                     }`}
                   >
                     <p className="text-sm lg:text-base whitespace-pre-wrap leading-relaxed">{message.content}</p>
                   </div>
                   {message.role === 'user' && (
                     <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
-                      <User className="w-4 h-4 text-primary-foreground" />
+                      <User className="w-4 h-4 text-white" />
                     </div>
                   )}
                 </div>
@@ -223,7 +223,7 @@ const AIAssistantPopup: React.FC<AIAssistantPopupProps> = ({ isOpen, onClose }) 
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <Sparkles className="w-4 h-4 text-primary" />
                   </div>
-                  <div className="bg-gray-100 text-gray-800 rounded-lg p-3">
+                  <div className="bg-gray-100 text-gray-900 rounded-lg p-3">
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 bg-current rounded-full animate-bounce" />
                       <div className="w-2 h-2 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
@@ -242,7 +242,7 @@ const AIAssistantPopup: React.FC<AIAssistantPopupProps> = ({ isOpen, onClose }) 
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={handleKeyPress}
               placeholder="Ask me anything about events, meetups, or neighbors..."
-              className="flex-1 bg-white"
+              className="flex-1 bg-white text-gray-900 border-gray-300"
               disabled={isLoading}
               autoComplete="off"
               autoFocus

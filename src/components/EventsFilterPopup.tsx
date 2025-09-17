@@ -89,11 +89,11 @@ const EventsFilterPopup = ({ isOpen, onClose, onFiltersApply, currentFilters }: 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-card rounded-3xl max-w-md w-full max-h-[80vh] overflow-y-auto shadow-2xl border border-primary/20">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl max-w-md w-full max-h-[80vh] overflow-y-auto shadow-2xl border border-primary/20">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-primary/10">
-          <h2 className="text-xl font-bold text-foreground">Filter Events</h2>
+        <div className="flex items-center justify-between p-6 border-b border-primary/10 bg-white">
+          <h2 className="text-xl font-bold text-gray-900">Filter Events</h2>
           <Button
             variant="ghost"
             size="sm"
@@ -105,17 +105,17 @@ const EventsFilterPopup = ({ isOpen, onClose, onFiltersApply, currentFilters }: 
         </div>
 
         {/* Filter Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 bg-white">
           {/* Search */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-foreground">Search</label>
+            <label className="text-sm font-semibold text-gray-900">Search</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary/60 h-4 w-4" />
               <Input
                 placeholder="Search events..."
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                className="pl-10 rounded-xl border-primary/20 bg-background focus:border-primary/40"
+                className="pl-10 rounded-xl border-primary/20 bg-white text-gray-900 focus:border-primary/40"
               />
             </div>
           </div>
