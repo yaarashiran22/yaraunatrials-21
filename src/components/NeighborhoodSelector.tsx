@@ -12,7 +12,6 @@ interface NeighborhoodSelectorProps {
 }
 
 const neighborhoods = [
-  "All",
   "Palermo",
   "Palermo Chico", 
   "Palermo Hollywood",
@@ -22,7 +21,7 @@ const neighborhoods = [
 ];
 
 const NeighborhoodSelector = ({ onNeighborhoodChange }: NeighborhoodSelectorProps) => {
-  const [selectedNeighborhood, setSelectedNeighborhood] = useState("All");
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState("Palermo");
 
   const handleNeighborhoodSelect = useCallback((neighborhood: string) => {
     setSelectedNeighborhood(neighborhood);
