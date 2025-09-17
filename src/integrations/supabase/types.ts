@@ -14,7 +14,699 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      communities: {
+        Row: {
+          access_type: string | null
+          category: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          creator_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          logo_url: string | null
+          member_count: number | null
+          name: string
+          subcategory: string | null
+          tagline: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          access_type?: string | null
+          category?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          creator_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          member_count?: number | null
+          name: string
+          subcategory?: string | null
+          tagline?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          access_type?: string | null
+          category?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          creator_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          member_count?: number | null
+          name?: string
+          subcategory?: string | null
+          tagline?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      community_events: {
+        Row: {
+          community_id: string | null
+          created_at: string | null
+          event_id: string | null
+          id: string
+        }
+        Insert: {
+          community_id?: string | null
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+        }
+        Update: {
+          community_id?: string | null
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_events_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_events_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_members: {
+        Row: {
+          community_id: string | null
+          id: string
+          joined_at: string | null
+          role: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          community_id?: string | null
+          id?: string
+          joined_at?: string | null
+          role?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          community_id?: string | null
+          id?: string
+          joined_at?: string | null
+          role?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_members_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_perks: {
+        Row: {
+          business_name: string | null
+          community_id: string | null
+          created_at: string | null
+          description: string | null
+          discount_amount: string | null
+          id: string
+          image_url: string | null
+          is_used: boolean | null
+          title: string
+          valid_until: string | null
+        }
+        Insert: {
+          business_name?: string | null
+          community_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          discount_amount?: string | null
+          id?: string
+          image_url?: string | null
+          is_used?: boolean | null
+          title: string
+          valid_until?: string | null
+        }
+        Update: {
+          business_name?: string | null
+          community_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          discount_amount?: string | null
+          id?: string
+          image_url?: string | null
+          is_used?: boolean | null
+          title?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_perks_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupon_claims: {
+        Row: {
+          claimed_at: string | null
+          id: string
+          is_used: boolean | null
+          perk_id: string | null
+          qr_code_data: string | null
+          user_id: string | null
+        }
+        Insert: {
+          claimed_at?: string | null
+          id?: string
+          is_used?: boolean | null
+          perk_id?: string | null
+          qr_code_data?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          claimed_at?: string | null
+          id?: string
+          is_used?: boolean | null
+          perk_id?: string | null
+          qr_code_data?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_claims_perk_id_fkey"
+            columns: ["perk_id"]
+            isOneToOne: false
+            referencedRelation: "community_perks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string | null
+          read_at: string | null
+          receiver_id: string | null
+          recipient_id: string | null
+          sender_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          read_at?: string | null
+          receiver_id?: string | null
+          recipient_id?: string | null
+          sender_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          read_at?: string | null
+          receiver_id?: string | null
+          recipient_id?: string | null
+          sender_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      event_companion_requests: {
+        Row: {
+          created_at: string | null
+          event_id: string | null
+          id: string
+          message: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          message?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          message?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_companion_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_rsvps: {
+        Row: {
+          created_at: string | null
+          event_id: string | null
+          id: string
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          created_at: string | null
+          date: string | null
+          description: string | null
+          event_type: string | null
+          external_link: string | null
+          id: string
+          image_url: string | null
+          location: string | null
+          market: string | null
+          mood: string | null
+          price: string | null
+          time: string | null
+          title: string
+          updated_at: string | null
+          user_id: string | null
+          video_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          event_type?: string | null
+          external_link?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          market?: string | null
+          mood?: string | null
+          price?: string | null
+          time?: string | null
+          title: string
+          updated_at?: string | null
+          user_id?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          event_type?: string | null
+          external_link?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          market?: string | null
+          mood?: string | null
+          price?: string | null
+          time?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
+      friends_picture_galleries: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string | null
+          title: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          title?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          title?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      items: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          location: string | null
+          market: string | null
+          mobile_number: string | null
+          price: number | null
+          status: string | null
+          title: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          market?: string | null
+          mobile_number?: string | null
+          price?: number | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          market?: string | null
+          mobile_number?: string | null
+          price?: number | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      neighbor_questions: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          is_anonymous: boolean | null
+          message_type: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          is_anonymous?: boolean | null
+          message_type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_anonymous?: boolean | null
+          message_type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          message: string | null
+          related_user_id: string | null
+          title: string | null
+          type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          related_user_id?: string | null
+          title?: string | null
+          type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          message?: string | null
+          related_user_id?: string | null
+          title?: string | null
+          type?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      posts: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          id: string
+          image_url: string | null
+          location: string | null
+          mood: string | null
+          updated_at: string | null
+          user_id: string | null
+          video_url: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          mood?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          mood?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          interests: string[] | null
+          location: string | null
+          mobile_number: string | null
+          name: string | null
+          profile_image_url: string | null
+          specialties: string[] | null
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          email?: string | null
+          id: string
+          interests?: string[] | null
+          location?: string | null
+          mobile_number?: string | null
+          name?: string | null
+          profile_image_url?: string | null
+          specialties?: string[] | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          interests?: string[] | null
+          location?: string | null
+          mobile_number?: string | null
+          name?: string | null
+          profile_image_url?: string | null
+          specialties?: string[] | null
+          updated_at?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
+      user_coupon_claims: {
+        Row: {
+          claimed_at: string | null
+          created_at: string | null
+          id: string
+          is_used: boolean | null
+          perk_id: string | null
+          qr_code_data: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          claimed_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_used?: boolean | null
+          perk_id?: string | null
+          qr_code_data?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          claimed_at?: string | null
+          created_at?: string | null
+          id?: string
+          is_used?: boolean | null
+          perk_id?: string | null
+          qr_code_data?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_coupon_claims_perk_id_fkey"
+            columns: ["perk_id"]
+            isOneToOne: false
+            referencedRelation: "community_perks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_coupons: {
+        Row: {
+          business_name: string | null
+          created_at: string | null
+          description: string | null
+          discount_amount: string | null
+          id: string
+          image_url: string | null
+          neighborhood: string | null
+          title: string
+          updated_at: string | null
+          user_id: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          business_name?: string | null
+          created_at?: string | null
+          description?: string | null
+          discount_amount?: string | null
+          id?: string
+          image_url?: string | null
+          neighborhood?: string | null
+          title: string
+          updated_at?: string | null
+          user_id?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          business_name?: string | null
+          created_at?: string | null
+          description?: string | null
+          discount_amount?: string | null
+          id?: string
+          image_url?: string | null
+          neighborhood?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string | null
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
+      user_picture_galleries: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string | null
+          title: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          title?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          title?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
