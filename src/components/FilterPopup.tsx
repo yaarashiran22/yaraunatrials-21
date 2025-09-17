@@ -49,17 +49,17 @@ const FilterPopup = ({ isOpen, onClose }: FilterPopupProps) => {
 
   return (
     <SimplifiedModal open={isOpen} onOpenChange={onClose}>
-      <SimplifiedModalContent className="max-w-sm">
-        <SimplifiedModalHeader>
+      <SimplifiedModalContent className="max-w-sm bg-white">
+        <SimplifiedModalHeader className="bg-white">
           <SimplifiedModalTitle className="text-center">
             <div>
-              <span className="text-3xl font-bold" style={{ color: 'hsl(var(--accent))' }}>una</span>
-              <div className="text-sm text-muted-foreground mt-1">פילטר</div>
+              <span className="text-3xl font-bold text-primary">una</span>
+              <div className="text-sm text-foreground mt-1">פילטר</div>
             </div>
           </SimplifiedModalTitle>
         </SimplifiedModalHeader>
 
-        <SimplifiedModalBody className="space-y-content-spacious">
+        <SimplifiedModalBody className="space-y-content-spacious bg-white">
           {/* Price Range */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-foreground text-center">טווח מחירים</h3>
@@ -72,7 +72,7 @@ const FilterPopup = ({ isOpen, onClose }: FilterPopupProps) => {
                 step={10}
                 className="w-full"
               />
-              <div className="flex justify-between text-base text-muted-foreground mt-3">
+              <div className="flex justify-between text-base text-foreground mt-3">
                 <span>₪{priceRange[0]}</span>
                 <span>₪{priceRange[1]}</span>
               </div>
@@ -91,7 +91,7 @@ const FilterPopup = ({ isOpen, onClose }: FilterPopupProps) => {
                 step={0.5}
                 className="w-full"
               />
-              <div className="flex justify-between text-base text-muted-foreground mt-3">
+              <div className="flex justify-between text-base text-foreground mt-3">
                 <span>0 ק"מ</span>
                 <span>{distance[0]} ק"מ</span>
               </div>

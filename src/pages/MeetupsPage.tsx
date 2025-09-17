@@ -5,7 +5,7 @@ import DesktopHeader from '@/components/DesktopHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import MoodFilterStrip from '@/components/MoodFilterStrip';
 import { Button } from '@/components/ui/button';
-import { Users, Plus } from 'lucide-react';
+import { Users, Plus, Filter } from 'lucide-react';
 import { useEvents } from '@/hooks/useEvents';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +18,7 @@ import OptimizedProfileCard from '@/components/OptimizedProfileCard';
 import { getRelativeDay } from '@/utils/dateUtils';
 import MeetupVerticalPopup from '@/components/MeetupVerticalPopup';
 import CreateEventPopup from '@/components/CreateEventPopup';
+import MeetupFilterPopup from '@/components/MeetupFilterPopup';
 import communityEvent from '@/assets/community-event.jpg';
 import profile1 from '@/assets/profile-1.jpg';
 
@@ -39,6 +40,7 @@ const MeetupsPage = () => {
   const [selectedMeetupItem, setSelectedMeetupItem] = useState<any>(null);
   const [isMeetupPopupOpen, setIsMeetupPopupOpen] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [showMeetupFilter, setShowMeetupFilter] = useState(false);
   
   // Fetch meetups
   const {
@@ -145,12 +147,12 @@ const MeetupsPage = () => {
             </h2>
             <div className="flex items-center gap-2">
               <Button 
-                variant="ghost" 
+                variant="outline" 
                 size="sm" 
-                onClick={() => navigate('/all-meetups')}
-                className="text-xs px-2 py-1 h-6 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowMeetupFilter(true)}
+                className="text-xs px-2 py-1 h-6 rounded-full border-2 border-primary bg-transparent text-foreground hover:border-primary/80"
               >
-                All
+                <Filter className="h-3 w-3" />
               </Button>
               <Button variant="outline" size="sm" onClick={() => setShowCreateEvent(true)} className="text-xs px-2 py-1 rounded-full border-2 border-primary bg-transparent text-foreground hover:border-primary/80 gap-1">
                 <Plus className="h-3 w-3 text-black" />
@@ -210,6 +212,14 @@ const MeetupsPage = () => {
           onEventCreated={() => {
             refetchMeetups();
           }} 
+        />
+      )}
+
+      {/* Meetup Filter Popup */}
+      {showMeetupFilter && (
+        <MeetupFilterPopup 
+          isOpen={showMeetupFilter} 
+          onClose={() => setShowMeetupFilter(false)} 
         />
       )}
       

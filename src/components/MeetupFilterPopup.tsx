@@ -1,4 +1,3 @@
-
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -7,26 +6,26 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
-interface EventFilterPopupProps {
+interface MeetupFilterPopupProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const EventFilterPopup = ({ isOpen, onClose }: EventFilterPopupProps) => {
+const MeetupFilterPopup = ({ isOpen, onClose }: MeetupFilterPopupProps) => {
   const { toast } = useToast();
-  const [eventTypes, setEventTypes] = useState({
-    party: false,
-    concert: false,
-    workshop: false,
+  const [meetupTypes, setMeetupTypes] = useState({
+    coffee: false,
     sports: false,
-    art: false,
+    social: false,
+    study: false,
+    creative: false,
     food: false
   });
   const [timeFilter, setTimeFilter] = useState("all");
-  const [priceFilter, setPriceFilter] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("all");
 
-  const handleEventTypeChange = (type: string, checked: boolean) => {
-    setEventTypes(prev => ({
+  const handleMeetupTypeChange = (type: string, checked: boolean) => {
+    setMeetupTypes(prev => ({
       ...prev,
       [type]: checked
     }));
@@ -34,8 +33,8 @@ const EventFilterPopup = ({ isOpen, onClose }: EventFilterPopupProps) => {
 
   const handleSave = () => {
     toast({
-      title: "הפילטר נשמר!",
-      description: "האירועים עודכנו בהתאם להעדפותיך",
+      title: "Filter applied!",
+      description: "Meetups updated according to your preferences",
     });
     onClose();
   };
@@ -51,14 +50,14 @@ const EventFilterPopup = ({ isOpen, onClose }: EventFilterPopupProps) => {
             variant="ghost" 
             size="sm"
             onClick={onClose}
-            className="text-gray-600 hover:text-gray-800"
+            className="text-foreground hover:text-primary"
           >
             <X className="h-5 w-5" />
           </Button>
           
           <div className="text-center">
             <span className="text-3xl font-bold text-primary">una</span>
-            <div className="text-xs text-foreground mt-1">פילטר אירועים</div>
+            <div className="text-xs text-foreground mt-1">meetup filters</div>
           </div>
           
           <div className="w-8 h-8"></div>
@@ -66,104 +65,104 @@ const EventFilterPopup = ({ isOpen, onClose }: EventFilterPopupProps) => {
 
         {/* Content */}
         <div className="px-6 pb-6 space-y-8">
-          {/* Event Types */}
+          {/* Meetup Types */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground text-center">סוג אירוע</h3>
+            <h3 className="text-lg font-semibold text-foreground text-center">Meetup Type</h3>
             <div className="grid grid-cols-2 gap-y-3 gap-x-4">
               <div className="flex items-center space-x-2 space-x-reverse">
                 <Checkbox 
-                  id="party"
-                  checked={eventTypes.party}
-                  onCheckedChange={(checked) => handleEventTypeChange('party', checked as boolean)}
+                  id="coffee"
+                  checked={meetupTypes.coffee}
+                  onCheckedChange={(checked) => handleMeetupTypeChange('coffee', checked as boolean)}
                 />
-                <label htmlFor="party" className="text-sm font-medium text-foreground">מסיבה</label>
-              </div>
-              
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <Checkbox 
-                  id="concert"
-                  checked={eventTypes.concert}
-                  onCheckedChange={(checked) => handleEventTypeChange('concert', checked as boolean)}
-                />
-                <label htmlFor="concert" className="text-sm font-medium text-foreground">קונצרט</label>
-              </div>
-              
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <Checkbox 
-                  id="workshop"
-                  checked={eventTypes.workshop}
-                  onCheckedChange={(checked) => handleEventTypeChange('workshop', checked as boolean)}
-                />
-                <label htmlFor="workshop" className="text-sm font-medium text-foreground">סדנה</label>
+                <label htmlFor="coffee" className="text-sm font-medium text-foreground">Coffee</label>
               </div>
               
               <div className="flex items-center space-x-2 space-x-reverse">
                 <Checkbox 
                   id="sports"
-                  checked={eventTypes.sports}
-                  onCheckedChange={(checked) => handleEventTypeChange('sports', checked as boolean)}
+                  checked={meetupTypes.sports}
+                  onCheckedChange={(checked) => handleMeetupTypeChange('sports', checked as boolean)}
                 />
-                <label htmlFor="sports" className="text-sm font-medium text-foreground">ספורט</label>
+                <label htmlFor="sports" className="text-sm font-medium text-foreground">Sports</label>
               </div>
               
               <div className="flex items-center space-x-2 space-x-reverse">
                 <Checkbox 
-                  id="art"
-                  checked={eventTypes.art}
-                  onCheckedChange={(checked) => handleEventTypeChange('art', checked as boolean)}
+                  id="social"
+                  checked={meetupTypes.social}
+                  onCheckedChange={(checked) => handleMeetupTypeChange('social', checked as boolean)}
                 />
-                <label htmlFor="art" className="text-sm font-medium text-foreground">אמנות</label>
+                <label htmlFor="social" className="text-sm font-medium text-foreground">Social</label>
+              </div>
+              
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <Checkbox 
+                  id="study"
+                  checked={meetupTypes.study}
+                  onCheckedChange={(checked) => handleMeetupTypeChange('study', checked as boolean)}
+                />
+                <label htmlFor="study" className="text-sm font-medium text-foreground">Study</label>
+              </div>
+              
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <Checkbox 
+                  id="creative"
+                  checked={meetupTypes.creative}
+                  onCheckedChange={(checked) => handleMeetupTypeChange('creative', checked as boolean)}
+                />
+                <label htmlFor="creative" className="text-sm font-medium text-foreground">Creative</label>
               </div>
               
               <div className="flex items-center space-x-2 space-x-reverse">
                 <Checkbox 
                   id="food"
-                  checked={eventTypes.food}
-                  onCheckedChange={(checked) => handleEventTypeChange('food', checked as boolean)}
+                  checked={meetupTypes.food}
+                  onCheckedChange={(checked) => handleMeetupTypeChange('food', checked as boolean)}
                 />
-                <label htmlFor="food" className="text-sm font-medium text-foreground">אוכל</label>
+                <label htmlFor="food" className="text-sm font-medium text-foreground">Food</label>
               </div>
             </div>
           </div>
 
           {/* Time Filter */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground text-center">זמן</h3>
+            <h3 className="text-lg font-semibold text-foreground text-center">Time</h3>
             <RadioGroup value={timeFilter} onValueChange={setTimeFilter} className="space-y-3">
               <div className="flex items-center justify-center space-x-2 space-x-reverse">
                 <RadioGroupItem value="all" id="all-time" />
-                <Label htmlFor="all-time" className="text-sm font-medium text-foreground">הכל</Label>
+                <Label htmlFor="all-time" className="text-sm font-medium text-foreground">All</Label>
               </div>
               <div className="flex items-center justify-center space-x-2 space-x-reverse">
                 <RadioGroupItem value="today" id="today" />
-                <Label htmlFor="today" className="text-sm font-medium text-foreground">היום</Label>
+                <Label htmlFor="today" className="text-sm font-medium text-foreground">Today</Label>
               </div>
               <div className="flex items-center justify-center space-x-2 space-x-reverse">
                 <RadioGroupItem value="tomorrow" id="tomorrow" />
-                <Label htmlFor="tomorrow" className="text-sm font-medium text-foreground">מחר</Label>
+                <Label htmlFor="tomorrow" className="text-sm font-medium text-foreground">Tomorrow</Label>
               </div>
               <div className="flex items-center justify-center space-x-2 space-x-reverse">
                 <RadioGroupItem value="week" id="week" />
-                <Label htmlFor="week" className="text-sm font-medium text-foreground">השבוע</Label>
+                <Label htmlFor="week" className="text-sm font-medium text-foreground">This Week</Label>
               </div>
             </RadioGroup>
           </div>
 
-          {/* Price Filter */}
+          {/* Location Filter */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground text-center">מחיר</h3>
-            <RadioGroup value={priceFilter} onValueChange={setPriceFilter} className="space-y-3">
+            <h3 className="text-lg font-semibold text-foreground text-center">Location</h3>
+            <RadioGroup value={locationFilter} onValueChange={setLocationFilter} className="space-y-3">
               <div className="flex items-center justify-center space-x-2 space-x-reverse">
-                <RadioGroupItem value="all" id="all-price" />
-                <Label htmlFor="all-price" className="text-sm font-medium text-foreground">הכל</Label>
+                <RadioGroupItem value="all" id="all-location" />
+                <Label htmlFor="all-location" className="text-sm font-medium text-foreground">All</Label>
               </div>
               <div className="flex items-center justify-center space-x-2 space-x-reverse">
-                <RadioGroupItem value="free" id="free" />
-                <Label htmlFor="free" className="text-sm font-medium text-foreground">חינם</Label>
+                <RadioGroupItem value="nearby" id="nearby" />
+                <Label htmlFor="nearby" className="text-sm font-medium text-foreground">Nearby</Label>
               </div>
               <div className="flex items-center justify-center space-x-2 space-x-reverse">
-                <RadioGroupItem value="paid" id="paid" />
-                <Label htmlFor="paid" className="text-sm font-medium text-foreground">בתשלום</Label>
+                <RadioGroupItem value="neighborhood" id="neighborhood" />
+                <Label htmlFor="neighborhood" className="text-sm font-medium text-foreground">My Neighborhood</Label>
               </div>
             </RadioGroup>
           </div>
@@ -174,7 +173,7 @@ const EventFilterPopup = ({ isOpen, onClose }: EventFilterPopupProps) => {
               onClick={handleSave}
               className="w-full h-12 bg-primary hover:bg-primary-600 text-white rounded-2xl text-lg font-medium"
             >
-              החל
+              Apply Filter
             </Button>
           </div>
         </div>
@@ -183,4 +182,4 @@ const EventFilterPopup = ({ isOpen, onClose }: EventFilterPopupProps) => {
   );
 };
 
-export default EventFilterPopup;
+export default MeetupFilterPopup;
