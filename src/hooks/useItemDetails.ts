@@ -13,6 +13,8 @@ export interface ItemWithUploader {
   mobile_number?: string;
   status: string;
   created_at: string;
+  meetup_date?: string;
+  meetup_time?: string;
   uploader: {
     id: string;
     name: string;
@@ -69,6 +71,8 @@ const fetchItemDetails = async (itemId: string): Promise<ItemWithUploader | null
     mobile_number: itemData.mobile_number,
     status: itemData.status,
     created_at: itemData.created_at,
+    meetup_date: itemData.meetup_date,
+    meetup_time: itemData.meetup_time,
     uploader: {
       id: uploaderData?.id || itemData.user_id,
       name: uploaderData?.name || 'משתמש',

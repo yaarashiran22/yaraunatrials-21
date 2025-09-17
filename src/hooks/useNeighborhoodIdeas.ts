@@ -19,7 +19,7 @@ export interface NeighborhoodIdea {
   votes?: {
     agree: number;
     disagree: number;
-    user_vote?: boolean | null;
+    user_vote?: string | null;
   };
 }
 
@@ -27,7 +27,7 @@ export interface IdeaVote {
   id: string;
   user_id: string;
   idea_id: string;
-  vote: boolean;
+  vote: string;
   created_at: string;
 }
 
@@ -74,12 +74,13 @@ export const useNeighborhoodIdeas = () => {
       // Process votes and attach to ideas
       const ideasWithVotes = ideasData?.map(idea => {
         const ideaVotes = votesData?.filter(vote => vote.idea_id === idea.id) || [];
-        const agreeVotes = ideaVotes.filter(vote => vote.vote === true).length;
-        const disagreeVotes = ideaVotes.filter(vote => vote.vote === false).length;
+        const agreeVotes = ideaVotes.filter(vote => vote.vote === 'agree').length;
+        const disagreeVotes = ideaVotes.filter(vote => vote.vote === 'disagree').length;
         const userVote = user ? ideaVotes.find(vote => vote.user_id === user.id)?.vote : null;
 
         return {
           ...idea,
+          image_url: idea.image_url || '', // Ensure image_url is always present
           profiles: Array.isArray(idea.profiles) ? idea.profiles[0] : idea.profiles,
           votes: {
             agree: agreeVotes,
@@ -171,7 +172,7 @@ export const useNeighborhoodIdeas = () => {
         // Update existing vote
         const { error } = await supabase
           .from('idea_votes')
-          .update({ vote })
+          .update({ vote: vote ? 'agree' : 'disagree' })
           .eq('id', existingVote.id);
 
         if (error) {
@@ -185,7 +186,7 @@ export const useNeighborhoodIdeas = () => {
           .insert([{
             user_id: user.id,
             idea_id: ideaId,
-            vote
+            vote: vote ? 'agree' : 'disagree'
           }]);
 
         if (error) {

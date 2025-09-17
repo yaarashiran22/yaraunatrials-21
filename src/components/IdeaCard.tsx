@@ -104,7 +104,7 @@ const IdeaCard = ({ idea, onVote, onDelete }: IdeaCardProps) => {
           {/* Vote Buttons */}
           <div className="flex gap-2 mb-4">
             <Button
-              variant={userVote === true ? "default" : "outline"}
+              variant={userVote === 'agree' ? "default" : "outline"}
               size="sm"
               onClick={() => handleVote(true)}
               className="flex-1 gap-2"
@@ -114,7 +114,7 @@ const IdeaCard = ({ idea, onVote, onDelete }: IdeaCardProps) => {
               בעד ({agreeCount})
             </Button>
             <Button
-              variant={userVote === false ? "default" : "outline"}
+              variant={userVote === 'disagree' ? "default" : "outline"}
               size="sm"
               onClick={() => handleVote(false)}
               className="flex-1 gap-2"

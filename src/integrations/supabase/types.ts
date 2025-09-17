@@ -492,6 +492,8 @@ export type Database = {
           image_url: string | null
           location: string | null
           market: string | null
+          meetup_date: string | null
+          meetup_time: string | null
           mobile_number: string | null
           price: number | null
           status: string | null
@@ -507,6 +509,8 @@ export type Database = {
           image_url?: string | null
           location?: string | null
           market?: string | null
+          meetup_date?: string | null
+          meetup_time?: string | null
           mobile_number?: string | null
           price?: number | null
           status?: string | null
@@ -522,6 +526,8 @@ export type Database = {
           image_url?: string | null
           location?: string | null
           market?: string | null
+          meetup_date?: string | null
+          meetup_time?: string | null
           mobile_number?: string | null
           price?: number | null
           status?: string | null
@@ -565,6 +571,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          image_url: string | null
           market: string | null
           neighborhood: string | null
           question: string
@@ -574,6 +581,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          image_url?: string | null
           market?: string | null
           neighborhood?: string | null
           question: string
@@ -583,6 +591,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          image_url?: string | null
           market?: string | null
           neighborhood?: string | null
           question?: string
@@ -732,6 +741,33 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_photos: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          photo_url: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          photo_url: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          photo_url?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -780,6 +816,30 @@ export type Database = {
         }
         Relationships: []
       }
+      recommendation_agreements: {
+        Row: {
+          agreement_type: string
+          created_at: string
+          id: string
+          recommendation_id: string
+          user_id: string
+        }
+        Insert: {
+          agreement_type: string
+          created_at?: string
+          id?: string
+          recommendation_id: string
+          user_id: string
+        }
+        Update: {
+          agreement_type?: string
+          created_at?: string
+          id?: string
+          recommendation_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       recommendations: {
         Row: {
           category: string | null
@@ -821,6 +881,60 @@ export type Database = {
           status?: string | null
           title?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      smallprofiles: {
+        Row: {
+          created_at: string
+          id: string
+          photo: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          photo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          photo?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stories: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          image_url: string | null
+          is_announcement: boolean | null
+          story_type: string | null
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_announcement?: boolean | null
+          story_type?: string | null
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_announcement?: boolean | null
+          story_type?: string | null
+          title?: string | null
           user_id?: string
         }
         Relationships: []
