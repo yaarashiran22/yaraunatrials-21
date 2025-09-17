@@ -67,7 +67,8 @@ export const useRecommendationAgreements = (recommendationId: string) => {
           .from('recommendation_agreements')
           .insert({
             recommendation_id: recommendationId,
-            user_id: user.id
+            user_id: user.id,
+            agreement_type: 'agree'
           });
 
         setHasAgreed(true);

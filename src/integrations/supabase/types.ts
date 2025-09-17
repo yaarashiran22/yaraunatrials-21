@@ -183,6 +183,30 @@ export type Database = {
           },
         ]
       }
+      community_requests: {
+        Row: {
+          community_id: string
+          created_at: string
+          id: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          community_id: string
+          created_at?: string
+          id?: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          community_id?: string
+          created_at?: string
+          id?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       coupon_claims: {
         Row: {
           claimed_at: string | null
@@ -537,6 +561,30 @@ export type Database = {
         }
         Relationships: []
       }
+      meetup_join_requests: {
+        Row: {
+          created_at: string
+          id: string
+          meetup_id: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meetup_id: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meetup_id?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       neighbor_questions: {
         Row: {
           content: string
@@ -779,6 +827,7 @@ export type Database = {
           location: string | null
           mobile_number: string | null
           name: string | null
+          open_to_connecting: boolean | null
           profile_image_url: string | null
           specialties: string[] | null
           updated_at: string | null
@@ -794,6 +843,7 @@ export type Database = {
           location?: string | null
           mobile_number?: string | null
           name?: string | null
+          open_to_connecting?: boolean | null
           profile_image_url?: string | null
           specialties?: string[] | null
           updated_at?: string | null
@@ -809,6 +859,7 @@ export type Database = {
           location?: string | null
           mobile_number?: string | null
           name?: string | null
+          open_to_connecting?: boolean | null
           profile_image_url?: string | null
           specialties?: string[] | null
           updated_at?: string | null
@@ -1074,6 +1125,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          latitude: number | null
+          longitude: number | null
           status: string | null
           status_expires_at: string | null
           updated_at: string
@@ -1082,6 +1135,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           status?: string | null
           status_expires_at?: string | null
           updated_at?: string
@@ -1090,9 +1145,32 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           status?: string | null
           status_expires_at?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
           user_id?: string
         }
         Relationships: []
