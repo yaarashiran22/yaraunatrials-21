@@ -1204,7 +1204,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_community_membership_status: {
+        Args: { membership_id: string; new_status: string }
+        Returns: Json
+      }
+      update_meetup_join_status: {
+        Args: { new_status: string; rsvp_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
