@@ -75,9 +75,8 @@ const CommunityPage = () => {
     try {
       const { data, error } = await supabase
         .from('community_perks')
-        .select('id, title, description, business_name, discount_amount, image_url, valid_until, community_id, created_at')
+        .select('*')
         .eq('community_id', id)
-        .eq('is_active', true)
         .limit(5);
 
       if (error) throw error;
