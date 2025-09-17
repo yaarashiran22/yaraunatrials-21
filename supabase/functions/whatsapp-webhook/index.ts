@@ -38,152 +38,140 @@ async function sendWhatsAppMessage(to: string, message: string) {
 }
 
 async function handleUserQuery(userMessage: string, userPhone: string) {
-  const message = userMessage.toLowerCase().trim()
-  
-  console.log(`Received message from ${userPhone}: ${userMessage}`)
+  console.log(`WhatsApp Bot - Received message from ${userPhone}: ${userMessage}`)
 
-  // Handle different types of queries
-  if (message.includes('events') || message.includes('event')) {
-    // Get upcoming events
-    const { data: events, error } = await supabase
-      .from('events')
-      .select('title, description, date, time, location')
-      .limit(3)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching events:', error)
-      return "Sorry, I couldn't fetch events right now. Please try again later."
+  try {
+    // Get OpenAI API key
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIApiKey) {
+      console.error('❌ OpenAI API key not found');
+      return "I'm having configuration issues. Please try again later.";
     }
 
-    if (!events || events.length === 0) {
-      return "No upcoming events found. Stay tuned for new events!"
+    // Fetch comprehensive data from ALL relevant tables in parallel
+    const [
+      eventsData,
+      communitiesData, 
+      postsData,
+      itemsData,
+      neighborIdeasData,
+      neighborQuestionsData,
+      couponsData,
+      storiesData
+    ] = await Promise.all([
+      supabase.from('events').select('id, title, description, location, date, time, price, mood, event_type').limit(8),
+      supabase.from('communities').select('id, name, tagline, description, category, subcategory, member_count').limit(6),
+      supabase.from('posts').select('id, content, location, created_at').limit(5),
+      supabase.from('items').select('id, title, description, category, location, price').eq('status', 'active').limit(6),
+      supabase.from('neighborhood_ideas').select('id, question, neighborhood, market').limit(4),
+      supabase.from('neighbor_questions').select('id, content, market, message_type').limit(4),
+      supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood').eq('is_active', true).limit(4),
+      supabase.from('stories').select('id, text_content, story_type').gt('expires_at', 'now()').limit(3)
+    ]);
+
+    console.log('📊 WhatsApp Bot - Data fetched successfully');
+
+    // Prepare comprehensive context with REAL data
+    const realData = {
+      currentEvents: eventsData.data || [],
+      activeCommunities: communitiesData.data || [],
+      recentPosts: postsData.data || [],
+      marketplaceItems: itemsData.data || [],
+      neighborhoodIdeas: neighborIdeasData.data || [],
+      neighborQuestions: neighborQuestionsData.data || [],
+      localCoupons: couponsData.data || [],
+      activeStories: storiesData.data || [],
+      userLocation: 'WhatsApp User'
+    };
+
+    // Create detailed system prompt with ALL real data for WhatsApp
+    const systemPrompt = `You are the AI assistant for TheUnaHub (theunahub.com), a vibrant neighborhood social platform. You're responding via WhatsApp to user ${userPhone}. You have access to REAL, current data and should provide specific, helpful responses based on actual content.
+
+🎯 REAL CURRENT DATA AVAILABLE:
+
+📅 EVENTS (${realData.currentEvents.length} active):
+${realData.currentEvents.map(e => `- "${e.title}" at ${e.location} on ${e.date} ${e.time ? 'at ' + e.time : ''} ${e.price ? '($' + e.price + ')' : ''} - ${e.description?.substring(0, 100)}...`).join('\n')}
+
+👥 COMMUNITIES (${realData.activeCommunities.length} active):
+${realData.activeCommunities.map(c => `- "${c.name}" (${c.member_count} members) - ${c.category} - ${c.tagline || c.description?.substring(0, 80)}`).join('\n')}
+
+🏪 MARKETPLACE (${realData.marketplaceItems.length} items):
+${realData.marketplaceItems.map(i => `- "${i.title}" in ${i.category} at ${i.location} for $${i.price} - ${i.description?.substring(0, 60)}...`).join('\n')}
+
+💡 NEIGHBORHOOD IDEAS (${realData.neighborhoodIdeas.length} recent):
+${realData.neighborhoodIdeas.map(n => `- "${n.question}" in ${n.neighborhood}`).join('\n')}
+
+❓ NEIGHBOR QUESTIONS (${realData.neighborQuestions.length} recent):
+${realData.neighborQuestions.map(q => `- ${q.content?.substring(0, 80)}...`).join('\n')}
+
+🎫 LOCAL DEALS (${realData.localCoupons.length} active):
+${realData.localCoupons.map(c => `- ${c.discount_amount} off at ${c.business_name} - ${c.title}`).join('\n')}
+
+🤖 WHATSAPP INSTRUCTIONS:
+1. ALWAYS mention specific events, communities, or items from the real data when relevant
+2. Reference actual names, locations, dates, and prices from the database
+3. Be conversational and helpful, like a local neighborhood expert
+4. Keep responses under 200 words but packed with specific information
+5. Use WhatsApp formatting (*bold*, _italic_) when appropriate
+6. If asked about events, mention specific ones by name and details
+7. If asked about communities, reference actual community names and member counts
+8. For marketplace questions, mention real items and prices
+9. Always sound knowledgeable about the current neighborhood activity
+10. Format responses nicely for WhatsApp with emojis and proper spacing`;
+
+    console.log('🤖 WhatsApp Bot - Calling OpenAI with comprehensive data context...');
+
+    // Make OpenAI API call with comprehensive context
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage }
+        ],
+        max_tokens: 200,
+        temperature: 0.7
+      })
+    });
+
+    console.log('📡 WhatsApp Bot - OpenAI response status:', response.status);
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('❌ WhatsApp Bot - OpenAI API error:', response.status, errorData);
+      return "I'm having trouble connecting to my AI service. Please try again in a moment.";
     }
 
-    let response = "🎉 *Upcoming Events:*\n\n"
-    events.forEach((event, index) => {
-      response += `${index + 1}. *${event.title}*\n`
-      if (event.description) response += `   ${event.description}\n`
-      if (event.date) response += `   📅 ${event.date}`
-      if (event.time) response += ` at ${event.time}`
-      if (event.location) response += `\n   📍 ${event.location}`
-      response += "\n\n"
-    })
-
-    return response
-
-  } else if (message.includes('recommendations') || message.includes('recommend')) {
-    // Get recommendations
-    const { data: recommendations, error } = await supabase
-      .from('recommendations')
-      .select('title, description, category, location')
-      .eq('status', 'active')
-      .limit(3)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching recommendations:', error)
-      return "Sorry, I couldn't fetch recommendations right now. Please try again later."
+    const data = await response.json();
+    console.log('✅ WhatsApp Bot - Got OpenAI response successfully');
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('❌ WhatsApp Bot - Invalid response format');
+      return "Sorry, I'm having trouble processing your request. Please try again.";
     }
+    
+    const aiResponse = data.choices[0].message.content;
+    console.log('🎉 WhatsApp Bot - Success! Returning AI response with comprehensive real data');
 
-    if (!recommendations || recommendations.length === 0) {
-      return "No recommendations available at the moment. Check back later!"
+    return aiResponse;
+
+  } catch (error) {
+    console.error('💥 WhatsApp Bot - Error in handleUserQuery:', error);
+    
+    let errorMessage = "Sorry, I'm having technical difficulties. Please try again.";
+    
+    if (error.message.includes('API key')) {
+      errorMessage = "I'm having API configuration issues. Please contact support.";
+    } else if (error.message.includes('timeout')) {
+      errorMessage = "The request timed out. Please try a shorter question.";
     }
-
-    let response = "⭐ *Latest Recommendations:*\n\n"
-    recommendations.forEach((rec, index) => {
-      response += `${index + 1}. *${rec.title}*\n`
-      if (rec.description) response += `   ${rec.description}\n`
-      if (rec.category) response += `   🏷️ ${rec.category}`
-      if (rec.location) response += `\n   📍 ${rec.location}`
-      response += "\n\n"
-    })
-
-    return response
-
-  } else if (message.includes('community') || message.includes('communities')) {
-    // Get communities
-    const { data: communities, error } = await supabase
-      .from('communities')
-      .select('name, description, category, member_count')
-      .eq('is_active', true)
-      .limit(3)
-      .order('member_count', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching communities:', error)
-      return "Sorry, I couldn't fetch communities right now. Please try again later."
-    }
-
-    if (!communities || communities.length === 0) {
-      return "No active communities found. Be the first to create one!"
-    }
-
-    let response = "🏘️ *Active Communities:*\n\n"
-    communities.forEach((community, index) => {
-      response += `${index + 1}. *${community.name}*\n`
-      if (community.description) response += `   ${community.description}\n`
-      if (community.category) response += `   🏷️ ${community.category}\n`
-      response += `   👥 ${community.member_count || 0} members\n\n`
-    })
-
-    return response
-
-  } else if (message.includes('marketplace') || message.includes('items') || message.includes('buy') || message.includes('sell')) {
-    // Get marketplace items
-    const { data: items, error } = await supabase
-      .from('items')
-      .select('title, description, price, category, location')
-      .eq('status', 'active')
-      .limit(3)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching items:', error)
-      return "Sorry, I couldn't fetch marketplace items right now. Please try again later."
-    }
-
-    if (!items || items.length === 0) {
-      return "No items available in the marketplace right now. Check back later!"
-    }
-
-    let response = "🛍️ *Marketplace Items:*\n\n"
-    items.forEach((item, index) => {
-      response += `${index + 1}. *${item.title}*\n`
-      if (item.description) response += `   ${item.description}\n`
-      if (item.price) response += `   💰 $${item.price}\n`
-      if (item.category) response += `   🏷️ ${item.category}`
-      if (item.location) response += `\n   📍 ${item.location}`
-      response += "\n\n"
-    })
-
-    return response
-
-  } else if (message.includes('help') || message === 'hi' || message === 'hello' || message === 'start') {
-    return `👋 *Welcome to our Community Bot!*
-
-I can help you with:
-• *Events* - Get upcoming events
-• *Recommendations* - Latest recommendations  
-• *Communities* - Active communities
-• *Marketplace* - Items for sale/wanted
-• *Help* - Show this menu
-
-Just type what you're looking for! For example:
-- "Show me events"
-- "Any recommendations?"
-- "What communities are active?"
-- "What's in the marketplace?"`
-
-  } else {
-    return `🤔 I didn't understand that. Type *help* to see what I can do for you!
-
-You can ask me about:
-• Events
-• Recommendations
-• Communities  
-• Marketplace
-• Help`
+    
+    return errorMessage;
   }
 }
 
