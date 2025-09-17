@@ -187,7 +187,7 @@ export const useProfile = (profileId?: string) => {
 
   useEffect(() => {
     fetchProfile();
-  }, [profileId, user?.id]); // Direct dependencies instead of fetchProfile
+  }, [fetchProfile]);
 
   return {
     profile,
