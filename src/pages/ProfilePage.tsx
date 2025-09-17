@@ -1199,12 +1199,15 @@ const ProfilePage = () => {
         <main className="px-4 py-6 pb-20">
           <div className="text-center">
             <p className="text-muted-foreground mb-4">
-              {error || 'Profile not found'}
+              {loading ? 'Loading profile...' : (error || 'Profile not found')}
             </p>
-            {isOwnProfile && (
-              <Button onClick={() => navigate('/profile/edit')}>
-                Create Profile
-              </Button>
+            <Button onClick={() => navigate('/profile/edit')} className="mb-4">
+              {profileData ? 'Edit Profile' : 'Create Profile'}
+            </Button>
+            {!loading && !profileData && (
+              <p className="text-sm text-muted-foreground">
+                User ID: {actualProfileId}
+              </p>
             )}
           </div>
         </main>

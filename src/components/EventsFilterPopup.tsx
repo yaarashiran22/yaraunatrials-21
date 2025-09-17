@@ -106,33 +106,19 @@ const EventsFilterPopup = ({ isOpen, onClose, onFiltersApply, currentFilters }: 
 
         {/* Filter Content */}
         <div className="p-6 space-y-6 bg-white">
-          {/* Search */}
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-900">Search</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary/60 h-4 w-4" />
-              <Input
-                placeholder="Search events..."
-                value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                className="pl-10 rounded-xl border-primary/20 bg-white text-gray-900 focus:border-primary/40"
-              />
-            </div>
-          </div>
-
           {/* Neighborhood */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-foreground">Neighborhood</label>
+            <label className="text-sm font-semibold text-gray-900">Neighborhood</label>
             <Select 
               value={filters.neighborhood} 
               onValueChange={(value) => setFilters({ ...filters, neighborhood: value })}
             >
-              <SelectTrigger className="rounded-xl border-primary/20 bg-background hover:border-primary/40">
+              <SelectTrigger className="rounded-xl border-primary/20 bg-white text-gray-900 hover:border-primary/40">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-primary/20 bg-popover z-[60]">
+              <SelectContent className="rounded-xl border-primary/20 bg-white z-[70]">
                 {neighborhoods.map((neighborhood) => (
-                  <SelectItem key={neighborhood} value={neighborhood} className="rounded-lg">
+                  <SelectItem key={neighborhood} value={neighborhood} className="rounded-lg text-gray-900 hover:bg-gray-100">
                     {neighborhood}
                   </SelectItem>
                 ))}
@@ -142,17 +128,17 @@ const EventsFilterPopup = ({ isOpen, onClose, onFiltersApply, currentFilters }: 
 
           {/* Price Range */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-foreground">Price Range</label>
+            <label className="text-sm font-semibold text-gray-900">Price Range</label>
             <Select 
               value={filters.priceRange} 
               onValueChange={(value) => setFilters({ ...filters, priceRange: value })}
             >
-              <SelectTrigger className="rounded-xl border-primary/20 bg-background hover:border-primary/40">
+              <SelectTrigger className="rounded-xl border-primary/20 bg-white text-gray-900 hover:border-primary/40">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-primary/20 bg-popover z-[60]">
+              <SelectContent className="rounded-xl border-primary/20 bg-white z-[70]">
                 {priceOptions.map((option) => (
-                  <SelectItem key={option} value={option} className="rounded-lg">
+                  <SelectItem key={option} value={option} className="rounded-lg text-gray-900 hover:bg-gray-100">
                     {option}
                   </SelectItem>
                 ))}
@@ -162,17 +148,17 @@ const EventsFilterPopup = ({ isOpen, onClose, onFiltersApply, currentFilters }: 
 
           {/* Mood */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-foreground">Vibe</label>
+            <label className="text-sm font-semibold text-gray-900">Vibe</label>
             <Select 
               value={filters.mood} 
               onValueChange={(value) => setFilters({ ...filters, mood: value })}
             >
-              <SelectTrigger className="rounded-xl border-primary/20 bg-background hover:border-primary/40">
+              <SelectTrigger className="rounded-xl border-primary/20 bg-white text-gray-900 hover:border-primary/40">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-primary/20 bg-popover z-[60]">
+              <SelectContent className="rounded-xl border-primary/20 bg-white z-[70]">
                 {moodOptions.map((option) => (
-                  <SelectItem key={option} value={option} className="rounded-lg">
+                  <SelectItem key={option} value={option} className="rounded-lg text-gray-900 hover:bg-gray-100">
                     {option}
                   </SelectItem>
                 ))}
@@ -182,17 +168,17 @@ const EventsFilterPopup = ({ isOpen, onClose, onFiltersApply, currentFilters }: 
 
           {/* Date Range */}
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-foreground">When</label>
+            <label className="text-sm font-semibold text-gray-900">When</label>
             <Select 
               value={filters.dateRange} 
               onValueChange={(value) => setFilters({ ...filters, dateRange: value })}
             >
-              <SelectTrigger className="rounded-xl border-primary/20 bg-background hover:border-primary/40">
+              <SelectTrigger className="rounded-xl border-primary/20 bg-white text-gray-900 hover:border-primary/40">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-primary/20 bg-popover z-[60]">
+              <SelectContent className="rounded-xl border-primary/20 bg-white z-[70]">
                 {dateOptions.map((option) => (
-                  <SelectItem key={option} value={option} className="rounded-lg">
+                  <SelectItem key={option} value={option} className="rounded-lg text-gray-900 hover:bg-gray-100">
                     {option}
                   </SelectItem>
                 ))}
@@ -202,7 +188,7 @@ const EventsFilterPopup = ({ isOpen, onClose, onFiltersApply, currentFilters }: 
         </div>
 
         {/* Footer Actions */}
-        <div className="flex gap-3 p-6 border-t border-primary/10">
+        <div className="flex gap-3 p-6 border-t border-primary/10 bg-white">
           {hasActiveFilters && (
             <Button
               variant="outline"

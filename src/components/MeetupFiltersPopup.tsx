@@ -107,20 +107,6 @@ const MeetupFiltersPopup = ({ isOpen, onClose, onFiltersApply, currentFilters }:
 
         {/* Filter Content */}
         <div className="p-6 space-y-6 bg-white">
-          {/* Search */}
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-900">Search</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary/60 h-4 w-4" />
-              <Input
-                placeholder="Search meetups..."
-                value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                className="pl-10 rounded-xl border-primary/20 bg-white text-gray-900 focus:border-primary/40"
-              />
-            </div>
-          </div>
-
           {/* Neighborhood */}
           <div className="space-y-2">
             <label className="text-sm font-semibold text-gray-900">Neighborhood</label>
@@ -131,7 +117,7 @@ const MeetupFiltersPopup = ({ isOpen, onClose, onFiltersApply, currentFilters }:
               <SelectTrigger className="rounded-xl border-primary/20 bg-white text-gray-900 hover:border-primary/40">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-primary/20 bg-white z-[60]">
+              <SelectContent className="rounded-xl border-primary/20 bg-white z-[70]">
                 {neighborhoods.map((neighborhood) => (
                   <SelectItem key={neighborhood} value={neighborhood} className="rounded-lg text-gray-900 hover:bg-gray-100">
                     {neighborhood}
@@ -151,7 +137,7 @@ const MeetupFiltersPopup = ({ isOpen, onClose, onFiltersApply, currentFilters }:
               <SelectTrigger className="rounded-xl border-primary/20 bg-white text-gray-900 hover:border-primary/40">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-primary/20 bg-white z-[60]">
+              <SelectContent className="rounded-xl border-primary/20 bg-white z-[70]">
                 {priceOptions.map((option) => (
                   <SelectItem key={option} value={option} className="rounded-lg text-gray-900 hover:bg-gray-100">
                     {option}
@@ -171,7 +157,7 @@ const MeetupFiltersPopup = ({ isOpen, onClose, onFiltersApply, currentFilters }:
               <SelectTrigger className="rounded-xl border-primary/20 bg-white text-gray-900 hover:border-primary/40">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-primary/20 bg-white z-[60]">
+              <SelectContent className="rounded-xl border-primary/20 bg-white z-[70]">
                 {moodOptions.map((option) => (
                   <SelectItem key={option} value={option} className="rounded-lg text-gray-900 hover:bg-gray-100">
                     {option}
@@ -191,7 +177,7 @@ const MeetupFiltersPopup = ({ isOpen, onClose, onFiltersApply, currentFilters }:
               <SelectTrigger className="rounded-xl border-primary/20 bg-white text-gray-900 hover:border-primary/40">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border-primary/20 bg-white z-[60]">
+              <SelectContent className="rounded-xl border-primary/20 bg-white z-[70]">
                 {dateOptions.map((option) => (
                   <SelectItem key={option} value={option} className="rounded-lg text-gray-900 hover:bg-gray-100">
                     {option}
