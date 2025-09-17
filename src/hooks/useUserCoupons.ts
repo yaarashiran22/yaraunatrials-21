@@ -22,7 +22,6 @@ const fetchUserCoupons = async () => {
     const { data, error } = await supabase
       .from('user_coupons')
       .select('*')
-      .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(20);
 
