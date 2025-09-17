@@ -184,7 +184,7 @@ const RegisterPage = () => {
                   placeholder="Name"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="w-full h-12 text-left bg-background border border-border rounded-lg"
+                  className="w-full h-12 text-left bg-background border border-border rounded-lg text-gray-900 placeholder:text-gray-500"
                 />
               </div>
               
@@ -194,7 +194,7 @@ const RegisterPage = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="w-full h-12 text-left bg-background border border-border rounded-lg"
+                  className="w-full h-12 text-left bg-background border border-border rounded-lg text-gray-900 placeholder:text-gray-500"
                 />
               </div>
               
@@ -204,7 +204,7 @@ const RegisterPage = () => {
                   type="password"
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  className="w-full h-12 text-left bg-background border border-border rounded-lg"
+                  className="w-full h-12 text-left bg-background border border-border rounded-lg text-gray-900 placeholder:text-gray-500"
                 />
               </div>
               
@@ -214,7 +214,7 @@ const RegisterPage = () => {
                   placeholder="Neighborhood"
                   value={formData.neighborhood}
                   onChange={(e) => handleInputChange('neighborhood', e.target.value)}
-                  className="w-full h-12 text-left bg-background border border-border rounded-lg"
+                  className="w-full h-12 text-left bg-background border border-border rounded-lg text-gray-900 placeholder:text-gray-500"
                 />
               </div>
               
@@ -223,7 +223,7 @@ const RegisterPage = () => {
                   placeholder="Short Bio"
                   value={formData.bio}
                   onChange={(e) => handleInputChange('bio', e.target.value)}
-                  className="w-full h-12 text-left bg-background border border-border rounded-lg"
+                  className="w-full h-12 text-left bg-background border border-border rounded-lg text-gray-900 placeholder:text-gray-500"
                 />
               </div>
             </div>
@@ -277,7 +277,7 @@ const RegisterPage = () => {
                   placeholder="Instagram @"
                   value={formData.instagram}
                   onChange={(e) => handleInputChange('instagram', e.target.value)}
-                  className="w-full h-12 text-left bg-background border border-border rounded-lg"
+                  className="w-full h-12 text-left bg-background border border-border rounded-lg text-gray-900 placeholder:text-gray-500"
                 />
               </div>
               
@@ -286,7 +286,7 @@ const RegisterPage = () => {
                   placeholder="Facebook"
                   value={formData.facebook}
                   onChange={(e) => handleInputChange('facebook', e.target.value)}
-                  className="w-full h-12 text-left bg-background border border-border rounded-lg"
+                  className="w-full h-12 text-left bg-background border border-border rounded-lg text-gray-900 placeholder:text-gray-500"
                 />
               </div>
               
@@ -295,7 +295,7 @@ const RegisterPage = () => {
                   placeholder="TikTok @"
                   value={formData.tiktok}
                   onChange={(e) => handleInputChange('tiktok', e.target.value)}
-                  className="w-full h-12 text-left bg-background border border-border rounded-lg"
+                  className="w-full h-12 text-left bg-background border border-border rounded-lg text-gray-900 placeholder:text-gray-500"
                 />
               </div>
               
@@ -304,7 +304,7 @@ const RegisterPage = () => {
                   placeholder="LinkedIn"
                   value={formData.linkedin}
                   onChange={(e) => handleInputChange('linkedin', e.target.value)}
-                  className="w-full h-12 text-left bg-background border border-border rounded-lg"
+                  className="w-full h-12 text-left bg-background border border-border rounded-lg text-gray-900 placeholder:text-gray-500"
                 />
               </div>
             </div>

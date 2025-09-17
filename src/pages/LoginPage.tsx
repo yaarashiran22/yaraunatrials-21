@@ -238,7 +238,7 @@ const LoginPage = () => {
                   placeholder="Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-12 text-left bg-white/80 border-primary-200/40 focus:border-primary focus:ring-primary/20 rounded-lg"
+                  className="w-full h-12 text-left bg-white/80 border-primary-200/40 focus:border-primary focus:ring-primary/20 rounded-lg text-gray-900 placeholder:text-gray-500"
                   required
                 />
               </div>
@@ -249,7 +249,7 @@ const LoginPage = () => {
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-12 text-left bg-white/80 border-primary-200/40 focus:border-primary focus:ring-primary/20 rounded-lg"
+                  className="w-full h-12 text-left bg-white/80 border-primary-200/40 focus:border-primary focus:ring-primary/20 rounded-lg text-gray-900 placeholder:text-gray-500"
                   required
                 />
               </div>
@@ -390,7 +390,7 @@ const LoginPage = () => {
                   placeholder="Name"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="w-full h-12 text-left bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg"
+                  className="w-full h-12 text-left bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg text-gray-900 placeholder:text-gray-500"
                 />
               </div>
               
@@ -400,7 +400,7 @@ const LoginPage = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="w-full h-12 text-left bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg"
+                  className="w-full h-12 text-left bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg text-gray-900 placeholder:text-gray-500"
                 />
               </div>
               
@@ -410,7 +410,7 @@ const LoginPage = () => {
                   type="password"
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  className="w-full h-12 text-left bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg"
+                  className="w-full h-12 text-left bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg text-gray-900 placeholder:text-gray-500"
                 />
               </div>
               
@@ -419,7 +419,7 @@ const LoginPage = () => {
                   placeholder="Neighborhood"
                   value={formData.neighborhood}
                   onChange={(e) => handleInputChange('neighborhood', e.target.value)}
-                  className="w-full h-12 text-left bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg"
+                  className="w-full h-12 text-left bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg text-gray-900 placeholder:text-gray-500"
                 />
               </div>
               
@@ -428,7 +428,7 @@ const LoginPage = () => {
                   placeholder="Short Bio"
                   value={formData.bio}
                   onChange={(e) => handleInputChange('bio', e.target.value)}
-                  className="w-full h-12 text-left bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg"
+                  className="w-full h-12 text-left bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg text-gray-900 placeholder:text-gray-500"
                 />
               </div>
               
@@ -437,7 +437,7 @@ const LoginPage = () => {
                   placeholder="Instagram (link to profile)"
                   value={formData.instagram}
                   onChange={(e) => handleInputChange('instagram', e.target.value)}
-                  className="w-full h-12 text-left bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg"
+                  className="w-full h-12 text-left bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg text-gray-900 placeholder:text-gray-500"
                 />
               </div>
             </div>
