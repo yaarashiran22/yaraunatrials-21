@@ -18,7 +18,7 @@ import OptimizedProfileCard from '@/components/OptimizedProfileCard';
 import { getRelativeDay } from '@/utils/dateUtils';
 import MeetupVerticalPopup from '@/components/MeetupVerticalPopup';
 import CreateEventPopup from '@/components/CreateEventPopup';
-import MeetupFilterPopup from '@/components/MeetupFilterPopup';
+import MeetupFiltersPopup from '@/components/MeetupFiltersPopup';
 import communityEvent from '@/assets/community-event.jpg';
 import profile1 from '@/assets/profile-1.jpg';
 
@@ -150,9 +150,9 @@ const MeetupsPage = () => {
                 variant="outline" 
                 size="sm" 
                 onClick={() => setShowMeetupFilter(true)}
-                className="text-xs px-2 py-1 h-6 rounded-full border-2 border-primary bg-transparent text-foreground hover:border-primary/80"
+                className="text-xs px-2 py-1 rounded-full border-2 border-primary bg-transparent text-foreground hover:border-primary/80 gap-1"
               >
-                <Filter className="h-3 w-3" />
+                <Filter className="h-3 w-3 text-black" />
               </Button>
               <Button variant="outline" size="sm" onClick={() => setShowCreateEvent(true)} className="text-xs px-2 py-1 rounded-full border-2 border-primary bg-transparent text-foreground hover:border-primary/80 gap-1">
                 <Plus className="h-3 w-3 text-black" />
@@ -217,7 +217,7 @@ const MeetupsPage = () => {
 
       {/* Meetup Filter Popup */}
       {showMeetupFilter && (
-        <MeetupFilterPopup 
+        <MeetupFiltersPopup 
           isOpen={showMeetupFilter} 
           onClose={() => setShowMeetupFilter(false)} 
         />
