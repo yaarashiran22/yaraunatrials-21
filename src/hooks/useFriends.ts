@@ -27,13 +27,7 @@ export const useFriends = () => {
         .from('user_friends')
         .select(`
           friend_id,
-          profiles:friend_id (
-            id,
-            name,
-            username,
-            profile_image_url,
-            bio
-          )
+          status
         `)
         .eq('user_id', user.id);
 
@@ -42,7 +36,28 @@ export const useFriends = () => {
         return;
       }
 
-      setFriends(data || []);
+      // If we have friends, fetch their profiles separately
+      if (data && data.length > 0) {
+        const friendIds = data.map(friend => friend.friend_id);
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, name, username, profile_image_url, bio')
+          .in('id', friendIds);
+
+        if (!profilesError && profilesData) {
+          // Combine the friend data with profile data
+          const friendsWithProfiles = data.map(friend => ({
+            ...friend,
+            profiles: profilesData.find(profile => profile.id === friend.friend_id)
+          }));
+          setFriends(friendsWithProfiles || []);
+        } else {
+          setFriends(data || []);
+        }
+      } else {
+        setFriends(data || []);
+      }
+
       lastFetchRef.current = now;
     } catch (error) {
       console.error('Error:', error);
@@ -68,7 +83,8 @@ export const useFriends = () => {
         .from('user_friends')
         .insert({
           user_id: user.id,
-          friend_id: friendId
+          friend_id: friendId,
+          status: 'accepted'
         });
 
       if (error) {
