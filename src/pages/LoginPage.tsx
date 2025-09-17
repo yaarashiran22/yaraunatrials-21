@@ -238,7 +238,7 @@ const LoginPage = () => {
                   placeholder="Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-12 text-left bg-white/80 border-primary-200/40 focus:border-primary focus:ring-primary/20 rounded-lg"
+                  className="w-full h-12 text-left text-black bg-white/80 border-primary-200/40 focus:border-primary focus:ring-primary/20 rounded-lg"
                   required
                 />
               </div>
@@ -249,7 +249,7 @@ const LoginPage = () => {
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-12 text-left bg-white/80 border-primary-200/40 focus:border-primary focus:ring-primary/20 rounded-lg"
+                  className="w-full h-12 text-left text-black bg-white/80 border-primary-200/40 focus:border-primary focus:ring-primary/20 rounded-lg"
                   required
                 />
               </div>
