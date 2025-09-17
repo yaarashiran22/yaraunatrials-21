@@ -25,9 +25,8 @@ const fetchCommunityPerks = async (userInterests?: string[]) => {
       .from('community_perks')
       .select(`
         *,
-        communities!inner(name, logo_url, member_count)
+        communities(name, logo_url, member_count)
       `)
-      .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(20);
 

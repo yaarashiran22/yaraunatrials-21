@@ -83,7 +83,6 @@ const SearchPopup = () => {
       const { data: couponsData } = await supabase
         .from('user_coupons')
         .select('id, title, description, business_name, discount_amount, image_url, neighborhood')
-        .eq('is_active', true)
         .or(`title.ilike.%${query}%,description.ilike.%${query}%,business_name.ilike.%${query}%,neighborhood.ilike.%${query}%`)
         .limit(10);
 

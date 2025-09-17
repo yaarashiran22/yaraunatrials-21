@@ -68,12 +68,11 @@ const MeetupsPage = () => {
       profilesList.push(currentUserDisplayProfile);
     }
 
-    // Show other profiles as potential meetup organizers
+    // Show all other profiles as potential meetup organizers
     if (profiles.length > 0) {
       const filteredProfiles = profiles.filter(p => p.id !== user?.id && p.name?.toLowerCase() !== 'juani');
       
-      const otherProfiles = filteredProfiles.slice(0, 6)
-      .map(p => ({
+      const otherProfiles = filteredProfiles.map(p => ({
         id: p.id,
         name: p.name || "User",
         image: p.image || "/lovable-uploads/c7d65671-6211-412e-af1d-6e5cfdaa248e.png",
