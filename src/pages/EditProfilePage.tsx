@@ -91,13 +91,17 @@ const EditProfilePage = () => {
       // Prepare update data
       const updateData: any = {
         name: formData.name,
-        username: formData.username,
         bio: formData.bio,
         location: formData.location,
         specialties: formData.specialties,
         interests: formData.interests,
         open_to_connecting: formData.openToConnecting,
       };
+
+      // Only include username if it's not empty
+      if (formData.username?.trim()) {
+        updateData.username = formData.username.trim();
+      }
 
       // Only include profile_image_url if a new image was uploaded
       if (profileImageUrl) {
@@ -115,9 +119,17 @@ const EditProfilePage = () => {
       navigate(-1);
     } catch (error: any) {
       console.error('Error saving profile:', error);
+      
+      let errorMessage = "Please try again later";
+      if (error.code === "23505" && error.message.includes("username")) {
+        errorMessage = "This username is already taken. Please choose a different one.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error saving changes",
-        description: error.message || "Please try again later",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
