@@ -1167,8 +1167,8 @@ const ProfilePage = () => {
     );
   }
 
-  // Show error state
-  if (error || !profileData) {
+  // Show error state - but allow editing if it's own profile
+  if (error && !isOwnProfile) {
     // If no user is authenticated and no valid profile ID, redirect to login
     if (!user && (!actualProfileId || !validateUUID(actualProfileId))) {
       return (
@@ -1201,11 +1201,47 @@ const ProfilePage = () => {
             <p className="text-muted-foreground mb-4">
               {error || 'Profile not found'}
             </p>
-            {isOwnProfile && (
-              <Button onClick={() => navigate('/profile/edit')}>
-                Create Profile
-              </Button>
-            )}
+          </div>
+        </main>
+        <BottomNavigation />
+      </div>
+    );
+  }
+
+  // If no profile data but it's the user's own profile, show a minimal profile with edit option
+  if (!profileData && isOwnProfile) {
+    return (
+      <div className="min-h-screen bg-background pb-20 font-app" dir="ltr">
+        <Header 
+          title="Profile"
+        />
+        <main className="px-4 py-6 pb-20">
+          <div className="text-center py-8">
+            <p className="text-muted-foreground mb-4">
+              Profile not found. Let's create one!
+            </p>
+            <Button onClick={() => navigate('/profile/edit')}>
+              Create Profile
+            </Button>
+          </div>
+        </main>
+        <BottomNavigation />
+      </div>
+    );
+  }
+
+  // If no profile data and not own profile, show not found
+  if (!profileData) {
+    return (
+      <div className="min-h-screen bg-background pb-20" dir="ltr">
+        <Header 
+          title="Profile"
+        />
+        <main className="px-4 py-6 pb-20">
+          <div className="text-center">
+            <p className="text-muted-foreground mb-4">
+              Profile not found
+            </p>
           </div>
         </main>
         <BottomNavigation />
