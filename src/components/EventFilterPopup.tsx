@@ -57,8 +57,8 @@ const EventFilterPopup = ({ isOpen, onClose }: EventFilterPopupProps) => {
           </Button>
           
           <div className="text-center">
-            <span className="text-3xl font-bold text-primary">una</span>
-            <div className="text-xs text-foreground mt-1">פילטר אירועים</div>
+            <span className="text-3xl font-bold font-nunito" style={{ color: '#BB31E9' }}>una</span>
+            <div className="text-xs text-gray-500 mt-1">פילטר אירועים</div>
           </div>
           
           <div className="w-8 h-8"></div>
@@ -68,7 +68,7 @@ const EventFilterPopup = ({ isOpen, onClose }: EventFilterPopupProps) => {
         <div className="px-6 pb-6 space-y-8">
           {/* Event Types */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground text-center">סוג אירוע</h3>
+            <h3 className="text-lg font-semibold text-gray-800 text-center">סוג אירוע</h3>
             <div className="grid grid-cols-2 gap-y-3 gap-x-4">
               <div className="flex items-center space-x-2 space-x-reverse">
                 <Checkbox 
@@ -76,7 +76,7 @@ const EventFilterPopup = ({ isOpen, onClose }: EventFilterPopupProps) => {
                   checked={eventTypes.party}
                   onCheckedChange={(checked) => handleEventTypeChange('party', checked as boolean)}
                 />
-                <label htmlFor="party" className="text-sm font-medium text-foreground">מסיבה</label>
+                <label htmlFor="party" className="text-sm font-medium text-gray-700">מסיבה</label>
               </div>
               
               <div className="flex items-center space-x-2 space-x-reverse">
@@ -85,7 +85,7 @@ const EventFilterPopup = ({ isOpen, onClose }: EventFilterPopupProps) => {
                   checked={eventTypes.concert}
                   onCheckedChange={(checked) => handleEventTypeChange('concert', checked as boolean)}
                 />
-                <label htmlFor="concert" className="text-sm font-medium text-foreground">קונצרט</label>
+                <label htmlFor="concert" className="text-sm font-medium text-gray-700">קונצרט</label>
               </div>
               
               <div className="flex items-center space-x-2 space-x-reverse">
@@ -94,7 +94,7 @@ const EventFilterPopup = ({ isOpen, onClose }: EventFilterPopupProps) => {
                   checked={eventTypes.workshop}
                   onCheckedChange={(checked) => handleEventTypeChange('workshop', checked as boolean)}
                 />
-                <label htmlFor="workshop" className="text-sm font-medium text-foreground">סדנה</label>
+                <label htmlFor="workshop" className="text-sm font-medium text-gray-700">סדנה</label>
               </div>
               
               <div className="flex items-center space-x-2 space-x-reverse">
@@ -103,7 +103,7 @@ const EventFilterPopup = ({ isOpen, onClose }: EventFilterPopupProps) => {
                   checked={eventTypes.sports}
                   onCheckedChange={(checked) => handleEventTypeChange('sports', checked as boolean)}
                 />
-                <label htmlFor="sports" className="text-sm font-medium text-foreground">ספורט</label>
+                <label htmlFor="sports" className="text-sm font-medium text-gray-700">ספורט</label>
               </div>
               
               <div className="flex items-center space-x-2 space-x-reverse">
@@ -112,7 +112,7 @@ const EventFilterPopup = ({ isOpen, onClose }: EventFilterPopupProps) => {
                   checked={eventTypes.art}
                   onCheckedChange={(checked) => handleEventTypeChange('art', checked as boolean)}
                 />
-                <label htmlFor="art" className="text-sm font-medium text-foreground">אמנות</label>
+                <label htmlFor="art" className="text-sm font-medium text-gray-700">אמנות</label>
               </div>
               
               <div className="flex items-center space-x-2 space-x-reverse">
@@ -121,49 +121,49 @@ const EventFilterPopup = ({ isOpen, onClose }: EventFilterPopupProps) => {
                   checked={eventTypes.food}
                   onCheckedChange={(checked) => handleEventTypeChange('food', checked as boolean)}
                 />
-                <label htmlFor="food" className="text-sm font-medium text-foreground">אוכל</label>
+                <label htmlFor="food" className="text-sm font-medium text-gray-700">אוכל</label>
               </div>
             </div>
           </div>
 
           {/* Time Filter */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground text-center">זמן</h3>
+            <h3 className="text-lg font-semibold text-gray-800 text-center">זמן</h3>
             <RadioGroup value={timeFilter} onValueChange={setTimeFilter} className="space-y-3">
               <div className="flex items-center justify-center space-x-2 space-x-reverse">
                 <RadioGroupItem value="all" id="all-time" />
-                <Label htmlFor="all-time" className="text-sm font-medium text-foreground">הכל</Label>
+                <Label htmlFor="all-time" className="text-sm font-medium text-gray-700">הכל</Label>
               </div>
               <div className="flex items-center justify-center space-x-2 space-x-reverse">
                 <RadioGroupItem value="today" id="today" />
-                <Label htmlFor="today" className="text-sm font-medium text-foreground">היום</Label>
+                <Label htmlFor="today" className="text-sm font-medium text-gray-700">היום</Label>
               </div>
               <div className="flex items-center justify-center space-x-2 space-x-reverse">
                 <RadioGroupItem value="tomorrow" id="tomorrow" />
-                <Label htmlFor="tomorrow" className="text-sm font-medium text-foreground">מחר</Label>
+                <Label htmlFor="tomorrow" className="text-sm font-medium text-gray-700">מחר</Label>
               </div>
               <div className="flex items-center justify-center space-x-2 space-x-reverse">
                 <RadioGroupItem value="week" id="week" />
-                <Label htmlFor="week" className="text-sm font-medium text-foreground">השבוע</Label>
+                <Label htmlFor="week" className="text-sm font-medium text-gray-700">השבוע</Label>
               </div>
             </RadioGroup>
           </div>
 
           {/* Price Filter */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground text-center">מחיר</h3>
+            <h3 className="text-lg font-semibold text-gray-800 text-center">מחיר</h3>
             <RadioGroup value={priceFilter} onValueChange={setPriceFilter} className="space-y-3">
               <div className="flex items-center justify-center space-x-2 space-x-reverse">
                 <RadioGroupItem value="all" id="all-price" />
-                <Label htmlFor="all-price" className="text-sm font-medium text-foreground">הכל</Label>
+                <Label htmlFor="all-price" className="text-sm font-medium text-gray-700">הכל</Label>
               </div>
               <div className="flex items-center justify-center space-x-2 space-x-reverse">
                 <RadioGroupItem value="free" id="free" />
-                <Label htmlFor="free" className="text-sm font-medium text-foreground">חינם</Label>
+                <Label htmlFor="free" className="text-sm font-medium text-gray-700">חינם</Label>
               </div>
               <div className="flex items-center justify-center space-x-2 space-x-reverse">
                 <RadioGroupItem value="paid" id="paid" />
-                <Label htmlFor="paid" className="text-sm font-medium text-foreground">בתשלום</Label>
+                <Label htmlFor="paid" className="text-sm font-medium text-gray-700">בתשלום</Label>
               </div>
             </RadioGroup>
           </div>
@@ -172,7 +172,8 @@ const EventFilterPopup = ({ isOpen, onClose }: EventFilterPopupProps) => {
           <div className="pt-4">
             <Button 
               onClick={handleSave}
-              className="w-full h-12 bg-primary hover:bg-primary-600 text-white rounded-2xl text-lg font-medium"
+              className="w-full h-12 text-white rounded-2xl text-lg font-medium"
+              style={{ backgroundColor: '#BB31E9' }}
             >
               החל
             </Button>

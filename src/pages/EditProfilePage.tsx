@@ -41,7 +41,8 @@ const EditProfilePage = () => {
     location: "",
     specialties: [],
     interests: [],
-    openToConnecting: true
+    isPrivate: false,
+    showInSearch: true
   });
 
   const handleImageClick = () => {
@@ -96,7 +97,8 @@ const EditProfilePage = () => {
         location: formData.location,
         specialties: formData.specialties,
         interests: formData.interests,
-        open_to_connecting: formData.openToConnecting,
+        is_private: formData.isPrivate,
+        show_in_search: formData.showInSearch,
       };
 
       // Only include profile_image_url if a new image was uploaded
@@ -135,7 +137,8 @@ const EditProfilePage = () => {
         location: profile.location || "",
         specialties: profile.specialties || [],
         interests: profile.interests || [],
-        openToConnecting: (profile as any).open_to_connecting !== false // Default to true if null/undefined
+        isPrivate: profile.is_private || false,
+        showInSearch: profile.show_in_search !== false // Default to true if null/undefined
       });
 
       if (profile.profile_image_url) {
@@ -296,15 +299,25 @@ const EditProfilePage = () => {
 
           {/* Privacy Settings */}
           <div className="space-y-4 pt-4 border-t border-tertiary-200/40 relative z-10">
-            <h3 className="text-lg font-semibold bg-gradient-to-r from-secondary via-tertiary to-primary bg-clip-text text-transparent">Connection Settings</h3>
+            <h3 className="text-lg font-semibold bg-gradient-to-r from-secondary via-tertiary to-primary bg-clip-text text-transparent">Privacy Settings</h3>
             
             <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-tertiary-50 via-primary-50 to-coral-50 border border-tertiary-200/40 shadow-sm hover:shadow-md transition-all">
-              <span className="text-sm font-medium text-tertiary-700">Open to Connecting</span>
+              <span className="text-sm font-medium text-tertiary-700">Private Profile</span>
               <button 
-                onClick={() => handleInputChange('openToConnecting', !formData.openToConnecting)}
-                className={`w-12 h-6 rounded-full relative transition-all shadow-inner ${formData.openToConnecting ? 'bg-gradient-to-r from-tertiary via-coral to-primary' : 'bg-neutral-200'}`}
+                onClick={() => handleInputChange('isPrivate', !formData.isPrivate)}
+                className={`w-12 h-6 rounded-full relative transition-all shadow-inner ${formData.isPrivate ? 'bg-gradient-to-r from-tertiary via-coral to-primary' : 'bg-neutral-200'}`}
               >
-                <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 shadow-lg transition-transform ${formData.openToConnecting ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
+                <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 shadow-lg transition-transform ${formData.isPrivate ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-tertiary-50 via-primary-50 to-coral-50 border border-tertiary-200/40 shadow-sm hover:shadow-md transition-all">
+              <span className="text-sm font-medium text-tertiary-700">Show in Search</span>
+              <button 
+                onClick={() => handleInputChange('showInSearch', !formData.showInSearch)}
+                className={`w-12 h-6 rounded-full relative transition-all shadow-inner ${formData.showInSearch ? 'bg-gradient-to-r from-tertiary via-coral to-primary' : 'bg-neutral-200'}`}
+              >
+                <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 shadow-lg transition-transform ${formData.showInSearch ? 'translate-x-6' : 'translate-x-0.5'}`}></div>
               </button>
             </div>
           </div>
