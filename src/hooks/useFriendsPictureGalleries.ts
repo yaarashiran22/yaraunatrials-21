@@ -6,9 +6,8 @@ export interface FriendsPictureGallery {
   id: string;
   user_id: string;
   title?: string;
-  images: string[];
+  image_url?: string;
   created_at: string;
-  updated_at: string;
   profiles?: {
     name: string;
     profile_image_url?: string;
@@ -71,7 +70,7 @@ export const useFriendsPictureGalleries = () => {
         .from('friends_picture_galleries')
         .insert({
           user_id: user.id,
-          images,
+          image_url: images[0] || '',
           title
         })
         .select('*')

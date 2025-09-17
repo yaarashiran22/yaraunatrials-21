@@ -218,13 +218,42 @@ export type Database = {
           },
         ]
       }
+      daily_photo_submissions: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          images: string[]
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          images: string[]
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          images?: string[]
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       direct_messages: {
         Row: {
           content: string
           created_at: string | null
           id: string
           is_read: boolean | null
-          message: string | null
           read_at: string | null
           receiver_id: string | null
           recipient_id: string | null
@@ -232,11 +261,10 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          content: string
+          content?: string
           created_at?: string | null
           id?: string
           is_read?: boolean | null
-          message?: string | null
           read_at?: string | null
           receiver_id?: string | null
           recipient_id?: string | null
@@ -248,7 +276,6 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_read?: boolean | null
-          message?: string | null
           read_at?: string | null
           receiver_id?: string | null
           recipient_id?: string | null
@@ -381,6 +408,33 @@ export type Database = {
         }
         Relationships: []
       }
+      friends_feed_posts: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       friends_picture_galleries: {
         Row: {
           created_at: string | null
@@ -402,6 +456,30 @@ export type Database = {
           image_url?: string | null
           title?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      idea_votes: {
+        Row: {
+          created_at: string
+          id: string
+          idea_id: string
+          user_id: string
+          vote: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          idea_id: string
+          user_id: string
+          vote: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          idea_id?: string
+          user_id?: string
+          vote?: string
         }
         Relationships: []
       }
@@ -483,6 +561,36 @@ export type Database = {
         }
         Relationships: []
       }
+      neighborhood_ideas: {
+        Row: {
+          created_at: string
+          id: string
+          market: string | null
+          neighborhood: string | null
+          question: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          market?: string | null
+          neighborhood?: string | null
+          question: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          market?: string | null
+          neighborhood?: string | null
+          question?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string | null
@@ -513,6 +621,78 @@ export type Database = {
           title?: string | null
           type?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      photo_gallery_likes: {
+        Row: {
+          created_at: string
+          gallery_id: string
+          id: string
+          image_url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          gallery_id: string
+          id?: string
+          image_url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          gallery_id?: string
+          id?: string
+          image_url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      post_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      post_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -600,6 +780,51 @@ export type Database = {
         }
         Relationships: []
       }
+      recommendations: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          instagram_url: string | null
+          location: string | null
+          market: string | null
+          status: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          instagram_url?: string | null
+          location?: string | null
+          market?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          instagram_url?: string | null
+          location?: string | null
+          market?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_coupon_claims: {
         Row: {
           claimed_at: string | null
@@ -680,6 +905,81 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           valid_until?: string | null
+        }
+        Relationships: []
+      }
+      user_following: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      user_friends: {
+        Row: {
+          created_at: string
+          friend_id: string
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          friend_id: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          friend_id?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_locations: {
+        Row: {
+          created_at: string
+          id: string
+          status: string | null
+          status_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status?: string | null
+          status_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: string | null
+          status_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

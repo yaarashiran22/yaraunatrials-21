@@ -13,8 +13,6 @@ export interface ItemWithUploader {
   mobile_number?: string;
   status: string;
   created_at: string;
-  meetup_date?: string;
-  meetup_time?: string;
   uploader: {
     id: string;
     name: string;
@@ -50,11 +48,7 @@ const fetchItemDetails = async (itemId: string): Promise<ItemWithUploader | null
       .select('id, name, profile_image_url, location')
       .eq('id', itemData.user_id)
       .single(),
-    supabase
-      .from('smallprofiles')
-      .select('photo')
-      .eq('id', itemData.user_id)
-      .maybeSingle()
+    Promise.resolve({ data: null, error: null })
   ]);
 
   const { data: uploaderData, error: uploaderError } = uploaderResult;
@@ -75,14 +69,12 @@ const fetchItemDetails = async (itemId: string): Promise<ItemWithUploader | null
     mobile_number: itemData.mobile_number,
     status: itemData.status,
     created_at: itemData.created_at,
-    meetup_date: itemData.meetup_date,
-    meetup_time: itemData.meetup_time,
     uploader: {
       id: uploaderData?.id || itemData.user_id,
       name: uploaderData?.name || 'משתמש',
       profile_image_url: uploaderData?.profile_image_url,
       location: uploaderData?.location,
-      small_profile_photo: smallProfileData?.photo
+      small_profile_photo: undefined
     }
   };
 

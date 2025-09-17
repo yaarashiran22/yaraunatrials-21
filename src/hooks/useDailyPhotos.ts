@@ -22,7 +22,7 @@ export const useDailyPhotos = () => {
     queryFn: async () => {
       console.log('Fetching daily photos...');
       const { data, error } = await supabase
-        .from('friends_picture_galleries')
+        .from('daily_photo_submissions')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(10);
@@ -87,7 +87,7 @@ export const useDailyPhotos = () => {
       
       // Delete from database
       const { error: dbError } = await supabase
-        .from('friends_picture_galleries')
+        .from('daily_photo_submissions')
         .delete()
         .eq('id', photoId);
       

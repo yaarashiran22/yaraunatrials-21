@@ -7,7 +7,7 @@ export interface DirectMessage {
   id: string;
   sender_id: string;
   recipient_id: string;
-  message: string;
+  content: string;
   created_at: string;
   updated_at: string;
   is_read: boolean;
@@ -225,7 +225,7 @@ export const useDirectMessages = () => {
         .insert({
           sender_id: user.id,
           recipient_id: recipientId,
-          message: messageText.trim()
+          content: messageText.trim()
         })
         .select()
         .single();
