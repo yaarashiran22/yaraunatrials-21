@@ -132,14 +132,6 @@ export const AddCouponModal = ({ isOpen, onClose }: AddCouponModalProps) => {
       return;
     }
 
-    if (profile?.account_type !== 'business') {
-      toast({
-        title: "Business account required",
-        description: "Only business accounts can create coupons. Please switch to a business account in settings.",
-        variant: "destructive",
-      });
-      return;
-    }
 
     if (!formData.title.trim()) {
       toast({

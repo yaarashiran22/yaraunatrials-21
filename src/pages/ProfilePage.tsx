@@ -1350,11 +1350,6 @@ const ProfilePage = () => {
         </div>
 
 
-        {/* Account Type Badge and Business Features */}
-        {profileData?.account_type && (
-          <section className="mb-8">
-          </section>
-        )}
 
         {/* My Events Section - Only shown for own profile */}
         {isOwnProfile && userEvents && userEvents.length > 0 && (

@@ -4,18 +4,17 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export interface Profile {
   id: string;
-  email: string;
+  email: string | null;
   name: string | null;
   username: string | null;
   bio: string | null;
   location: string | null;
   profile_image_url: string | null;
-  is_private: boolean | null;
-  show_in_search: boolean | null;
+  avatar_url: string | null;
+  mobile_number: string | null;
   interests: string[] | null;
   specialties: string[] | null;
-  account_type: string | null;
-  market: string | null;
+  open_to_connecting: boolean | null;
   created_at: string;
   updated_at: string | null;
 }
