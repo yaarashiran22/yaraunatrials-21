@@ -148,7 +148,7 @@ const UniformCard = ({
         {/* Enhanced text overlay - smaller to show more image */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 transform translate-y-0 group-hover:translate-y-[-2px] transition-transform duration-300">
           <div className="space-y-1">
-            <h3 className="font-bold text-white line-clamp-2 text-xl leading-tight drop-shadow-lg group-hover:drop-shadow-xl transition-all duration-300 font-display tracking-wide">{title}</h3>
+            <h3 className="font-extrabold text-white line-clamp-2 text-2xl leading-tight drop-shadow-xl group-hover:drop-shadow-2xl transition-all duration-300 font-display tracking-wide text-shadow-strong bg-gradient-to-r from-white to-white/95 bg-clip-text">{title}</h3>
             {subtitle && (
               <p className="text-sm text-white/80 line-clamp-1 drop-shadow-md transform translate-y-0 group-hover:translate-y-[-1px] transition-transform duration-300">{subtitle}</p>
             )}
