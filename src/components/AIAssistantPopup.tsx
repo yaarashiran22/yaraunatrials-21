@@ -170,8 +170,8 @@ const AIAssistantPopup: React.FC<AIAssistantPopupProps> = ({ isOpen, onClose }) 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <Card className="w-full max-w-3xl lg:max-w-4xl max-h-[90vh] lg:max-h-[85vh] min-h-[600px] lg:min-h-[700px] flex flex-col bg-transparent border-0 rounded-3xl">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <Card className="w-full max-w-3xl lg:max-w-4xl max-h-[80vh] lg:max-h-[75vh] min-h-[500px] lg:min-h-[600px] flex flex-col bg-transparent border-0 rounded-3xl shadow-2xl">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 flex-shrink-0 bg-white/90 backdrop-blur-md rounded-t-3xl">
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
