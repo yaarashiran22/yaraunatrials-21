@@ -18,14 +18,14 @@ const ScrollAnimatedCard: React.FC<ScrollAnimatedCardProps> = ({
     <div
       ref={elementRef}
       className={`
-        flex-shrink-0 animate-fade-in hover-scale transition-all duration-300 ease-out
-        ${isVisible ? 'scale-105 shadow-lg' : 'scale-100'}
+        flex-shrink-0 animate-fade-in transition-all duration-500 ease-out hover:scale-110 hover:z-20 relative
+        ${isVisible ? 'scale-105 shadow-xl shadow-primary/20' : 'scale-100'}
         ${className}
       `}
       style={{ 
         animationDelay: `${index * 0.1}s`,
-        transform: isVisible ? 'scale(1.05) translateY(-4px)' : 'scale(1) translateY(0px)',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        transform: isVisible ? 'scale(1.05) translateY(-8px)' : 'scale(1) translateY(0px)',
+        transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
       } as React.CSSProperties}
     >
       {children}

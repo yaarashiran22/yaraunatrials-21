@@ -101,16 +101,16 @@ const UniformCard = ({
 
   return (
     <div 
-      className="relative card-elevated rounded-3xl overflow-hidden group w-full cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-primary/20"
+      className="relative card-elevated rounded-3xl overflow-hidden group w-full cursor-pointer transition-all duration-500 hover:scale-[1.08] hover:shadow-2xl hover:shadow-primary/30 hover:z-10"
       onClick={onClick}
       style={{
         transform: 'perspective(1000px)',
         transformStyle: 'preserve-3d',
-        minWidth: '320px',
-        width: '320px'
+        minWidth: '360px',
+        width: '360px'
       }}
     >
-      <div className="aspect-[4/5] overflow-hidden relative rounded-3xl">
+      <div className="aspect-[3/4] overflow-hidden relative rounded-3xl">
         {video ? (
           <video 
             src={video} 
@@ -148,7 +148,7 @@ const UniformCard = ({
         {/* Enhanced text overlay - smaller to show more image */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 transform translate-y-0 group-hover:translate-y-[-2px] transition-transform duration-300">
           <div className="space-y-1">
-            <h3 className="font-semibold text-white line-clamp-1 text-lg leading-tight drop-shadow-lg group-hover:drop-shadow-xl transition-all duration-300">{title}</h3>
+            <h3 className="font-bold text-white line-clamp-2 text-xl leading-tight drop-shadow-lg group-hover:drop-shadow-xl transition-all duration-300 font-display tracking-wide">{title}</h3>
             {subtitle && (
               <p className="text-sm text-white/80 line-clamp-1 drop-shadow-md transform translate-y-0 group-hover:translate-y-[-1px] transition-transform duration-300">{subtitle}</p>
             )}
