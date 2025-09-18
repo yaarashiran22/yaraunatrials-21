@@ -375,7 +375,7 @@ const Index = () => {
             <h3 className="title-section-white">daily featured</h3>
           </div>
           <div className="relative">
-            <div className="flex overflow-x-auto gap-2 pb-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40" dir="ltr" style={{
+            <div className="flex overflow-x-auto gap-6 pb-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40" dir="ltr" style={{
             scrollBehavior: 'smooth'
           }}>
               {loading ? <FastLoadingSkeleton type="profiles" /> : displayProfiles.length > 0 ? displayProfiles.map((profile, index) => <OptimizedProfileCard key={profile.id} id={profile.id} image={profile.image} name={profile.name} className={`flex-shrink-0 min-w-[90px] animate-fade-in ${index === 0 && user?.id === profile.id ? '' : ''}`} style={{
@@ -412,7 +412,7 @@ const Index = () => {
           
           {loading ? <FastLoadingSkeleton type="cards" count={3} /> : filteredEvents.length === 0 ? <div className="text-center py-6 text-muted-foreground">
               <p>No events available at the moment</p>
-            </div> : <div className="flex flex-col items-center space-y-6 p-4 overflow-visible">
+            </div> : <div className="flex flex-col items-center space-y-8 p-4 overflow-visible">
               {filteredEvents.slice(0, 6).map((event, index) => <ScrollAnimatedCard key={`event-${event.id}`} index={index}>
                    <UniformCard id={event.id} image={event.image_url || communityEvent} video={(event as any).video_url} title={event.title} subtitle={event.location || 'Tel Aviv'} price={event.price} date={getRelativeDay(event.date)} type="event" uploader={{
                       ...event.uploader,
