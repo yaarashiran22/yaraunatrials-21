@@ -313,11 +313,11 @@ const MeetupCard = memo(({
       {/* Price Badge */}
       <div className="absolute top-3 right-3">
         {meetup.price && meetup.price > 0 ? (
-          <div className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm">
+          <div className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-bold shadow-lg backdrop-blur-sm">
             ₪{meetup.price}
           </div>
         ) : (
-          <div className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg backdrop-blur-sm">
+          <div className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg backdrop-blur-sm">
             Free
           </div>
         )}
@@ -335,12 +335,12 @@ const MeetupCard = memo(({
     
     {/* Enhanced Content Section */}
     <div className="p-4 space-y-2">
-      <h3 className="font-bold text-sm leading-tight text-card-foreground group-hover:text-primary transition-colors duration-300 line-clamp-2">
+      <h3 className="font-bold text-base leading-tight text-card-foreground group-hover:text-primary transition-colors duration-300 line-clamp-2">
         {meetup.title}
       </h3>
       
       {meetup.location && (
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1 text-sm text-muted-foreground">
           <div className="w-3 h-3 rounded-full bg-muted flex items-center justify-center">
             <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
           </div>
@@ -352,12 +352,12 @@ const MeetupCard = memo(({
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-1">
           <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-[10px] text-green-600 font-medium">Available</span>
+          <span className="text-xs text-green-600 font-medium">Available</span>
         </div>
         
         {/* Join Button */}
         <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-          <div className="bg-primary/10 hover:bg-primary/20 text-primary px-2 py-1 rounded-lg text-[10px] font-bold transition-colors">
+          <div className="bg-primary/10 hover:bg-primary/20 text-primary px-2 py-1 rounded-lg text-xs font-bold transition-colors">
             Join
           </div>
         </div>

@@ -79,12 +79,12 @@ const EventsPage = () => {
                     </div>
                   )}
                   <div className="p-2">
-                    <h3 className="font-semibold text-xs text-left truncate">{event.title}</h3>
+                    <h3 className="font-semibold text-sm text-left truncate">{event.title}</h3>
                     {event.description && (
-                      <p className="text-xs text-muted-foreground text-left mt-1 truncate">{event.description}</p>
+                      <p className="text-sm text-muted-foreground text-left mt-1 truncate">{event.description}</p>
                     )}
                     {event.price && (
-                      <p className="text-xs font-medium text-primary text-left mt-1">{event.price} ₪</p>
+                      <p className="text-sm font-medium text-primary text-left mt-1">{event.price} ₪</p>
                     )}
                   </div>
                 </div>
