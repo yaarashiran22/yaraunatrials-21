@@ -56,9 +56,10 @@ const Header = ({
           
           {/* Center - Title */}
           <div className="flex justify-center flex-1">
-            <h1 className="text-3xl font-bold text-foreground" style={{ 
+            <h1 className="text-4xl font-black text-primary" style={{ 
               fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
-              fontWeight: 700
+              fontWeight: 900,
+              letterSpacing: '0.02em'
             }}>
               יערה שירן
             </h1>
