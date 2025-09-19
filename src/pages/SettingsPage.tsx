@@ -49,12 +49,12 @@ const SettingsPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background pb-20" dir="ltr">
+  <div className="min-h-screen bg-background pb-20" dir="ltr">
       <Header 
         title="Settings"
       />
 
-      <main className="container mx-auto px-4 py-8">
+  <main className="container mx-auto px-4 py-8">
         {/* Page Title */}
         <div className="text-center mb-12">
           <h1 className="text-2xl font-bold text-foreground">Settings</h1>
@@ -63,20 +63,20 @@ const SettingsPage = () => {
 
         {/* Language and Location Settings */}
         <div className="max-w-md mx-auto space-y-4 mb-8">
-          <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Preferences</h2>
+          <div className="bg-white rounded-2xl p-6 shadow-md border border-primary-200">
+            <h2 className="text-lg font-semibold text-primary mb-4">Preferences</h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Globe className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-foreground">Language</span>
+                  <Globe className="h-5 w-5 text-primary" />
+                  <span className="text-primary font-semibold">Language</span>
                 </div>
                 <LanguageSelector />
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-muted-foreground" />
-                  <span className="text-foreground">Neighborhood</span>
+                  <MapPin className="h-5 w-5 text-primary" />
+                  <span className="text-primary font-semibold">Neighborhood</span>
                 </div>
                 <NeighborhoodSelector />
               </div>
@@ -92,12 +92,12 @@ const SettingsPage = () => {
             return (
               <Button
                 key={index}
-                variant="outline"
+                variant="white"
                 onClick={option.onClick}
-                className="w-full h-16 bg-card hover:bg-card/80 border border-border rounded-2xl flex items-center justify-between px-6 shadow-sm"
+                className="w-full h-16 border border-primary-200 rounded-2xl flex items-center justify-between px-6 shadow-md hover:bg-primary-50"
               >
-                <IconComponent className="h-6 w-6 text-foreground" />
-                <span className="text-lg font-medium text-foreground">{option.title}</span>
+                <IconComponent className="h-6 w-6 text-primary" />
+                <span className="text-lg font-semibold text-primary">{option.title}</span>
                 <div className="w-6"></div> {/* Spacer for balance */}
               </Button>
             );
@@ -106,12 +106,12 @@ const SettingsPage = () => {
 
         {/* Contact Email */}
         <div className="max-w-md mx-auto">
-          <div className="bg-card rounded-2xl p-4 shadow-sm border border-border">
+          <div className="bg-white rounded-2xl p-4 shadow-md border border-primary-200">
             <div className="flex items-center gap-3">
-              <Mail className="h-5 w-5 text-muted-foreground" />
-              <div className="text-sm text-muted-foreground">
-                <span className="font-medium">yaara.shiran@gmail.com</span>
-                <span className="mr-2">For questions and contact</span>
+              <Mail className="h-5 w-5 text-primary" />
+              <div className="text-sm text-primary font-semibold">
+                <span className="font-semibold">yaara.shiran@gmail.com</span>
+                <span className="ml-2">For questions and contact</span>
               </div>
             </div>
           </div>
