@@ -43,17 +43,15 @@ const DesktopHeader = ({
     <header className="hidden lg:block bg-card border-b border-border shadow-sm sticky top-0 z-40">
       <div className="container mx-auto px-8 py-6">
         <div className="flex items-center justify-between gap-8">
-          {/* Left section - Logo */}
+          {/* Left section - Title */}
           <div className="flex-shrink-0">
-            <div 
-              className="text-3xl font-black font-nunito cursor-pointer hover:opacity-80 transition-opacity" 
-              onClick={() => navigate('/')}
-              role="button"
-              aria-label="Navigate to homepage"
-              style={{ color: 'hsl(var(--coral))' }}
-            >
-              una
-            </div>
+            <h1 className="text-4xl font-black text-primary" style={{ 
+              fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
+              fontWeight: 900,
+              letterSpacing: '0.02em'
+            }}>
+              יערה שירן
+            </h1>
           </div>
           
           {/* Center section - AI Assistant */}
