@@ -18,6 +18,11 @@ import OptimizedProfileCard from '@/components/OptimizedProfileCard';
 import { getRelativeDay } from '@/utils/dateUtils';
 import MeetupVerticalPopup from '@/components/MeetupVerticalPopup';
 import CreateEventPopup from '@/components/CreateEventPopup';
+import { useUserCoupons } from '@/hooks/useUserCoupons';
+import { useCouponClaims } from '@/hooks/useCouponClaims';
+import { CouponQRModal } from '@/components/CouponQRModal';
+import { Card, CardContent } from '@/components/ui/card';
+import { QrCode, Gift } from 'lucide-react';
 import communityEvent from '@/assets/community-event.jpg';
 import profile1 from '@/assets/profile-1.jpg';
 
@@ -40,11 +45,19 @@ const MeetupsPage = () => {
   const [isMeetupPopupOpen, setIsMeetupPopupOpen] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   
+  // Coupons states
+  const [selectedCoupon, setSelectedCoupon] = useState<any>(null);
+  const [showCouponQR, setShowCouponQR] = useState(false);
+  
   // Fetch meetups
   const {
     events: meetupEvents = [],
     refetch: refetchMeetups
   } = useEvents('meetup', meetupFilter === 'friends');
+  
+  // Fetch user coupons
+  const { coupons: userCoupons, loading: couponsLoading } = useUserCoupons();
+  const { claims: couponClaims, generateUserCouponQR } = useCouponClaims(user?.id);
 
   // Mood filter handler
   const handleMoodFilterChange = (filterId: string) => {
@@ -107,6 +120,20 @@ const MeetupsPage = () => {
     setIsMeetupPopupOpen(true);
   }, []);
 
+  // Coupon click handler
+  const handleCouponClick = useCallback(async (coupon: any) => {
+    try {
+      const qrCodeUrl = await generateUserCouponQR(coupon.id);
+      setSelectedCoupon({
+        ...coupon,
+        qr_code_data: qrCodeUrl
+      });
+      setShowCouponQR(true);
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+    }
+  }, [generateUserCouponQR]);
+
   return (
     <div className="min-h-screen bg-background" dir="ltr">
       {/* Mobile Header */}
@@ -136,6 +163,62 @@ const MeetupsPage = () => {
             </div>
           </div>
         </section>
+
+        {/* Coupons Section */}
+        {user && (
+          <section className="home-section">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="title-section flex items-center gap-2">
+                <Gift className="h-5 w-5 text-primary" />
+                my coupons
+              </h2>
+            </div>
+            
+            {couponsLoading ? (
+              <div className="grid grid-cols-2 gap-3">
+                {[1, 2].map((i) => (
+                  <div key={i} className="h-32 bg-muted rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : userCoupons.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <p>No coupons available</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {userCoupons.slice(0, 4).map((coupon) => (
+                  <Card 
+                    key={coupon.id} 
+                    className="cursor-pointer hover:shadow-lg transition-shadow duration-200"
+                    onClick={() => handleCouponClick(coupon)}
+                  >
+                    <CardContent className="p-3">
+                      <div className="aspect-square bg-gradient-to-br from-primary/10 to-secondary/10 rounded-lg mb-2 flex items-center justify-center">
+                        {coupon.image_url ? (
+                          <img 
+                            src={coupon.image_url} 
+                            alt={coupon.title}
+                            className="w-full h-full object-cover rounded-lg"
+                          />
+                        ) : (
+                          <QrCode className="h-8 w-8 text-primary" />
+                        )}
+                      </div>
+                      <h3 className="font-semibold text-sm mb-1 line-clamp-2">{coupon.title}</h3>
+                      <p className="text-xs text-muted-foreground mb-2">{coupon.business_name}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                          {coupon.discount_amount}% OFF
+                        </span>
+                        <QrCode className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Meetups Section - Vertical Carousel */}
         <section className="home-section">
@@ -210,6 +293,19 @@ const MeetupsPage = () => {
           onEventCreated={() => {
             refetchMeetups();
           }} 
+        />
+      )}
+
+      {/* Coupon QR Modal */}
+      {showCouponQR && selectedCoupon && (
+        <CouponQRModal 
+          isOpen={showCouponQR}
+          onClose={() => {
+            setShowCouponQR(false);
+            setSelectedCoupon(null);
+          }}
+          userCoupon={selectedCoupon}
+          qrCodeData={selectedCoupon.qr_code_data}
         />
       )}
       
