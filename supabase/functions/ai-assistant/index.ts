@@ -16,8 +16,8 @@ serve(async (req) => {
   }
 
   try {
-    const { message, userLocation } = await req.json();
-    console.log('AI Assistant v8.0 - Full Database Integration - Processing:', { message, userLocation });
+    const { message, userLocation, conversationHistory } = await req.json();
+    console.log('AI Assistant v9.0 - Conversational & Context-Aware - Processing:', { message, userLocation, historyLength: conversationHistory?.length });
     
     // Get OpenAI API key
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -77,8 +77,31 @@ serve(async (req) => {
       userLocation: userLocation || 'Not specified'
     };
 
+    // Detect repetitive messages
+    let repetitionContext = '';
+    if (conversationHistory && conversationHistory.length >= 3) {
+      const lastThreeUser = conversationHistory
+        .filter(m => m.role === 'user')
+        .slice(-3)
+        .map(m => m.content.toLowerCase().trim());
+      
+      if (lastThreeUser.length === 3 && 
+          lastThreeUser[0] === lastThreeUser[1] && 
+          lastThreeUser[1] === lastThreeUser[2]) {
+        repetitionContext = '\n\n⚠️ IMPORTANT: User has asked the same question 3 times. They likely need more specific help or a different approach. Be proactive, offer specific suggestions, ask clarifying questions, or provide actionable next steps.';
+      }
+    }
+
     // Create detailed system prompt with ALL real data
-    const systemPrompt = `You are the AI assistant for TheUnaHub (theunahub.com), a vibrant neighborhood social platform. You have access to REAL, current data and should provide specific, helpful responses based on actual content.
+    const systemPrompt = `You are Una, the friendly AI assistant for TheUnaHub neighborhood platform. You're warm, conversational, and genuinely helpful - like a knowledgeable local friend who knows everything happening in the neighborhood.
+
+🎯 YOUR PERSONALITY:
+- Be warm and personable, not robotic
+- Use natural, conversational language
+- Show enthusiasm about local events and community
+- When users seem stuck or repeat questions, proactively offer alternatives or ask clarifying questions
+- Be engaging - don't just list information, tell mini-stories about what's happening
+- If someone asks the same thing multiple times, recognize it and try a different approach
 
 🎯 REAL CURRENT DATA AVAILABLE:
 
@@ -102,17 +125,28 @@ ${realData.localCoupons.map(c => `- ${c.discount_amount} off at ${c.business_nam
 
 📍 User Location: ${realData.userLocation}
 
-🤖 INSTRUCTIONS:
-1. ALWAYS mention specific events, communities, or items from the real data when relevant
-2. Reference actual names, locations, dates, and prices from the database
-3. Be conversational and helpful, like a local neighborhood expert
-4. Keep responses under 150 words but packed with specific information
-5. If asked about events, mention specific ones by name and details
-6. If asked about communities, reference actual community names and member counts
-7. For marketplace questions, mention real items and prices
-8. Always sound knowledgeable about the current neighborhood activity`;
+🤖 CONVERSATION GUIDELINES:
+1. Reference specific events, communities, or items from the real data
+2. Be conversational - use phrases like "I noticed..." or "There's this great..."
+3. Keep responses around 100-150 words but make them engaging
+4. If the conversation history shows repeated questions, acknowledge it and try a different angle
+5. Ask follow-up questions when appropriate to better understand what they need
+6. Suggest related things they might be interested in
+7. Show personality - be enthusiastic about cool events or deals!${repetitionContext}`;
 
     console.log('🤖 Calling OpenAI with comprehensive data context...');
+
+    // Prepare messages with conversation history
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...(conversationHistory && conversationHistory.length > 1 
+        ? conversationHistory.slice(1, -1) // Exclude initial greeting and current message
+        : []
+      ),
+      { role: 'user', content: message }
+    ];
+
+    console.log('🤖 Calling OpenAI with conversation context...');
 
     // Make OpenAI API call with comprehensive context
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -123,12 +157,9 @@ ${realData.localCoupons.map(c => `- ${c.discount_amount} off at ${c.business_nam
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
-        ],
-        max_tokens: 150,
-        temperature: 0.7
+        messages: messages,
+        max_tokens: 200,
+        temperature: 0.8
       })
     });
 

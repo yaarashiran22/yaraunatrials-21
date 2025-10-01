@@ -105,11 +105,18 @@ const AIAssistantPopup: React.FC<AIAssistantPopupProps> = ({ isOpen, onClose }) 
     });
 
     try {
+      // Send conversation history for better context
+      const conversationHistory = [...messages, userMessage].map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+
       const result = await Promise.race([
         supabase.functions.invoke('ai-assistant', {
           body: {
             message: inputMessage,
-            userLocation: userLocation
+            userLocation: userLocation,
+            conversationHistory: conversationHistory
           }
         }),
         timeoutPromise
