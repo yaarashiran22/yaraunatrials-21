@@ -170,9 +170,9 @@ const AIAssistantPopup: React.FC<AIAssistantPopupProps> = ({ isOpen, onClose }) 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <Card className="w-full max-w-3xl lg:max-w-4xl max-h-[90vh] lg:max-h-[85vh] min-h-[600px] lg:min-h-[700px] flex flex-col bg-transparent border-0 rounded-3xl">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 flex-shrink-0 bg-white/90 backdrop-blur-md rounded-t-3xl">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+      <Card className="w-full max-w-3xl lg:max-w-4xl max-h-[90vh] lg:max-h-[85vh] min-h-[600px] lg:min-h-[700px] flex flex-col shadow-2xl border border-border rounded-3xl">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 flex-shrink-0 bg-background rounded-t-3xl border-b">
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-primary" />
             Una's AI Assistant
@@ -187,7 +187,7 @@ const AIAssistantPopup: React.FC<AIAssistantPopupProps> = ({ isOpen, onClose }) 
           </Button>
         </CardHeader>
         
-        <CardContent className="flex-1 flex flex-col p-4 lg:p-6 space-y-4 min-h-0 bg-white/90 backdrop-blur-md rounded-b-3xl">
+        <CardContent className="flex-1 flex flex-col p-4 lg:p-6 space-y-4 min-h-0 bg-background rounded-b-3xl">
           <ScrollArea className="flex-1 pr-4 overflow-y-auto">
             <div className="space-y-4">
               {messages.map((message) => (
