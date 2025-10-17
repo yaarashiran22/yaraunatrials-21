@@ -561,30 +561,6 @@ export type Database = {
         }
         Relationships: []
       }
-      meetup_join_requests: {
-        Row: {
-          created_at: string
-          id: string
-          meetup_id: string
-          status: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          meetup_id: string
-          status?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          meetup_id?: string
-          status?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       neighbor_questions: {
         Row: {
           content: string
