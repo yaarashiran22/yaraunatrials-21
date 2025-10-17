@@ -12,7 +12,7 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 async function handleUserQuery(userMessage: string, userPhone: string) {
-  console.log(`📱 Interakt WhatsApp - Received message from ${userPhone}: ${userMessage}`)
+  console.log(`📱 Twilio WhatsApp - Received message from ${userPhone}: ${userMessage}`)
 
   try {
     // Get OpenAI API key
@@ -138,7 +138,7 @@ ${realData.localCoupons.map(c => `- ${c.discount_amount} off at ${c.business_nam
 }
 
 serve(async (req) => {
-  console.log('🌐 Interakt WhatsApp Webhook received');
+  console.log('🌐 Twilio WhatsApp Webhook received');
   
   // Handle CORS
   if (req.method === 'OPTIONS') {
@@ -146,88 +146,58 @@ serve(async (req) => {
   }
 
   try {
-    const payload = await req.json()
-    console.log('📦 Interakt payload:', JSON.stringify(payload, null, 2))
+    // Twilio sends form data, not JSON
+    const formData = await req.formData()
+    const userPhone = formData.get('From') as string || ''
+    const messageText = formData.get('Body') as string || ''
     
-    // Interakt sends messages in this format
-    const messages = payload.messages || payload.data?.messages || []
-    
-    if (!messages || messages.length === 0) {
-      console.log('⚠️ No messages in payload')
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    // Get the first message
-    const message = messages[0]
-    const userPhone = message.from || message.waId || ''
-    const messageText = message.text?.body || message.body || ''
-    
+    console.log('📦 Twilio webhook data:', { From: userPhone, Body: messageText })
     console.log(`📱 Processing - From: ${userPhone}, Message: ${messageText}`)
 
     if (!messageText || !userPhone) {
       console.log('⚠️ Missing required fields')
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      // Twilio expects TwiML response
+      return new Response(
+        '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+        { headers: { 'Content-Type': 'text/xml' } }
+      )
     }
 
     // Process the user's message and get AI response
     const responseMessage = await handleUserQuery(messageText, userPhone)
     
-    // Send response back through Interakt API
-    const interaktApiKey = Deno.env.get('INTERAKT_API_KEY')
-    
-    if (interaktApiKey) {
-      console.log('📤 Sending response back through Interakt...')
-      
-      const interaktResponse = await fetch('https://api.interakt.ai/v1/public/message/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${interaktApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          countryCode: '+54', // Argentina
-          phoneNumber: userPhone.replace('+', ''),
-          type: 'Text',
-          template: {
-            name: 'text_message',
-            languageCode: 'en',
-            bodyValues: [responseMessage]
-          }
-        })
-      })
-      
-      console.log('📡 Interakt API response:', interaktResponse.status)
-    } else {
-      console.log('⚠️ INTERAKT_API_KEY not set, cannot send response back')
-    }
-
     // Log the interaction to database
     const { error: logError } = await supabase
       .from('user_messages')
       .insert({
         user_id: null,
-        message: `WhatsApp (Interakt) - From: ${userPhone} - Message: ${messageText} - Response: ${responseMessage}`
+        message: `WhatsApp (Twilio) - From: ${userPhone} - Message: ${messageText} - Response: ${responseMessage}`
       })
 
     if (logError) {
       console.error('Error logging message:', logError)
     }
 
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Respond with TwiML (Twilio's XML format)
+    const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${responseMessage.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</Message>
+</Response>`
+
+    console.log('✅ Sending TwiML response back to Twilio')
+    
+    return new Response(twimlResponse, {
+      headers: { 'Content-Type': 'text/xml' },
     })
 
   } catch (error) {
-    console.error('💥 Error processing Interakt webhook:', error)
+    console.error('💥 Error processing Twilio webhook:', error)
+    // Return empty TwiML on error
     return new Response(
-      JSON.stringify({ error: error.message }),
+      '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
       { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        status: 200, 
+        headers: { 'Content-Type': 'text/xml' }
       }
     )
   }
