@@ -16,6 +16,7 @@ import AddRecommendationCard from "@/components/AddRecommendationCard";
 import FriendMeetupPopup from "@/components/FriendMeetupPopup";
 import CreateEventPopup from "@/components/CreateEventPopup";
 import EventsFilterPopup, { EventFilters } from "@/components/EventsFilterPopup";
+import AIAssistantButton from "@/components/AIAssistantButton";
 import { getRelativeDay } from "@/utils/dateUtils";
 import SectionHeader from "@/components/SectionHeader";
 import FastLoadingSkeleton from "@/components/FastLoadingSkeleton";
@@ -369,6 +370,9 @@ const Index = () => {
       <MoodFilterStrip onFilterChange={setSelectedMoodFilter} showTitle={false} />
       
       <main className="px-3 lg:px-6 py-3 lg:py-6 space-y-5 lg:space-y-10 pb-24 lg:pb-8 w-full max-w-md lg:max-w-none mx-auto lg:mx-0">
+        {/* AI Assistant Toggle Bar */}
+        <AIAssistantButton variant="toggle" />
+        
         {/* Community Members Section - Horizontal Carousel */}
         <section className="-mb-1 lg:-mb-1">
           <div className="px-1 lg:px-5 mb-3">

@@ -3,8 +3,33 @@ import { Button } from '@/components/ui/button';
 import { Sparkles } from 'lucide-react';
 import AIAssistantPopup from './AIAssistantPopup';
 
-const AIAssistantButton: React.FC = () => {
+interface AIAssistantButtonProps {
+  variant?: 'floating' | 'toggle';
+}
+
+const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({ variant = 'floating' }) => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+
+  if (variant === 'toggle') {
+    return (
+      <>
+        <div className="w-full mb-6">
+          <Button
+            onClick={() => setIsPopupOpen(true)}
+            className="w-full h-14 rounded-2xl shadow-lg bg-gradient-to-r from-[#FF6B6B] to-[#FF8E53] hover:from-[#FF5555] hover:to-[#FF7A3D] text-white font-semibold text-lg flex items-center justify-center gap-3 transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
+          >
+            <Sparkles className="w-6 h-6" />
+            Ask AI Assistant
+          </Button>
+        </div>
+        
+        <AIAssistantPopup
+          isOpen={isPopupOpen}
+          onClose={() => setIsPopupOpen(false)}
+        />
+      </>
+    );
+  }
 
   return (
     <>
