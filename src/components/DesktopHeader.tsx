@@ -3,11 +3,12 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, Plus, ChevronDown, Settings } from "lucide-react";
+import { LogOut, User, Plus, ChevronDown, Settings, MapPin } from "lucide-react";
 import { useNewItem } from "@/contexts/NewItemContext";
 import LanguageSelector from "@/components/LanguageSelector";
 import NeighborhoodSelector from "@/components/NeighborhoodSelector";
 import NeighborhoodIndicator from "@/components/NeighborhoodIndicator";
+import { useState } from "react";
 
 interface DesktopHeaderProps {
   title?: string;
@@ -30,6 +31,16 @@ const DesktopHeader = ({
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { openNewItem } = useNewItem();
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('All');
+
+  const neighborhoods = [
+    'All',
+    'Palermo Soho',
+    'Palermo Hollywood',
+    'Villa Crespo',
+    'San Telmo',
+    'Chacarita'
+  ];
 
   const handleLogout = () => {
     logout();
@@ -42,7 +53,7 @@ const DesktopHeader = ({
         <div className="flex items-center justify-between gap-8">
           {/* Left section - Title */}
           <div className="flex-shrink-0">
-            <h1 className="text-2xl font-black text-primary" style={{ 
+            <h1 className="text-xl font-black text-primary" style={{ 
               fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
               fontWeight: 900,
               letterSpacing: '0.02em'
@@ -51,20 +62,35 @@ const DesktopHeader = ({
             </h1>
           </div>
           
-          {/* Center section - Empty (AI Assistant moved to homepage) */}
+          {/* Center section - Neighborhood Dropdown */}
           <div className="flex-1 max-w-2xl mx-8 flex justify-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="bg-background text-foreground hover:bg-accent border-border px-6 py-3 h-11 gap-2"
+                >
+                  <MapPin className="h-5 w-5" />
+                  {selectedNeighborhood}
+                  <ChevronDown className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-background border-border z-50">
+                {neighborhoods.map((neighborhood) => (
+                  <DropdownMenuItem 
+                    key={neighborhood}
+                    onClick={() => setSelectedNeighborhood(neighborhood)}
+                    className="cursor-pointer hover:bg-accent"
+                  >
+                    {neighborhood}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           
           {/* Right section - Actions */}
           <div className="flex items-center gap-4 flex-shrink-0">
-            {/* Location Switcher */}
-            <Button 
-              variant="outline" 
-              className="bg-accent text-accent-foreground hover:bg-accent/80 px-4 py-2 h-11"
-            >
-              📍 Buenos Aires
-            </Button>
-            
             {/* Profile Button */}
             {user ? (
               <Button 

@@ -10,6 +10,7 @@ import { LogOut, User, Home, Settings, ChevronDown, Heart, Plus, MapPin, Search,
 import logoImage from "@/assets/reference-image.png";
 import { useNewItem } from "@/contexts/NewItemContext";
 import { useSearch } from "@/contexts/SearchContext";
+import { useState } from "react";
 
 interface HeaderProps {
   title?: string;
@@ -33,6 +34,16 @@ const Header = ({
   const navigate = useNavigate();
   const { openNewItem } = useNewItem();
   const { openSearch } = useSearch();
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('All');
+
+  const neighborhoods = [
+    'All',
+    'Palermo Soho',
+    'Palermo Hollywood',
+    'Villa Crespo',
+    'San Telmo',
+    'Chacarita'
+  ];
 
   const handleLogout = () => {
     logout();
@@ -47,13 +58,9 @@ const Header = ({
     <header className="header-bar border-b border-border shadow-sm">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          {/* Left side - Empty */}
-          <div className="flex items-center w-32">
-          </div>
-          
-          {/* Center - Title */}
-          <div className="flex justify-center flex-1">
-            <h1 className="text-2xl font-black text-primary" style={{ 
+          {/* Left side - Title */}
+          <div className="flex items-center flex-shrink-0">
+            <h1 className="text-lg font-black text-primary" style={{ 
               fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
               fontWeight: 900,
               letterSpacing: '0.02em'
@@ -62,25 +69,52 @@ const Header = ({
             </h1>
           </div>
           
+          {/* Center - Neighborhood Dropdown */}
+          <div className="flex-1 flex justify-center px-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="bg-background text-foreground hover:bg-accent border-border px-3 py-2 h-9 gap-1 text-sm"
+                >
+                  <MapPin className="h-4 w-4" />
+                  {selectedNeighborhood}
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-background border-border z-50">
+                {neighborhoods.map((neighborhood) => (
+                  <DropdownMenuItem 
+                    key={neighborhood}
+                    onClick={() => setSelectedNeighborhood(neighborhood)}
+                    className="cursor-pointer hover:bg-accent"
+                  >
+                    {neighborhood}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          
           {/* Right side - Profile Button */}
-          <div className="flex items-center gap-2 w-32 justify-end">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {user ? (
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="p-2.5 h-10 w-10 bg-white text-primary hover:bg-gray-100 border-gray-200 rounded-full"
+                className="p-2.5 h-9 w-9 bg-white text-primary hover:bg-gray-100 border-gray-200 rounded-full"
                 onClick={() => navigate('/profile/1')}
               >
-                <User className="h-5 w-5" />
+                <User className="h-4 w-4" />
               </Button>
             ) : (
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="p-2.5 h-10 w-10 bg-white text-primary hover:bg-gray-100 border-gray-200 rounded-full"
+                className="p-2.5 h-9 w-9 bg-white text-primary hover:bg-gray-100 border-gray-200 rounded-full"
                 onClick={() => navigate('/login')}
               >
-                <User className="h-5 w-5" />
+                <User className="h-4 w-4" />
               </Button>
             )}
           </div>
