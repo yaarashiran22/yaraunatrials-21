@@ -61,7 +61,7 @@ const Header = ({
               fontWeight: 900,
               letterSpacing: '0.02em'
             }}>
-              יערה שירן
+              Yara AI
             </h1>
           </div>
           
