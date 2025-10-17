@@ -11,34 +11,8 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-// Twilio credentials
-const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID')!
-const authToken = Deno.env.get('TWILIO_AUTH_TOKEN')!
-const whatsappNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER')!
-
-async function sendWhatsAppMessage(to: string, message: string) {
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`
-  
-  const body = new URLSearchParams({
-    From: `whatsapp:${whatsappNumber}`,
-    To: `whatsapp:${to}`,
-    Body: message
-  })
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${btoa(`${accountSid}:${authToken}`)}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: body.toString()
-  })
-
-  return response.json()
-}
-
 async function handleUserQuery(userMessage: string, userPhone: string) {
-  console.log(`WhatsApp Bot - Received message from ${userPhone}: ${userMessage}`)
+  console.log(`📱 Interakt WhatsApp - Received message from ${userPhone}: ${userMessage}`)
 
   try {
     // Get OpenAI API key
@@ -48,7 +22,7 @@ async function handleUserQuery(userMessage: string, userPhone: string) {
       return "I'm having configuration issues. Please try again later.";
     }
 
-    // Fetch comprehensive data from ALL relevant tables in parallel
+    // Fetch comprehensive data from ALL relevant tables in parallel (same as AI assistant)
     const [
       eventsData,
       communitiesData, 
@@ -65,11 +39,11 @@ async function handleUserQuery(userMessage: string, userPhone: string) {
       supabase.from('items').select('id, title, description, category, location, price').eq('status', 'active').limit(6),
       supabase.from('neighborhood_ideas').select('id, question, neighborhood, market').limit(4),
       supabase.from('neighbor_questions').select('id, content, market, message_type').limit(4),
-      supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood').eq('is_active', true).limit(4),
+      supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood').limit(4),
       supabase.from('stories').select('id, text_content, story_type').gt('expires_at', 'now()').limit(3)
     ]);
 
-    console.log('📊 WhatsApp Bot - Data fetched successfully');
+    console.log('📊 Data fetched successfully for WhatsApp');
 
     // Prepare comprehensive context with REAL data
     const realData = {
@@ -84,8 +58,8 @@ async function handleUserQuery(userMessage: string, userPhone: string) {
       userLocation: 'WhatsApp User'
     };
 
-    // Create detailed system prompt with ALL real data for WhatsApp
-    const systemPrompt = `You are the AI assistant for TheUnaHub (theunahub.com), a vibrant neighborhood social platform. You're responding via WhatsApp to user ${userPhone}. You have access to REAL, current data and should provide specific, helpful responses based on actual content.
+    // Create detailed system prompt (same style as AI assistant)
+    const systemPrompt = `You are Yara AI, the friendly AI assistant for TheUnaHub (theunahub.com) neighborhood platform. You're responding via WhatsApp. You're warm, conversational, and genuinely helpful.
 
 🎯 REAL CURRENT DATA AVAILABLE:
 
@@ -114,14 +88,11 @@ ${realData.localCoupons.map(c => `- ${c.discount_amount} off at ${c.business_nam
 4. Keep responses under 200 words but packed with specific information
 5. Use WhatsApp formatting (*bold*, _italic_) when appropriate
 6. If asked about events, mention specific ones by name and details
-7. If asked about communities, reference actual community names and member counts
-8. For marketplace questions, mention real items and prices
-9. Always sound knowledgeable about the current neighborhood activity
-10. Format responses nicely for WhatsApp with emojis and proper spacing`;
+7. Always sound knowledgeable about the current neighborhood activity`;
 
-    console.log('🤖 WhatsApp Bot - Calling OpenAI with comprehensive data context...');
+    console.log('🤖 Calling OpenAI with comprehensive data context...');
 
-    // Make OpenAI API call with comprehensive context
+    // Make OpenAI API call
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -135,98 +106,123 @@ ${realData.localCoupons.map(c => `- ${c.discount_amount} off at ${c.business_nam
           { role: 'user', content: userMessage }
         ],
         max_tokens: 200,
-        temperature: 0.7
+        temperature: 0.8
       })
     });
 
-    console.log('📡 WhatsApp Bot - OpenAI response status:', response.status);
+    console.log('📡 OpenAI response status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('❌ WhatsApp Bot - OpenAI API error:', response.status, errorData);
+      console.error('❌ OpenAI API error:', response.status, errorData);
       return "I'm having trouble connecting to my AI service. Please try again in a moment.";
     }
 
     const data = await response.json();
-    console.log('✅ WhatsApp Bot - Got OpenAI response successfully');
+    console.log('✅ Got OpenAI response successfully');
     
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('❌ WhatsApp Bot - Invalid response format');
+      console.error('❌ Invalid response format');
       return "Sorry, I'm having trouble processing your request. Please try again.";
     }
     
     const aiResponse = data.choices[0].message.content;
-    console.log('🎉 WhatsApp Bot - Success! Returning AI response with comprehensive real data');
+    console.log('🎉 Success! Returning AI response');
 
     return aiResponse;
 
   } catch (error) {
-    console.error('💥 WhatsApp Bot - Error in handleUserQuery:', error);
-    
-    let errorMessage = "Sorry, I'm having technical difficulties. Please try again.";
-    
-    if (error.message.includes('API key')) {
-      errorMessage = "I'm having API configuration issues. Please contact support.";
-    } else if (error.message.includes('timeout')) {
-      errorMessage = "The request timed out. Please try a shorter question.";
-    }
-    
-    return errorMessage;
+    console.error('💥 Error in handleUserQuery:', error);
+    return "Sorry, I'm having technical difficulties. Please try again.";
   }
 }
 
 serve(async (req) => {
+  console.log('🌐 Interakt WhatsApp Webhook received');
+  
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const formData = await req.formData()
+    const payload = await req.json()
+    console.log('📦 Interakt payload:', JSON.stringify(payload, null, 2))
     
-    // Extract Twilio webhook data
-    const from = formData.get('From')?.toString() || ''
-    const body = formData.get('Body')?.toString() || ''
-    const messageSid = formData.get('MessageSid')?.toString() || ''
+    // Interakt sends messages in this format
+    const messages = payload.messages || payload.data?.messages || []
     
-    // Extract phone number (remove whatsapp: prefix)
-    const userPhone = from.replace('whatsapp:', '')
-    
-    console.log(`Webhook received - From: ${userPhone}, Body: ${body}, MessageSid: ${messageSid}`)
-
-    if (!body || !userPhone) {
-      console.log('Missing required fields')
-      return new Response('Missing required fields', { 
-        status: 400, 
-        headers: corsHeaders 
+    if (!messages || messages.length === 0) {
+      console.log('⚠️ No messages in payload')
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // Process the user's message and get response
-    const responseMessage = await handleUserQuery(body, userPhone)
+    // Get the first message
+    const message = messages[0]
+    const userPhone = message.from || message.waId || ''
+    const messageText = message.text?.body || message.body || ''
     
-    // Send response back to user
-    const twilioResponse = await sendWhatsAppMessage(userPhone, responseMessage)
-    console.log('Twilio response:', twilioResponse)
+    console.log(`📱 Processing - From: ${userPhone}, Message: ${messageText}`)
 
-    // Log the interaction to database (optional)
+    if (!messageText || !userPhone) {
+      console.log('⚠️ Missing required fields')
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Process the user's message and get AI response
+    const responseMessage = await handleUserQuery(messageText, userPhone)
+    
+    // Send response back through Interakt API
+    const interaktApiKey = Deno.env.get('INTERAKT_API_KEY')
+    
+    if (interaktApiKey) {
+      console.log('📤 Sending response back through Interakt...')
+      
+      const interaktResponse = await fetch('https://api.interakt.ai/v1/public/message/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${interaktApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          countryCode: '+54', // Argentina
+          phoneNumber: userPhone.replace('+', ''),
+          type: 'Text',
+          template: {
+            name: 'text_message',
+            languageCode: 'en',
+            bodyValues: [responseMessage]
+          }
+        })
+      })
+      
+      console.log('📡 Interakt API response:', interaktResponse.status)
+    } else {
+      console.log('⚠️ INTERAKT_API_KEY not set, cannot send response back')
+    }
+
+    // Log the interaction to database
     const { error: logError } = await supabase
       .from('user_messages')
       .insert({
-        user_id: null, // We don't have user_id from WhatsApp
-        message: `WhatsApp - From: ${userPhone} - Message: ${body} - Response: ${responseMessage}`
+        user_id: null,
+        message: `WhatsApp (Interakt) - From: ${userPhone} - Message: ${messageText} - Response: ${responseMessage}`
       })
 
     if (logError) {
       console.error('Error logging message:', logError)
     }
 
-    return new Response('Message processed successfully', {
-      headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
   } catch (error) {
-    console.error('Error processing WhatsApp webhook:', error)
+    console.error('💥 Error processing Interakt webhook:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
