@@ -65,8 +65,8 @@ const DesktopHeader = ({
               📍 Buenos Aires
             </Button>
             
-            {/* User menu */}
-            {user && (
+            {/* Profile Button */}
+            {user ? (
               <Button 
                 variant="outline" 
                 className="rounded-full px-5 py-2 h-11"
@@ -74,6 +74,15 @@ const DesktopHeader = ({
               >
                 <User className="h-4 w-4 mr-2" />
                 {user.email?.split('@')[0] || t('common.profile')}
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                className="rounded-full px-5 py-2 h-11"
+                onClick={() => navigate('/login')}
+              >
+                <User className="h-4 w-4 mr-2" />
+                Login
               </Button>
             )}
           </div>

@@ -62,8 +62,27 @@ const Header = ({
             </h1>
           </div>
           
-          {/* Right side - Empty (AI Assistant moved to homepage) */}
+          {/* Right side - Profile Button */}
           <div className="flex items-center gap-2 w-32 justify-end">
+            {user ? (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="p-2.5 h-10 w-10 bg-white text-primary hover:bg-gray-100 border-gray-200 rounded-full"
+                onClick={() => navigate('/profile/1')}
+              >
+                <User className="h-5 w-5" />
+              </Button>
+            ) : (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="p-2.5 h-10 w-10 bg-white text-primary hover:bg-gray-100 border-gray-200 rounded-full"
+                onClick={() => navigate('/login')}
+              >
+                <User className="h-5 w-5" />
+              </Button>
+            )}
           </div>
           
         </div>

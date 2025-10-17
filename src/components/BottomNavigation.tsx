@@ -47,7 +47,7 @@ const BottomNavigation = () => {
             <Home className={`h-6 w-6 transition-all duration-300 ${isActive('/') ? 'stroke-[2.5]' : 'group-hover:scale-110'}`} />
           </Button>
 
-          {/* Meetups */}
+          {/* Coupons */}
           <Button
             variant="ghost"
             size="sm"
@@ -60,31 +60,6 @@ const BottomNavigation = () => {
           >
             <Calendar className={`h-6 w-6 transition-all duration-300 ${isActive('/meetups') ? 'stroke-[2.5]' : 'group-hover:scale-110'}`} />
           </Button>
-
-          {/* Profile/Login */}
-          {user ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/profile/1')}
-              className={`flex items-center justify-center h-auto py-3 px-4 transition-all duration-300 rounded-2xl min-h-[3rem] relative overflow-hidden group ${
-                location.pathname.startsWith('/profile') 
-                  ? 'text-foreground' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105 active:scale-95'
-              }`}
-            >
-              <User className={`h-6 w-6 transition-all duration-300 ${location.pathname.startsWith('/profile') ? 'stroke-[2.5]' : 'group-hover:scale-110'}`} />
-            </Button>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/login')}
-              className="flex items-center justify-center h-auto py-3 px-4 transition-all duration-300 rounded-2xl min-h-[3rem] text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105 active:scale-95 group"
-            >
-              <LogIn className="h-6 w-6 group-hover:scale-110 transition-all duration-300" />
-            </Button>
-          )}
         </div>
       </div>
     </nav>
