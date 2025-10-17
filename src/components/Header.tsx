@@ -6,12 +6,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, Home, Settings, ChevronDown, Heart, Plus, MapPin, Search, Zap, MessageCircle, Sparkles } from "lucide-react";
+import { LogOut, User, Home, Settings, ChevronDown, Heart, Plus, MapPin, Search, Zap, MessageCircle } from "lucide-react";
 import logoImage from "@/assets/reference-image.png";
 import { useNewItem } from "@/contexts/NewItemContext";
 import { useSearch } from "@/contexts/SearchContext";
-import AIAssistantPopup from "@/components/AIAssistantPopup";
-import { useState } from "react";
 
 interface HeaderProps {
   title?: string;
@@ -35,7 +33,6 @@ const Header = ({
   const navigate = useNavigate();
   const { openNewItem } = useNewItem();
   const { openSearch } = useSearch();
-  const [showAIAssistant, setShowAIAssistant] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -56,7 +53,7 @@ const Header = ({
           
           {/* Center - Title */}
           <div className="flex justify-center flex-1">
-            <h1 className="text-4xl font-black text-primary" style={{ 
+            <h1 className="text-2xl font-black text-primary" style={{ 
               fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
               fontWeight: 900,
               letterSpacing: '0.02em'
@@ -65,26 +62,12 @@ const Header = ({
             </h1>
           </div>
           
-          {/* Right side - AI Assistant */}
+          {/* Right side - Empty (AI Assistant moved to homepage) */}
           <div className="flex items-center gap-2 w-32 justify-end">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="p-2.5 h-10 w-10 bg-white text-primary hover:bg-gray-100 border-gray-200 rounded-full"
-              onClick={() => setShowAIAssistant(true)}
-            >
-              <Sparkles className="h-5 w-5" />
-            </Button>
           </div>
           
         </div>
       </div>
-      
-      {/* AI Assistant Popup */}
-      <AIAssistantPopup
-        isOpen={showAIAssistant}
-        onClose={() => setShowAIAssistant(false)}
-      />
     </header>
   );
 };

@@ -3,13 +3,11 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, Plus, ChevronDown, Settings, MessageCircle } from "lucide-react";
+import { LogOut, User, Plus, ChevronDown, Settings } from "lucide-react";
 import { useNewItem } from "@/contexts/NewItemContext";
 import LanguageSelector from "@/components/LanguageSelector";
 import NeighborhoodSelector from "@/components/NeighborhoodSelector";
 import NeighborhoodIndicator from "@/components/NeighborhoodIndicator";
-import AIAssistantPopup from "@/components/AIAssistantPopup";
-import { useState } from "react";
 
 interface DesktopHeaderProps {
   title?: string;
@@ -32,7 +30,6 @@ const DesktopHeader = ({
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { openNewItem } = useNewItem();
-  const [showAIAssistant, setShowAIAssistant] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -45,7 +42,7 @@ const DesktopHeader = ({
         <div className="flex items-center justify-between gap-8">
           {/* Left section - Title */}
           <div className="flex-shrink-0">
-            <h1 className="text-4xl font-black text-primary" style={{ 
+            <h1 className="text-2xl font-black text-primary" style={{ 
               fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
               fontWeight: 900,
               letterSpacing: '0.02em'
@@ -54,16 +51,8 @@ const DesktopHeader = ({
             </h1>
           </div>
           
-          {/* Center section - AI Assistant */}
+          {/* Center section - Empty (AI Assistant moved to homepage) */}
           <div className="flex-1 max-w-2xl mx-8 flex justify-center">
-            <Button 
-              variant="outline" 
-              className="bg-background text-foreground hover:bg-accent border-border px-6 py-3 h-11 gap-2"
-              onClick={() => setShowAIAssistant(true)}
-            >
-              <MessageCircle className="h-5 w-5" />
-              Ask AI Assistant
-            </Button>
           </div>
           
           {/* Right section - Actions */}
@@ -90,12 +79,6 @@ const DesktopHeader = ({
           </div>
         </div>
       </div>
-      
-      {/* AI Assistant Popup */}
-      <AIAssistantPopup
-        isOpen={showAIAssistant}
-        onClose={() => setShowAIAssistant(false)}
-      />
     </header>
   );
 };
