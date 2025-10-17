@@ -4,17 +4,21 @@ import Header from '@/components/Header';
 import DesktopHeader from '@/components/DesktopHeader';
 import BottomNavigation from '@/components/BottomNavigation';
 import MoodFilterStrip from '@/components/MoodFilterStrip';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useOptimizedHomepage } from '@/hooks/useOptimizedHomepage';
 import FastLoadingSkeleton from '@/components/FastLoadingSkeleton';
 import OptimizedProfileCard from '@/components/OptimizedProfileCard';
+import ScrollAnimatedCard from '@/components/ScrollAnimatedCard';
 import { useUserCoupons } from '@/hooks/useUserCoupons';
 import { useCouponClaims } from '@/hooks/useCouponClaims';
 import { CouponQRModal } from '@/components/CouponQRModal';
+import { AddCouponModal } from '@/components/AddCouponModal';
 import { Card, CardContent } from '@/components/ui/card';
-import { QrCode, Gift } from 'lucide-react';
+import { QrCode, Gift, Store } from 'lucide-react';
 
 const MeetupsPage = () => {
   const { t } = useLanguage();
@@ -34,10 +38,11 @@ const MeetupsPage = () => {
   // Coupons states
   const [selectedCoupon, setSelectedCoupon] = useState<any>(null);
   const [showCouponQR, setShowCouponQR] = useState(false);
+  const [showAddCoupon, setShowAddCoupon] = useState(false);
   
-  // Fetch user coupons
-  const { coupons: userCoupons, loading: couponsLoading } = useUserCoupons();
-  const { claims: couponClaims, generateUserCouponQR } = useCouponClaims(user?.id);
+  // Fetch all coupons
+  const { coupons, loading: couponsLoading } = useUserCoupons();
+  const { generateUserCouponQR } = useCouponClaims(user?.id);
 
   // Mood filter handler
   const handleMoodFilterChange = (filterId: string) => {
@@ -122,61 +127,92 @@ const MeetupsPage = () => {
         </section>
 
         {/* Coupons Section */}
-        {user && (
-          <section className="home-section">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="title-section flex items-center gap-2">
-                <Gift className="h-5 w-5 text-primary" />
-                my coupons
-              </h2>
+        <section className="home-section">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="title-section flex items-center gap-2">
+              <Gift className="h-5 w-5 text-primary" />
+              available coupons
+            </h2>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowAddCoupon(true)} 
+              className="text-xs px-2 py-1 rounded-full border-2 border-primary bg-transparent text-foreground hover:border-primary/80 gap-1"
+            >
+              <Plus className="h-3 w-3 text-black" />
+            </Button>
+          </div>
+          
+          {couponsLoading ? (
+            <div className="grid grid-cols-2 gap-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-40 bg-muted rounded-lg animate-pulse" />
+              ))}
             </div>
-            
-            {couponsLoading ? (
-              <div className="grid grid-cols-2 gap-3">
-                {[1, 2].map((i) => (
-                  <div key={i} className="h-32 bg-muted rounded-lg animate-pulse" />
-                ))}
-              </div>
-            ) : userCoupons.length === 0 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                <p>No coupons available</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {userCoupons.slice(0, 4).map((coupon) => (
+          ) : coupons.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Store className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-base mb-2">No coupons available yet</p>
+              <p className="text-sm">Be the first to add a coupon!</p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center space-y-4 p-2 overflow-visible">
+              {coupons.map((coupon, index) => (
+                <ScrollAnimatedCard key={coupon.id} index={index}>
                   <Card 
-                    key={coupon.id} 
-                    className="cursor-pointer hover:shadow-lg transition-shadow duration-200"
+                    className="w-full cursor-pointer hover:shadow-lg transition-all duration-200 border-border/40"
                     onClick={() => handleCouponClick(coupon)}
                   >
-                    <CardContent className="p-3">
-                      <div className="aspect-square bg-gradient-to-br from-primary/10 to-secondary/10 rounded-lg mb-2 flex items-center justify-center">
-                        {coupon.image_url ? (
-                          <img 
-                            src={coupon.image_url} 
-                            alt={coupon.title}
-                            className="w-full h-full object-cover rounded-lg"
-                          />
-                        ) : (
-                          <QrCode className="h-8 w-8 text-primary" />
-                        )}
-                      </div>
-                      <h3 className="font-semibold text-sm mb-1 line-clamp-2">{coupon.title}</h3>
-                      <p className="text-xs text-muted-foreground mb-2">{coupon.business_name}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                          {coupon.discount_amount}% OFF
-                        </span>
-                        <QrCode className="h-4 w-4 text-muted-foreground" />
+                    <CardContent className="p-4">
+                      <div className="flex gap-4">
+                        {/* Coupon Image */}
+                        <div className="w-24 h-24 flex-shrink-0 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-lg flex items-center justify-center overflow-hidden">
+                          {coupon.image_url ? (
+                            <img 
+                              src={coupon.image_url} 
+                              alt={coupon.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <QrCode className="h-10 w-10 text-primary" />
+                          )}
+                        </div>
+                        
+                        {/* Coupon Details */}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-base mb-1 line-clamp-2">{coupon.title}</h3>
+                          <p className="text-sm text-muted-foreground mb-2">{coupon.business_name}</p>
+                          {coupon.description && (
+                            <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{coupon.description}</p>
+                          )}
+                          <div className="flex items-center justify-between mt-auto">
+                            <span className="text-sm bg-primary/10 text-primary px-3 py-1 rounded-full font-semibold">
+                              {coupon.discount_amount}% OFF
+                            </span>
+                            {coupon.valid_until && (
+                              <span className="text-xs text-muted-foreground">
+                                Valid until {new Date(coupon.valid_until).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
+                </ScrollAnimatedCard>
+              ))}
+            </div>
+          )}
+        </section>
       </main>
+
+      {/* Add Coupon Modal */}
+      {showAddCoupon && (
+        <AddCouponModal 
+          isOpen={showAddCoupon}
+          onClose={() => setShowAddCoupon(false)}
+        />
+      )}
 
       {/* Coupon QR Modal */}
       {showCouponQR && selectedCoupon && (
