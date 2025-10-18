@@ -97,7 +97,7 @@ const MeetupsPage = () => {
   }, [generateUserCouponQR]);
 
   return (
-    <div className="min-h-screen bg-background" dir="ltr">
+    <div className="min-h-screen bg-black" dir="ltr">
       {/* Mobile Header */}
       <div className="lg:hidden">
         <Header title="Coupons" />
