@@ -408,14 +408,17 @@ const LoginPage = () => {
 
       <main className="container mx-auto px-4">
         {/* Page Title */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold"
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold mb-3"
               style={{
                 background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text'
               }}>Sign Up</h1>
+          <p className="text-white/80 text-sm max-w-md mx-auto px-4">
+            Welcome to Yara AI- your personal concierge for finding indie events, exclusive deals and bohemian spots in your city.
+          </p>
         </div>
 
         <div className="max-w-md mx-auto">
@@ -427,7 +430,7 @@ const LoginPage = () => {
                   placeholder="Name"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="w-full h-12 text-left text-black bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg"
+                  className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
                 />
               </div>
               
@@ -437,7 +440,7 @@ const LoginPage = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="w-full h-12 text-left text-black bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg"
+                  className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
                 />
               </div>
               
@@ -447,7 +450,7 @@ const LoginPage = () => {
                   type="password"
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  className="w-full h-12 text-left text-black bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg"
+                  className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
                 />
               </div>
               
@@ -456,7 +459,7 @@ const LoginPage = () => {
                   placeholder="Neighborhood"
                   value={formData.neighborhood}
                   onChange={(e) => handleInputChange('neighborhood', e.target.value)}
-                  className="w-full h-12 text-left text-black bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg"
+                  className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
                 />
               </div>
               
@@ -465,7 +468,7 @@ const LoginPage = () => {
                   placeholder="Short Bio"
                   value={formData.bio}
                   onChange={(e) => handleInputChange('bio', e.target.value)}
-                  className="w-full h-12 text-left text-black bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg"
+                  className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
                 />
               </div>
               
@@ -474,7 +477,7 @@ const LoginPage = () => {
                   placeholder="Instagram (link to profile)"
                   value={formData.instagram}
                   onChange={(e) => handleInputChange('instagram', e.target.value)}
-                  className="w-full h-12 text-left text-black bg-white/80 border-coral-200/40 focus:border-coral focus:ring-coral/20 rounded-lg"
+                  className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
                 />
               </div>
             </div>
@@ -499,19 +502,19 @@ const LoginPage = () => {
                     onChange={handleImageUpload}
                     className="hidden"
                   />
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-coral-100 to-primary-100 flex items-center justify-center overflow-hidden border-2 border-dashed border-coral/40 hover:border-coral transition-all shadow-sm hover:shadow-md">
-                    {profileImage ? (
-                      <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="text-center">
-                        <Paperclip className="h-6 w-6 text-coral mx-auto" />
-                        <span className="text-xs text-coral mt-1 block">Upload</span>
-                      </div>
+                    <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border-2 border-dashed border-white/40 hover:border-white/60 transition-all shadow-sm hover:shadow-md">
+                      {profileImage ? (
+                        <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="text-center">
+                          <Paperclip className="h-6 w-6 text-white mx-auto" />
+                          <span className="text-xs text-white mt-1 block">Upload</span>
+                        </div>
                     )}
                   </div>
                 </label>
                 <div>
-                  <span className="text-foreground font-medium">Profile Picture</span>
+                  <span className="text-white font-medium">Profile Picture</span>
                   <p className="text-sm text-muted-foreground">Click to upload your profile photo</p>
                 </div>
               </div>
@@ -529,11 +532,17 @@ const LoginPage = () => {
 
             {/* Switch to Login */}
             <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={() => setIsLogin(true)}
-                className="text-coral hover:text-primary font-medium transition-colors"
-              >
+            <button
+              type="button"
+              onClick={() => setIsLogin(true)}
+              className="font-medium hover:opacity-80 transition-opacity"
+              style={{
+                background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}
+            >
                 Already have an account? Login
               </button>
             </div>
