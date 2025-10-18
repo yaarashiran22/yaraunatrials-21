@@ -108,8 +108,8 @@ export const useNeighborQuestionComments = (questionId?: string) => {
         return false;
       } else {
         toast({
-          title: "הצלחה",
-          description: "התגובה פורסמה בהצלחה",
+          title: "Success",
+          description: "Comment posted successfully",
         });
         
         // Add the new comment to the list
@@ -158,8 +158,8 @@ export const useNeighborQuestionComments = (questionId?: string) => {
         return false;
       } else {
         toast({
-          title: "הצלחה",
-          description: "התגובה נמחקה בהצלחה",
+          title: "Success",
+          description: "Comment deleted successfully",
         });
         
         // Remove the comment from the list

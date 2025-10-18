@@ -90,8 +90,8 @@ export const useNeighborQuestions = () => {
         return false;
       } else {
         toast({
-          title: "הצלחה",
-          description: "ההודעה פורסמה בהצלחה",
+          title: "Success",
+          description: "Message posted successfully",
         });
         
         // Add the new question to the beginning of the list
@@ -138,8 +138,8 @@ export const useNeighborQuestions = () => {
         return false;
       } else {
         toast({
-          title: "הצלחה",
-          description: "ההודעה נמחקה בהצלחה",
+          title: "Success",
+          description: "Message deleted successfully",
         });
         
         // Remove the question from the list

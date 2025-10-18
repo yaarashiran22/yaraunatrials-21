@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Users, Trash2, Pencil, Edit, X, Star, Heart, MessageCircle, Share2, Bell, ChevronLeft, ChevronRight, Play, Pause, Instagram, Settings, Gift, Plus, LogOut, UserPlus } from "lucide-react";
+import { Calendar, MapPin, Users, Trash2, Pencil, Edit, X, Star, Heart, MessageCircle, Share2, Bell, ChevronLeft, ChevronRight, Play, Pause, Instagram, Settings, Gift, Plus, LogOut, UserPlus, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import BottomNavigation from "@/components/BottomNavigation";
 import Header from "@/components/Header";
 import { useUserEvents } from "@/hooks/useUserEvents";
+import { useUserRSVPs } from "@/hooks/useUserRSVPs";
 import { InstagramStoryPopup } from "@/components/InstagramStoryPopup";
 import { useFriends } from "@/hooks/useFriends";
 import { useFollowing } from "@/hooks/useFollowing";
@@ -53,6 +54,7 @@ const ProfilePage = () => {
   const { addFriend, isFriend } = useFriends();
   const { isFollowing, toggleFollow, isToggling } = useFollowing();
   const { myCoupons, loading: couponsLoading, deleteCoupon, deleting: deletingCoupon, refreshCoupons } = useMyCoupons(user?.id);
+  const { rsvps: userRSVPs, loading: rsvpsLoading, refetch: refetchRSVPs } = useUserRSVPs(actualProfileId);
   // Messages feature removed
   
   
@@ -1457,6 +1459,89 @@ const ProfilePage = () => {
             </div>
           </section>
         )}
+
+        {/* My RSVPs Section */}
+        {isOwnProfile && userRSVPs && userRSVPs.length > 0 && (
+          <section className="mb-8 p-6 rounded-xl bg-gradient-to-br from-neutral-50 to-success-50 border border-neutral-200/50 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold bg-gradient-to-r from-success to-secondary bg-clip-text text-transparent flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-success" />
+                My RSVPs
+              </h3>
+              <span className="text-sm text-muted-foreground">{userRSVPs.length} event{userRSVPs.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {userRSVPs.map((event) => (
+                <div 
+                  key={event.id}
+                  className="relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all group cursor-pointer border border-neutral-200/50"
+                  onClick={() => navigate(`/events/${event.id}`)}
+                >
+                  <div className="aspect-video w-full overflow-hidden bg-neutral-100">
+                    {event.video_url ? (
+                      <video 
+                        src={event.video_url} 
+                        className="w-full h-full object-cover"
+                        muted
+                        loop
+                        playsInline
+                        preload="metadata"
+                        poster={event.image_url}
+                        onMouseEnter={(e) => e.currentTarget.play()}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.pause();
+                          e.currentTarget.currentTime = 0;
+                        }}
+                      />
+                    ) : (
+                      <img 
+                        src={event.image_url || communityEvent} 
+                        alt={event.title}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`text-xs px-3 py-1 rounded-full font-medium shadow-sm border transition-all ${
+                        event.event_type === 'meetup' 
+                          ? 'bg-gradient-to-r from-secondary-100 to-secondary-200 text-secondary-800 border-secondary-300' 
+                          : 'bg-gradient-to-r from-success-100 to-success-200 text-success-800 border-success-300'
+                      }`}>
+                        {event.event_type === 'meetup' ? 'Meetup' : 'Event'}
+                      </span>
+                      {event.date && (
+                        <span className="text-xs text-muted-foreground">
+                          {getRelativeDay(event.date)}
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="font-medium text-sm mb-2 line-clamp-2">{event.title}</h4>
+                    <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{event.description}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        <span>{event.location || 'Location TBD'}</span>
+                      </div>
+                      {event.price && (
+                        <span className="text-sm font-semibold text-primary">₪{event.price}</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* RSVP Badge */}
+                  <div className="absolute top-2 left-2">
+                    <div className="bg-success text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 shadow-md">
+                      <CheckCircle className="h-3 w-3" />
+                      Going
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
 
         {/* Logout Button */}
         {isOwnProfile && (

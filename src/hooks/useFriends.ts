@@ -90,7 +90,7 @@ export const useFriends = () => {
       if (error) {
         if (error.code === '23505') {
           toast({
-            title: "המשתמש כבר ברשימת החברים",
+            title: "User already in friends list",
             variant: "destructive",
           });
         } else {

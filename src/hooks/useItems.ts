@@ -66,8 +66,8 @@ export const useItems = () => {
       console.log('No user found, attempting anonymous sign in...');
       
       toast({
-        title: "מתחבר למערכת...",
-        description: "מתחבר אוטומטית כדי לשמור את הפריט",
+        title: "Connecting to system...",
+        description: "Connecting automatically to save the item",
       });
       
       // Auto sign in anonymously if no user
@@ -157,8 +157,8 @@ export const useItems = () => {
       if (error) throw error;
       
       toast({
-        title: "פריט עודכן",
-        description: "הפריט עודכן בהצלחה",
+        title: "Item Updated",
+        description: "The item has been updated successfully",
       });
 
       fetchItems();
@@ -187,8 +187,8 @@ export const useItems = () => {
       if (error) throw error;
 
       toast({
-        title: "פריט נמחק",
-        description: "הפריט נמחק בהצלחה",
+        title: "Item Deleted",
+        description: "The item has been deleted successfully",
       });
 
       fetchItems();

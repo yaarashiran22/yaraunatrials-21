@@ -142,8 +142,8 @@ export const useEventRSVP = (eventId: string) => {
     },
     onSuccess: () => {
       toast({
-        title: "RSVP מעודכן!",
-        description: "התגובה שלך לאירוע נשמרה",
+        title: "RSVP Updated!",
+        description: "Your response to the event has been saved",
       });
     },
     onSettled: () => {
@@ -185,8 +185,8 @@ export const useEventRSVP = (eventId: string) => {
     },
     onSuccess: () => {
       toast({
-        title: "RSVP הוסר",
-        description: "התגובה שלך לאירוע הוסרה",
+        title: "RSVP Removed",
+        description: "Your response to the event has been removed",
       });
     },
     onSettled: () => {
