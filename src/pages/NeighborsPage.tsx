@@ -60,7 +60,7 @@ const NeighborsPage = () => {
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => navigate('/feed')}
+              onClick={() => navigate('/')}
               className="p-2 hover:bg-muted/20 rounded-full"
             >
               <ArrowLeft className="h-5 w-5" />

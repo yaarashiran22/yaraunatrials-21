@@ -91,8 +91,8 @@ const CreatePostPage = () => {
 
     const result = await createPost(postData);
     if (result) {
-      console.log('Post created successfully, navigating to feed');
-      navigate('/feed');
+      console.log('Post created successfully, navigating to home');
+      navigate('/');
     }
   };
 

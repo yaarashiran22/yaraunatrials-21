@@ -71,7 +71,7 @@ const MoodFilterStrip = ({ onFilterChange, showTitle = true }: MoodFilterStripPr
         navigate(`/profile/${result.id}`);
         break;
       case 'post':
-        navigate(`/feed`); // Could navigate to specific post if you have that route
+        navigate(`/`); // Navigate to home page
         break;
       case 'item':
         navigate(`/item/${result.id}`);
