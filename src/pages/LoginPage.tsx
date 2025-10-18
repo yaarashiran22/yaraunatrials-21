@@ -595,14 +595,6 @@ const LoginPage = () => {
                 </>
               )}
               
-              <div>
-                <Input 
-                  placeholder="Instagram (link to profile)"
-                  value={formData.instagram}
-                  onChange={(e) => handleInputChange('instagram', e.target.value)}
-                  className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
-                />
-              </div>
             </div>
 
             {/* Profile Photo Section */}
