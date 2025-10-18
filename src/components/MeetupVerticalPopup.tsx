@@ -1,10 +1,9 @@
-import { X, MessageCircle, Share, Heart, MapPin, Calendar, ChevronUp, ChevronDown, CheckCircle, Clock, Users } from "lucide-react";
+import { X, MessageCircle, Share, Heart, MapPin, Calendar, ChevronUp, ChevronDown, CheckCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useItemDetails } from "@/hooks/useItemDetails";
 import { useMeetupJoinRequests } from "@/hooks/useMeetupJoinRequests";
-import { useEventCompanionRequests } from '@/hooks/useEventCompanionRequests';
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
@@ -224,13 +223,6 @@ const MeetupVerticalPopup = ({
     condition: item?.condition || defaultItem.condition
   } : item || defaultItem;
 
-  // Companion requests functionality  
-  const { 
-    isLookingForCompanion, 
-    companionUsers, 
-    loading: companionLoading, 
-    toggleCompanionRequest 
-  } = useEventCompanionRequests(displayItem?.id || '');
 
   const handleMessageUser = (userId: string) => {
     navigate(`/messages?userId=${userId}`);
@@ -461,54 +453,6 @@ const MeetupVerticalPopup = ({
             </div>
           )}
 
-          {/* Find Companion */}
-          <Button
-            onClick={toggleCompanionRequest}
-            disabled={companionLoading}
-            variant={isLookingForCompanion ? "default" : "outline"}
-            className={`w-full h-12 rounded-2xl font-semibold transition-all duration-200 ${
-              isLookingForCompanion 
-                ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
-                : 'border-2 border-primary/20 hover:bg-primary/5 text-foreground hover:border-primary/30'
-            }`}
-          >
-            <Users className="h-4 w-4 mr-2" />
-            {isLookingForCompanion ? 'Stop looking' : 'Find someone to go with'}
-          </Button>
-          {/* Companions List */}
-          {companionUsers.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground text-center">
-                {companionUsers.length} looking for companions
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {companionUsers.slice(0, 3).map((companionUser) => (
-                  <div
-                    key={companionUser.id}
-                    className="flex items-center gap-2 px-3 py-2 bg-card/60 rounded-2xl cursor-pointer hover:bg-card transition-all duration-200 border"
-                    onClick={() => handleMessageUser(companionUser.id)}
-                  >
-                    <img
-                      src={companionUser.profile_image_url || '/placeholder.svg'}
-                      alt={companionUser.name}
-                      className="w-6 h-6 rounded-full object-cover"
-                    />
-                    <span className="text-sm font-medium">
-                      {companionUser.name.split(' ')[0]}
-                    </span>
-                    <MessageCircle className="h-4 w-4 text-primary" />
-                  </div>
-                ))}
-                {companionUsers.length > 3 && (
-                  <div className="flex items-center justify-center w-10 h-8 bg-card rounded-2xl border">
-                    <span className="text-xs font-bold">
-                      +{companionUsers.length - 3}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Join Request */}
           <div className="space-y-4">

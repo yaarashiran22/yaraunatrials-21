@@ -1,10 +1,9 @@
-import { X, MessageCircle, Share, Bookmark, MapPin, Eye, Check, UserCheck, Users } from "lucide-react";
+import { X, MessageCircle, Share, Bookmark, MapPin, Eye, Check, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useItemDetails } from "@/hooks/useItemDetails";
 import { useEventRSVP } from "@/hooks/useEventRSVP";
-import { useEventCompanionRequests } from "@/hooks/useEventCompanionRequests";
 import { getRelativeDay } from "@/utils/dateUtils";
 import profile1 from "@/assets/profile-1.jpg";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -77,13 +76,6 @@ const EventPopup = ({ isOpen, onClose, eventId, event }: EventPopupProps) => {
   // RSVP functionality - only if we have a valid event ID
   const { userRSVP, rsvpCount, handleRSVP, isUpdating } = useEventRSVP(validEventId || '');
   
-  // Companion request functionality - only if we have a valid event ID  
-  const { 
-    isLookingForCompanion, 
-    companionUsers, 
-    loading: companionLoading, 
-    toggleCompanionRequest 
-  } = useEventCompanionRequests(validEventId || '');
 
   const handleMessageUser = (userId: string) => {
     navigate(`/messages?userId=${userId}`);
@@ -255,50 +247,6 @@ const EventPopup = ({ isOpen, onClose, eventId, event }: EventPopupProps) => {
             </div>
           )}
 
-          {/* Find Companion */}
-          {validEventId && (
-            <Button
-              onClick={toggleCompanionRequest}
-              disabled={companionLoading}
-              variant={isLookingForCompanion ? "default" : "outline"}
-              className={`w-full h-12 rounded-2xl font-semibold transition-all duration-200 ${
-                isLookingForCompanion 
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white' 
-                  : 'border-2 border-purple-300 hover:bg-purple-50 text-purple-700'
-              }`}
-            >
-              <Users className="h-4 w-4 mr-2" />
-              {isLookingForCompanion ? 'Stop looking' : 'Find companion'}
-            </Button>
-          )}
-
-          {/* Companions List */}
-          {companionUsers.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground text-center">
-                {companionUsers.length} looking for companions
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {companionUsers.slice(0, 3).map((companionUser) => (
-                  <div
-                    key={companionUser.id}
-                    className="flex items-center gap-2 px-3 py-2 bg-card/60 rounded-2xl cursor-pointer hover:bg-card transition-all duration-200 border"
-                    onClick={() => handleMessageUser(companionUser.id)}
-                  >
-                    <img
-                      src={companionUser.profile_image_url || profile1}
-                      alt={companionUser.name}
-                      className="w-6 h-6 rounded-full object-cover"
-                    />
-                    <span className="text-sm font-medium">
-                      {companionUser.name.split(' ')[0]}
-                    </span>
-                    <MessageCircle className="h-4 w-4 text-primary" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           
           {/* Compact Organizer Info */}
           {displayEvent.organizer && (
