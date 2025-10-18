@@ -507,7 +507,10 @@ All colors MUST be HSL.
     letter-spacing: -0.03em;
     text-transform: lowercase;
     position: relative;
-    color: hsl(276 83% 58%); /* Purple color to match theme */
+    background: linear-gradient(90deg, hsl(340 82% 52%), hsl(276 83% 58%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     font-size: 1.25em;
     margin-bottom: 0.5rem;
   }
