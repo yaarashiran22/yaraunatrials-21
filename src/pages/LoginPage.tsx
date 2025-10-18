@@ -201,7 +201,7 @@ const LoginPage = () => {
               <div 
                 className="text-5xl font-black cursor-pointer hover:opacity-80 transition-opacity"
                 style={{ 
-                  background: 'linear-gradient(90deg, hsl(340 82% 52%), hsl(276 83% 58%))',
+                  background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
@@ -217,7 +217,7 @@ const LoginPage = () => {
             
             <p className="text-2xl font-bold mt-3 mb-6 tracking-wide drop-shadow-sm"
                style={{
-                 background: 'linear-gradient(90deg, hsl(340 82% 52%), hsl(276 83% 58%))',
+                 background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
                  WebkitBackgroundClip: 'text',
                  WebkitTextFillColor: 'transparent',
                  backgroundClip: 'text'
@@ -232,7 +232,7 @@ const LoginPage = () => {
             <h1 
               className="text-xl text-center mb-6"
               style={{ 
-                background: 'linear-gradient(90deg, hsl(340 82% 52%), hsl(276 83% 58%))',
+                background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -269,7 +269,10 @@ const LoginPage = () => {
 
               <Button
                 type="submit"
-                className="w-full h-12 bg-gradient-to-r from-primary to-coral hover:from-primary-600 hover:to-coral-600 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+                className="w-full h-12 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 border-0"
+                style={{
+                  background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))'
+                }}
                 disabled={isLoading}
               >
                 {isLoading ? 'Logging in...' : 'Login'}
@@ -282,7 +285,7 @@ const LoginPage = () => {
                 onClick={() => setShowForgotPassword(true)}
                 className="text-sm hover:opacity-80 transition-opacity"
                 style={{
-                  background: 'linear-gradient(90deg, hsl(340 82% 62%), hsl(276 83% 68%))',
+                  background: 'linear-gradient(90deg, hsl(310 82% 62%), hsl(276 83% 68%))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text'
@@ -298,7 +301,7 @@ const LoginPage = () => {
                 onClick={() => setIsLogin(false)}
                 className="font-medium hover:opacity-80 transition-opacity"
                 style={{
-                  background: 'linear-gradient(90deg, hsl(340 82% 52%), hsl(276 83% 58%))',
+                  background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text'
@@ -388,7 +391,7 @@ const LoginPage = () => {
           <div 
             className="text-5xl font-black cursor-pointer hover:opacity-80 transition-opacity"
             style={{ 
-              background: 'linear-gradient(90deg, hsl(340 82% 52%), hsl(276 83% 58%))',
+              background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
@@ -408,7 +411,7 @@ const LoginPage = () => {
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold"
               style={{
-                background: 'linear-gradient(90deg, hsl(340 82% 52%), hsl(276 83% 58%))',
+                background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text'
