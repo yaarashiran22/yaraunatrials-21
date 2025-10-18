@@ -197,7 +197,7 @@ const LoginPage = () => {
 
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate('/')}>
+          <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate('/')}>
               <div 
                 className="text-5xl font-black cursor-pointer hover:opacity-80 transition-opacity"
                 style={{ 
@@ -208,11 +208,11 @@ const LoginPage = () => {
                   letterSpacing: '-0.03em'
                 }}
               >
-                una
+                Yara AI
               </div>
             </div>
             
-            <p className="text-lg font-playfair font-medium mt-2 mb-6 italic bg-gradient-to-r from-coral via-primary to-coral bg-clip-text text-transparent tracking-wide">
+            <p className="text-2xl font-bold mt-3 mb-6 bg-gradient-to-r from-coral via-primary to-coral bg-clip-text text-transparent tracking-wide drop-shadow-sm">
               Everything Worth Knowing
             </p>
             
@@ -370,7 +370,7 @@ const LoginPage = () => {
               letterSpacing: '-0.03em'
             }}
           >
-            una
+            Yara AI
           </div>
         </div>
       </div>
