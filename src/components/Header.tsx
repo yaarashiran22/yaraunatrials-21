@@ -60,7 +60,7 @@ const Header = ({
         <div className="flex items-center justify-between">
           {/* Left side - Title */}
           <div className="flex items-center flex-shrink-0">
-            <h1 className="text-lg font-black text-primary" style={{ 
+            <h1 className="text-lg font-black bg-gradient-to-r from-[#E91E63] to-[#9C27B0] bg-clip-text text-transparent" style={{ 
               fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
               fontWeight: 900,
               letterSpacing: '0.02em'

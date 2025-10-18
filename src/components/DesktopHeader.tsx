@@ -53,7 +53,7 @@ const DesktopHeader = ({
         <div className="flex items-center justify-between gap-8">
           {/* Left section - Title */}
           <div className="flex-shrink-0">
-            <h1 className="text-xl font-black text-primary" style={{ 
+            <h1 className="text-xl font-black bg-gradient-to-r from-[#E91E63] to-[#9C27B0] bg-clip-text text-transparent" style={{ 
               fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
               fontWeight: 900,
               letterSpacing: '0.02em'
