@@ -157,7 +157,7 @@ const UniformCard = ({
             <div className="flex items-center justify-between gap-1.5 mt-1">
               <div className="flex items-center gap-1.5">
                 {date && (
-                  <span className="text-xs font-medium px-2.5 py-0.5 bg-mustard backdrop-blur-md rounded-full text-mustard-foreground border border-mustard/40 shadow-lg transition-all duration-300 group-hover:bg-mustard-hover group-hover:scale-105">{date}</span>
+                  <span className="text-xs font-medium px-2.5 py-0.5 bg-gradient-to-r from-[#E91E63] to-[#9C27B0] backdrop-blur-md rounded-full text-white border border-pink-400/40 shadow-lg transition-all duration-300 group-hover:shadow-pink-400/50 group-hover:scale-105">{date}</span>
                 )}
                 {(price || (type === 'event')) && (
                   <span className="text-xs font-medium px-2.5 py-0.5 bg-black backdrop-blur-md rounded-full text-white border border-black/40 shadow-lg transition-all duration-300 group-hover:bg-black/90 group-hover:scale-105">
