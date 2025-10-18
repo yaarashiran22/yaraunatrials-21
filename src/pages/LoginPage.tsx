@@ -26,7 +26,10 @@ const LoginPage = () => {
     email: '',
     password: '',
     neighborhood: '',
-    bio: '',
+    age: '',
+    origin: '',
+    profileType: 'personal',
+    whatsappNumber: '',
     instagram: ''
   });
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
@@ -101,10 +104,19 @@ const LoginPage = () => {
   };
 
   const handleSignUpSubmit = async () => {
-    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim()) {
+    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.age || !formData.origin) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields (name, email and password)",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.profileType === 'business' && !formData.whatsappNumber.trim()) {
+      toast({
+        title: "Error",
+        description: "Business profiles must provide a WhatsApp number",
         variant: "destructive",
       });
       return;
@@ -140,7 +152,10 @@ const LoginPage = () => {
           name: formData.name,
           mobile_number: '',
           location: formData.neighborhood,
-          bio: formData.bio,
+          age: parseInt(formData.age),
+          origin: formData.origin,
+          profile_type: formData.profileType,
+          whatsapp_number: formData.profileType === 'business' ? formData.whatsappNumber : null,
           profile_image_url: profileImage,
           username: formData.instagram ? `https://instagram.com/${formData.instagram}` : null,
           show_in_search: true,
@@ -385,30 +400,9 @@ const LoginPage = () => {
         <div></div> {/* Spacer for centering */}
       </div>
 
-      {/* Logo */}
-      <div className="text-center pt-4 pb-6">
-        <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate('/')}>
-          <div 
-            className="text-4xl font-black cursor-pointer hover:opacity-80 transition-opacity"
-            style={{ 
-              background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
-              fontWeight: 700,
-              textTransform: 'lowercase',
-              letterSpacing: '-0.03em'
-            }}
-          >
-            Yara AI
-          </div>
-        </div>
-      </div>
-
       <main className="container mx-auto px-4">
         {/* Page Title */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-6 mt-8">
           <h1 className="text-2xl font-bold mb-3"
               style={{
                 background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
@@ -465,12 +459,68 @@ const LoginPage = () => {
               
               <div>
                 <Input 
-                  placeholder="Short Bio"
-                  value={formData.bio}
-                  onChange={(e) => handleInputChange('bio', e.target.value)}
+                  type="number"
+                  placeholder="Age"
+                  value={formData.age}
+                  onChange={(e) => handleInputChange('age', e.target.value)}
                   className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
+                  required
                 />
               </div>
+
+              <div>
+                <select
+                  value={formData.origin}
+                  onChange={(e) => handleInputChange('origin', e.target.value)}
+                  className="w-full h-12 text-left text-black bg-white border border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg px-3 py-2"
+                  required
+                >
+                  <option value="">Where I'm from</option>
+                  <option value="Argentina">Argentina</option>
+                  <option value="Abroad">Abroad</option>
+                </select>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-white text-sm font-medium">Profile Type</label>
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange('profileType', 'personal')}
+                    className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
+                      formData.profileType === 'personal'
+                        ? 'border-[hsl(310,82%,52%)] bg-[hsl(310,82%,52%)]/10 text-white'
+                        : 'border-white/20 bg-white/5 text-white/60'
+                    }`}
+                  >
+                    Personal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange('profileType', 'business')}
+                    className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
+                      formData.profileType === 'business'
+                        ? 'border-[hsl(310,82%,52%)] bg-[hsl(310,82%,52%)]/10 text-white'
+                        : 'border-white/20 bg-white/5 text-white/60'
+                    }`}
+                  >
+                    Business
+                  </button>
+                </div>
+              </div>
+
+              {formData.profileType === 'business' && (
+                <div>
+                  <Input 
+                    type="tel"
+                    placeholder="WhatsApp Number (for internal use only)"
+                    value={formData.whatsappNumber}
+                    onChange={(e) => handleInputChange('whatsappNumber', e.target.value)}
+                    className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
+                    required
+                  />
+                </div>
+              )}
               
               <div>
                 <Input 

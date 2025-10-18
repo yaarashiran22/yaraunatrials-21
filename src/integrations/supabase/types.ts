@@ -543,6 +543,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age: number | null
           avatar_url: string | null
           bio: string | null
           created_at: string | null
@@ -553,12 +554,16 @@ export type Database = {
           mobile_number: string | null
           name: string | null
           open_to_connecting: boolean | null
+          origin: string | null
           profile_image_url: string | null
+          profile_type: string | null
           specialties: string[] | null
           updated_at: string | null
           username: string | null
+          whatsapp_number: string | null
         }
         Insert: {
+          age?: number | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string | null
@@ -569,12 +574,16 @@ export type Database = {
           mobile_number?: string | null
           name?: string | null
           open_to_connecting?: boolean | null
+          origin?: string | null
           profile_image_url?: string | null
+          profile_type?: string | null
           specialties?: string[] | null
           updated_at?: string | null
           username?: string | null
+          whatsapp_number?: string | null
         }
         Update: {
+          age?: number | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string | null
@@ -585,10 +594,13 @@ export type Database = {
           mobile_number?: string | null
           name?: string | null
           open_to_connecting?: boolean | null
+          origin?: string | null
           profile_image_url?: string | null
+          profile_type?: string | null
           specialties?: string[] | null
           updated_at?: string | null
           username?: string | null
+          whatsapp_number?: string | null
         }
         Relationships: []
       }
