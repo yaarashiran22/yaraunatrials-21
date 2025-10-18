@@ -113,7 +113,7 @@ const MeetupsPage = () => {
         {/* Community Members Section - Horizontal Carousel */}
         <section className="-mb-1 lg:-mb-1">
           <div className="px-1 lg:px-5 mb-3">
-            <h3 className="title-section-white">nearby businesses</h3>
+            <h3 className="title-section-white">businesses</h3>
           </div>
           <div className="relative">
             <div className="flex overflow-x-auto gap-2 pb-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40" dir="ltr" style={{
@@ -129,9 +129,8 @@ const MeetupsPage = () => {
         {/* Coupons Section */}
         <section className="home-section">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="title-section flex items-center gap-2">
-              <Gift className="h-5 w-5 text-primary" />
-              available coupons
+            <h2 className="title-section">
+              coupons
             </h2>
             <Button 
               variant="outline" 
