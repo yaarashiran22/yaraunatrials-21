@@ -207,36 +207,6 @@ export type Database = {
         }
         Relationships: []
       }
-      daily_photo_submissions: {
-        Row: {
-          caption: string | null
-          created_at: string
-          id: string
-          images: string[]
-          title: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          caption?: string | null
-          created_at?: string
-          id?: string
-          images: string[]
-          title?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          caption?: string | null
-          created_at?: string
-          id?: string
-          images?: string[]
-          title?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       direct_messages: {
         Row: {
           content: string
