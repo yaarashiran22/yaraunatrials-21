@@ -25,6 +25,7 @@ const LoginPage = () => {
     name: '',
     email: '',
     password: '',
+    confirmPassword: '',
     neighborhood: '',
     age: '',
     origin: '',
@@ -108,6 +109,15 @@ const LoginPage = () => {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
         variant: "destructive",
       });
       return;
@@ -388,7 +398,7 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen bg-black pb-20">
       {/* Header with X button */}
-      <div className="flex justify-between items-center pt-4 px-4">
+      <div className="flex justify-end items-center pt-4 px-4">
         <Button 
           variant="ghost" 
           size="sm"
@@ -397,13 +407,12 @@ const LoginPage = () => {
         >
           <X className="h-5 w-5" />
         </Button>
-        <div></div> {/* Spacer for centering */}
       </div>
 
       <main className="container mx-auto px-4">
         {/* Page Title */}
         <div className="text-center mb-6 mt-8">
-          <h1 className="text-2xl font-bold mb-3"
+          <h1 className="text-3xl font-bold mb-3"
               style={{
                 background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
                 WebkitBackgroundClip: 'text',
@@ -444,6 +453,16 @@ const LoginPage = () => {
                   type="password"
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
+                  className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
+                />
+              </div>
+
+              <div>
+                <Input 
+                  placeholder="Confirm Password"
+                  type="password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                   className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
                 />
               </div>
