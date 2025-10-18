@@ -150,17 +150,17 @@ const UniformCard = ({
         {/* Enhanced text overlay - smaller to show more image */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 transform translate-y-0 group-hover:translate-y-[-2px] transition-transform duration-300">
           <div className="space-y-1">
-            <h3 className="font-extrabold text-white line-clamp-2 text-2xl leading-tight drop-shadow-xl group-hover:drop-shadow-2xl transition-all duration-300 font-display tracking-wide text-shadow-strong bg-gradient-to-r from-white to-white/95 bg-clip-text">{title}</h3>
+            <h3 className="font-extrabold text-white line-clamp-2 text-xl leading-tight drop-shadow-xl group-hover:drop-shadow-2xl transition-all duration-300 font-display tracking-wide text-shadow-strong bg-gradient-to-r from-white to-white/95 bg-clip-text">{title}</h3>
             {subtitle && (
-              <p className="text-sm text-white/80 line-clamp-1 drop-shadow-md transform translate-y-0 group-hover:translate-y-[-1px] transition-transform duration-300">{subtitle}</p>
+              <p className="text-xs text-white/80 line-clamp-1 drop-shadow-md transform translate-y-0 group-hover:translate-y-[-1px] transition-transform duration-300">{subtitle}</p>
             )}
             <div className="flex items-center justify-between gap-1.5 mt-1">
               <div className="flex items-center gap-1.5">
                 {date && (
-                  <span className="text-sm font-medium px-3 py-1 bg-red-500 backdrop-blur-md rounded-full text-white border border-red-500 shadow-lg transition-all duration-300 group-hover:bg-red-600 group-hover:scale-105">{date}</span>
+                  <span className="text-xs font-medium px-2.5 py-0.5 bg-red-500 backdrop-blur-md rounded-full text-white border border-red-500 shadow-lg transition-all duration-300 group-hover:bg-red-600 group-hover:scale-105">{date}</span>
                 )}
                 {(price || (type === 'event')) && (
-                  <span className="text-sm font-medium px-3 py-1 bg-primary/90 backdrop-blur-md rounded-full text-white border border-white/40 shadow-lg transition-all duration-300 group-hover:bg-primary group-hover:scale-105">
+                  <span className="text-xs font-medium px-2.5 py-0.5 bg-primary/90 backdrop-blur-md rounded-full text-white border border-white/40 shadow-lg transition-all duration-300 group-hover:bg-primary group-hover:scale-105">
                     {price ? `$${price}` : 'free'}
                   </span>
                 )}
@@ -177,7 +177,7 @@ const UniformCard = ({
                     }
                   }}
                 >
-                  <span className="text-sm font-medium text-white/90 drop-shadow-md line-clamp-1 max-w-20 group-hover/profile:text-white transition-colors duration-300">by {uploader.name}</span>
+                  <span className="text-xs font-medium text-white/90 drop-shadow-md line-clamp-1 max-w-20 group-hover/profile:text-white transition-colors duration-300">by {uploader.name}</span>
                   <div className="w-5 h-5 rounded-full overflow-hidden border border-white/30 shadow-lg group-hover/profile:border-white/60 transition-all duration-300">
                     <img 
                       src={uploader.image || uploader.small_photo} 
