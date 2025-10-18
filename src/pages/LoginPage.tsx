@@ -419,7 +419,7 @@ const LoginPage = () => {
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text'
               }}>Sign Up</h1>
-          <p className="text-white/80 text-sm max-w-md mx-auto px-4">
+          <p className="text-white/90 text-base max-w-md mx-auto px-4 font-light leading-relaxed tracking-wide" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
             Welcome to Yara AI- your personal concierge for finding indie events, exclusive deals and bohemian spots in your city.
           </p>
         </div>
