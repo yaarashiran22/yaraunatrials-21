@@ -75,7 +75,7 @@ const Header = ({
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="outline" 
-                  className="bg-white text-black hover:bg-gray-100 border-gray-300 px-3 py-2 h-9 gap-1 text-sm"
+                  className="bg-white text-black hover:bg-gray-100 border-2 border-purple-500 px-3 py-2 h-9 gap-1 text-sm"
                 >
                   <MapPin className="h-4 w-4" />
                   {selectedNeighborhood}
