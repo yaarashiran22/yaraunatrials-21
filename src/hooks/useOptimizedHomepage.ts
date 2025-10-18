@@ -36,7 +36,7 @@ export interface OptimizedProfile {
 const fetchHomepageData = async () => {
   try {
     // Batch all queries in a single Promise.all for maximum performance
-    const [eventsResult, recommendationsResult, profilesResult, profilesCountResult] = await Promise.all([
+    const [eventsResult, recommendationsResult, profilesResult, businessProfilesResult, profilesCountResult] = await Promise.all([
       supabase
         .from('items')
         .select('id, title, image_url, location, user_id')
@@ -55,6 +55,13 @@ const fetchHomepageData = async () => {
           .not('name', 'is', null)
           .order('created_at', { ascending: false })
           .limit(6), // Reduced to 6 for faster loading
+        supabase
+          .from('profiles')
+          .select('id, name, profile_image_url, interests, profile_type')
+          .eq('profile_type', 'business')
+          .not('name', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(20),
       supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
@@ -65,6 +72,7 @@ const fetchHomepageData = async () => {
     if (eventsResult.error) throw eventsResult.error;
     if (recommendationsResult.error) throw recommendationsResult.error;
     if (profilesResult.error) throw profilesResult.error;
+    if (businessProfilesResult.error) throw businessProfilesResult.error;
     if (profilesCountResult.error) throw profilesCountResult.error;
 
     const rawEvents = eventsResult.data || [];
@@ -142,6 +150,13 @@ const fetchHomepageData = async () => {
       interests: profile.interests || []
     }));
 
+    const businessProfiles = (businessProfilesResult.data || []).map((profile) => ({
+      id: profile.id,
+      image: profile.profile_image_url || "/lovable-uploads/c7d65671-6211-412e-af1d-6e5cfdaa248e.png",
+      name: profile.name || 'משתמש',
+      interests: profile.interests || []
+    }));
+
     const totalUsersCount = profilesCountResult.count || 0;
 
     // Combine items for backward compatibility - removed marketplace items
@@ -155,6 +170,7 @@ const fetchHomepageData = async () => {
       apartmentItems: [], // Empty for faster loading
       businessItems: [], 
       profiles, 
+      businessProfiles,
       totalUsersCount 
     };
   } catch (error) {
@@ -198,6 +214,7 @@ export const useOptimizedHomepage = () => {
   // Extract pre-filtered data for instant mobile loading
   const items = data?.items || [];
   const profiles = data?.profiles || [];
+  const businessProfiles = data?.businessProfiles || [];
   const totalUsersCount = data?.totalUsersCount || 0;
   const databaseEvents = data?.databaseEvents || [];
   const recommendationItems = data?.recommendationItems || [];
@@ -208,6 +225,7 @@ export const useOptimizedHomepage = () => {
   return {
     items,
     profiles,
+    businessProfiles,
     totalUsersCount,
     databaseEvents,
     recommendationItems,
