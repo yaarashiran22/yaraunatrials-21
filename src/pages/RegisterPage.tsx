@@ -314,8 +314,7 @@ const RegisterPage = () => {
               <Button 
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="w-full h-12 text-white text-lg font-medium rounded-lg"
-                style={{ backgroundColor: '#BB31E9' }}
+                className="w-full h-12 text-white text-lg font-medium rounded-lg bg-gradient-to-r from-[#E91E63] to-[#9C27B0] hover:from-[#D81B60] hover:to-[#8E24AA]"
               >
                 {isSubmitting ? 'Registering...' : 'Sign Up'}
               </Button>
