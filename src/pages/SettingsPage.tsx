@@ -49,7 +49,7 @@ const SettingsPage = () => {
   ];
 
   return (
-  <div className="min-h-screen bg-background pb-20" dir="ltr">
+  <div className="min-h-screen bg-black pb-20" dir="ltr">
       <Header 
         title="Settings"
       />

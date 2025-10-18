@@ -1180,7 +1180,7 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20 font-app" dir="ltr">
+    <div className="min-h-screen bg-black pb-20 font-app" dir="ltr">
       <Header 
         title="Profile"
       />
