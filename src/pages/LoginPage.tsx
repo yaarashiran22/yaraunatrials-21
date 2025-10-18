@@ -206,8 +206,8 @@ const LoginPage = () => {
 
   if (isLogin) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center px-4">
-        <div className="w-full max-w-md">
+      <div className="min-h-screen bg-black flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md -mt-20">
           {/* Header with X button */}
           <div className="flex justify-end mb-4">
             <Button 
@@ -221,7 +221,7 @@ const LoginPage = () => {
           </div>
 
           {/* Logo */}
-          <div className="text-center mb-40">
+          <div className="text-center mb-20">
           <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate('/')}>
               <div 
                 className="text-4xl font-black cursor-pointer hover:opacity-80 transition-opacity"
