@@ -1,18 +1,37 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const ResetPasswordPage = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [searchParams] = useSearchParams();
+  const [isValidSession, setIsValidSession] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Check if we have a valid recovery session
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "Invalid Link",
+          description: "This password reset link is invalid or has expired. Please request a new one.",
+          variant: "destructive",
+        });
+        setTimeout(() => navigate('/login'), 2000);
+      } else {
+        setIsValidSession(true);
+      }
+    };
+    
+    checkSession();
+  }, [navigate, toast]);
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,54 +86,63 @@ const ResetPasswordPage = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-primary-50/30 to-coral-50/30 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        {/* Header with X button */}
-        <div className="flex justify-end mb-4">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => navigate('/')}
-            className="p-2 hover:bg-primary-100/50 text-primary transition-all"
-          >
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
+  if (!isValidSession) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center px-4">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
+  }
 
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate('/')}>
             <div 
-              className="text-5xl font-black cursor-pointer hover:opacity-80 transition-opacity"
+              className="text-4xl font-black cursor-pointer hover:opacity-80 transition-opacity"
               style={{ 
-                color: 'hsl(var(--primary))', 
+                background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
                 fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
                 fontWeight: 700,
                 textTransform: 'lowercase',
                 letterSpacing: '-0.03em'
               }}
             >
-              una
+              Yara AI
             </div>
           </div>
           
-          <p className="text-lg font-playfair font-medium mt-2 mb-6 italic bg-gradient-to-r from-coral via-primary to-coral bg-clip-text text-transparent tracking-wide">
-            Everything Worth Knowing
+          <p className="text-lg font-bold mt-3 mb-6 tracking-wide drop-shadow-sm"
+             style={{
+               background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
+               WebkitBackgroundClip: 'text',
+               WebkitTextFillColor: 'transparent',
+               backgroundClip: 'text'
+             }}>
+            Reset Your Password
           </p>
         </div>
 
         {/* Form */}
-        <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-primary-200/30">
+        <div className="bg-white/10 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-white/20">
           <h1 
-            className="text-xl text-center mb-6 bg-gradient-to-r from-primary to-coral bg-clip-text text-transparent"
+            className="text-xl text-center mb-6"
             style={{ 
+              background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
               fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
               fontWeight: 700,
               letterSpacing: '-0.03em'
             }}
           >
-            Reset Password
+            Enter New Password
           </h1>
 
           <form onSubmit={handlePasswordReset} className="space-y-4">
@@ -124,7 +152,7 @@ const ResetPasswordPage = () => {
                 placeholder="New Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-12 text-left bg-white/80 border-primary-200/40 focus:border-primary focus:ring-primary/20 rounded-lg"
+                className="w-full h-12 text-left text-white bg-white/10 border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-white/60"
                 required
                 minLength={6}
               />
@@ -136,7 +164,7 @@ const ResetPasswordPage = () => {
                 placeholder="Confirm New Password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full h-12 text-left bg-white/80 border-primary-200/40 focus:border-primary focus:ring-primary/20 rounded-lg"
+                className="w-full h-12 text-left text-white bg-white/10 border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-white/60"
                 required
                 minLength={6}
               />
@@ -144,7 +172,10 @@ const ResetPasswordPage = () => {
 
             <Button
               type="submit"
-              className="w-full h-12 bg-gradient-to-r from-primary to-coral hover:from-primary-600 hover:to-coral-600 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+              className="w-full h-12 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 border-0"
+              style={{
+                background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))'
+              }}
               disabled={isLoading}
             >
               {isLoading ? 'Updating Password...' : 'Update Password'}
@@ -155,7 +186,13 @@ const ResetPasswordPage = () => {
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="text-primary hover:text-coral font-medium transition-colors"
+              className="font-medium hover:opacity-80 transition-opacity"
+              style={{
+                background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}
             >
               Back to Login
             </button>
