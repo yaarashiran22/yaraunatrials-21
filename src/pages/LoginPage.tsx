@@ -199,7 +199,7 @@ const LoginPage = () => {
           <div className="text-center mb-8">
           <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate('/')}>
               <div 
-                className="text-5xl font-black cursor-pointer hover:opacity-80 transition-opacity"
+                className="text-4xl font-black cursor-pointer hover:opacity-80 transition-opacity"
                 style={{ 
                   background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
                   WebkitBackgroundClip: 'text',
@@ -215,7 +215,7 @@ const LoginPage = () => {
               </div>
             </div>
             
-            <p className="text-2xl font-bold mt-3 mb-6 tracking-wide drop-shadow-sm"
+            <p className="text-lg font-bold mt-3 mb-6 tracking-wide drop-shadow-sm"
                style={{
                  background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
                  WebkitBackgroundClip: 'text',
@@ -389,7 +389,7 @@ const LoginPage = () => {
       <div className="text-center pt-4 pb-6">
         <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate('/')}>
           <div 
-            className="text-5xl font-black cursor-pointer hover:opacity-80 transition-opacity"
+            className="text-4xl font-black cursor-pointer hover:opacity-80 transition-opacity"
             style={{ 
               background: 'linear-gradient(90deg, hsl(310 82% 52%), hsl(276 83% 58%))',
               WebkitBackgroundClip: 'text',
