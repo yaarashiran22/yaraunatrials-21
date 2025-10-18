@@ -507,7 +507,7 @@ All colors MUST be HSL.
     letter-spacing: -0.03em;
     text-transform: lowercase;
     position: relative;
-    color: hsl(0 0% 0%); /* Black font for row titles */
+    color: hsl(276 83% 58%); /* Purple color to match theme */
     font-size: 1.25em;
     margin-bottom: 0.5rem;
   }
