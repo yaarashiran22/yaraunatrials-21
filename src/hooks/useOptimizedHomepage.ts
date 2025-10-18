@@ -42,15 +42,13 @@ const fetchHomepageData = async () => {
         .select('id, title, image_url, location, user_id')
         .eq('status', 'active')
         .eq('category', 'event')
-        .order('created_at', { ascending: false })
-        .limit(2), // Reduced to 2 for faster loading
+        .order('created_at', { ascending: false }),
       supabase
         .from('items')
         .select('id, title, image_url, location, user_id, created_at')
         .eq('status', 'active')
         .eq('category', 'מוזמנים להצטרף')
-        .order('created_at', { ascending: false })
-        .limit(3), // Reduced to 3 for faster loading
+        .order('created_at', { ascending: false }),
         supabase
           .from('profiles')
           .select('id, name, profile_image_url, interests')

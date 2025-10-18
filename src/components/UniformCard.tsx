@@ -29,6 +29,7 @@ interface UniformCardProps {
   };
   showFavoriteButton?: boolean; // Control whether to show the favorite button
   onProfileClick?: (userId: string) => void; // Handler for profile navigation
+  className?: string; // Custom className for styling
 }
 
 const UniformCard = ({ 
@@ -46,7 +47,8 @@ const UniformCard = ({
   favoriteData,
   uploader,
   showFavoriteButton = true,
-  onProfileClick
+  onProfileClick,
+  className = ""
 }: UniformCardProps) => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { user } = useAuth();
@@ -101,7 +103,7 @@ const UniformCard = ({
 
   return (
     <div 
-      className="relative card-elevated rounded-3xl overflow-hidden group w-full cursor-pointer transition-all duration-500 hover:scale-[1.08] hover:shadow-2xl hover:shadow-primary/30 hover:z-10"
+      className={`relative card-elevated rounded-3xl overflow-hidden group w-full cursor-pointer transition-all duration-500 hover:scale-[1.08] hover:shadow-2xl hover:shadow-primary/30 hover:z-10 ${className}`}
       onClick={onClick}
       style={{
         transform: 'perspective(1000px)',
