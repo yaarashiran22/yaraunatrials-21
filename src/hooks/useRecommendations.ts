@@ -18,14 +18,25 @@ const fetchRecommendationItems = async () => {
   try {
     const { data, error } = await supabase
       .from('items')
-      .select('id, title, description, price, image_url, location, user_id, created_at')
+      .select('id, title, description, price, image_url, location, user_id, created_at, meetup_date')
       .eq('status', 'active')
       .in('category', ['מוזמנים להצטרף', 'business', 'recommendation'])
       .order('created_at', { ascending: false })
-      .limit(100); // Reasonable limit for recommendations page
+      .limit(100);
 
     if (error) throw error;
-    return data || [];
+    
+    // Filter out past events/meetups
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const filteredData = (data || []).filter(item => {
+      if (!item.meetup_date) return true;
+      const itemDate = new Date(item.meetup_date);
+      return itemDate >= today;
+    });
+    
+    return filteredData;
   } catch (error) {
     console.error('Error fetching recommendation items:', error);
     toast({
