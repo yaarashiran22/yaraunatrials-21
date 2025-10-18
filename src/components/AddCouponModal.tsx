@@ -16,7 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { useUserCoupons } from "@/hooks/useUserCoupons";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
-import { InstagramStoryPopup } from "@/components/InstagramStoryPopup";
+
 
 interface AddCouponModalProps {
   isOpen: boolean;
@@ -29,9 +29,6 @@ export const AddCouponModal = ({ isOpen, onClose }: AddCouponModalProps) => {
   const { profile } = useProfile(user?.id);
   const [uploading, setUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [showStoryPopup, setShowStoryPopup] = useState(false);
-  const [generatedStoryUrl, setGeneratedStoryUrl] = useState<string | null>(null);
-  const [generatingStory, setGeneratingStory] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -87,38 +84,6 @@ export const AddCouponModal = ({ isOpen, onClose }: AddCouponModalProps) => {
     }
   };
 
-  const generateInstagramStory = async (couponData: any) => {
-    setGeneratingStory(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-instagram-story', {
-        body: {
-          type: 'coupon',
-          data: {
-            ...couponData,
-            user_id: user?.id
-          }
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        setGeneratedStoryUrl(data.storyUrl);
-        setShowStoryPopup(true);
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (error) {
-      console.error('Error generating Instagram story:', error);
-      toast({
-        title: "Story Generation Failed",
-        description: "Failed to generate Instagram story. You can still share your coupon normally.",
-        variant: "destructive",
-      });
-    } finally {
-      setGeneratingStory(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,8 +115,6 @@ export const AddCouponModal = ({ isOpen, onClose }: AddCouponModalProps) => {
 
     createCoupon(couponData);
     
-    // Generate Instagram story after creating coupon
-    await generateInstagramStory(couponData);
     
     // Reset form and close modal
     setFormData({
@@ -385,13 +348,6 @@ export const AddCouponModal = ({ isOpen, onClose }: AddCouponModalProps) => {
         </SimplifiedModalBody>
       </SimplifiedModalContent>
       
-      <InstagramStoryPopup
-        isOpen={showStoryPopup}
-        onClose={() => setShowStoryPopup(false)}
-        storyUrl={generatedStoryUrl}
-        isGenerating={generatingStory}
-        title={formData.title}
-      />
     </SimplifiedModal>
   );
 };
