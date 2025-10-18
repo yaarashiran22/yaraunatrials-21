@@ -221,7 +221,7 @@ const LoginPage = () => {
           </div>
 
           {/* Logo */}
-          <div className="text-center mb-24">
+          <div className="text-center mb-40">
           <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate('/')}>
               <div 
                 className="text-4xl font-black cursor-pointer hover:opacity-80 transition-opacity"
