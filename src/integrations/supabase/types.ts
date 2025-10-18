@@ -207,41 +207,6 @@ export type Database = {
         }
         Relationships: []
       }
-      coupon_claims: {
-        Row: {
-          claimed_at: string | null
-          id: string
-          is_used: boolean | null
-          perk_id: string | null
-          qr_code_data: string | null
-          user_id: string | null
-        }
-        Insert: {
-          claimed_at?: string | null
-          id?: string
-          is_used?: boolean | null
-          perk_id?: string | null
-          qr_code_data?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          claimed_at?: string | null
-          id?: string
-          is_used?: boolean | null
-          perk_id?: string | null
-          qr_code_data?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "coupon_claims_perk_id_fkey"
-            columns: ["perk_id"]
-            isOneToOne: false
-            referencedRelation: "community_perks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       daily_photo_submissions: {
         Row: {
           caption: string | null
@@ -432,33 +397,6 @@ export type Database = {
         }
         Relationships: []
       }
-      friends_feed_posts: {
-        Row: {
-          content: string | null
-          created_at: string
-          id: string
-          image_url: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          content?: string | null
-          created_at?: string
-          id?: string
-          image_url?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          content?: string | null
-          created_at?: string
-          id?: string
-          image_url?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       friends_picture_galleries: {
         Row: {
           created_at: string | null
@@ -480,30 +418,6 @@ export type Database = {
           image_url?: string | null
           title?: string | null
           user_id?: string | null
-        }
-        Relationships: []
-      }
-      idea_votes: {
-        Row: {
-          created_at: string
-          id: string
-          idea_id: string
-          user_id: string
-          vote: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          idea_id: string
-          user_id: string
-          vote: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          idea_id?: string
-          user_id?: string
-          vote?: string
         }
         Relationships: []
       }
@@ -912,27 +826,6 @@ export type Database = {
         }
         Relationships: []
       }
-      smallprofiles: {
-        Row: {
-          created_at: string
-          id: string
-          photo: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id: string
-          photo?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          photo?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       stories: {
         Row: {
           created_at: string
@@ -1127,51 +1020,6 @@ export type Database = {
           status_expires_at?: string | null
           updated_at?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      user_messages: {
-        Row: {
-          created_at: string
-          id: string
-          message: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          message: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          message?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_picture_galleries: {
-        Row: {
-          created_at: string | null
-          id: string
-          image_url: string | null
-          title: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          image_url?: string | null
-          title?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          image_url?: string | null
-          title?: string | null
-          user_id?: string | null
         }
         Relationships: []
       }
