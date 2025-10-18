@@ -75,9 +75,9 @@ const VerticalCarousel = ({
     const centerIndex = currentIndex + Math.floor(visibleItems / 2);
     const distance = Math.abs(index - centerIndex);
     
-    if (distance === 0) return 1.1; // Center item - largest
-    if (distance === 1) return 1.05; // Adjacent items - slightly larger
-    return 1; // Other items - normal size
+    if (distance === 0) return 1.15; // Center item - pops out more
+    if (distance === 1) return 1.0; // Adjacent items - normal size
+    return 0.95; // Other items - slightly smaller
   };
 
   const getItemOpacity = (index: number) => {
@@ -114,7 +114,7 @@ const VerticalCarousel = ({
         }}
         onScroll={handleScroll}
       >
-        <div className="space-y-9">
+        <div className="space-y-12">
           {children.map((child, index) => (
             <div
               key={index}
@@ -123,7 +123,8 @@ const VerticalCarousel = ({
                 height: `${itemHeight}px`,
                 transform: `scale(${getItemScale(index)})`,
                 opacity: getItemOpacity(index),
-                scrollSnapAlign: 'start'
+                scrollSnapAlign: 'start',
+                zIndex: getItemScale(index) === 1.15 ? 10 : 1
               }}
             >
               {child}
