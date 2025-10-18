@@ -1,5 +1,5 @@
 
-import { Home, User, Users, Settings, LogIn, Plus, Heart, Search, Gift } from "lucide-react";
+import { PartyPopper, User, Users, Settings, LogIn, Plus, Heart, Search, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -44,7 +44,7 @@ const BottomNavigation = () => {
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105 active:scale-95'
             }`}
           >
-            <Home className={`h-6 w-6 transition-all duration-300 ${isActive('/') ? 'stroke-[2.5]' : 'group-hover:scale-110'}`} />
+            <PartyPopper className={`h-6 w-6 transition-all duration-300 ${isActive('/') ? 'stroke-[2.5]' : 'group-hover:scale-110'}`} />
           </Button>
 
           {/* Coupons */}
