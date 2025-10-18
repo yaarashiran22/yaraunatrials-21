@@ -13,22 +13,13 @@ const AVAILABLE_INTERESTS = [
   "🎵 Music & Concerts", 
   "🍽️ Food & Dining",
   "⚽ Sports & Fitness",
-  "📚 Books & Literature",
   "🎬 Movies & Cinema",
   "🌱 Nature & Outdoors",
   "💻 Technology",
   "🧘 Wellness & Health",
-  "🎭 Theater & Performing Arts",
-  "📷 Photography",
   "✈️ Travel & Adventure",
   "🎪 Nightlife & Entertainment",
-  "👗 Fashion & Style",
-  "🏛️ History & Culture",
-  "🔬 Science & Education",
-  "🎮 Gaming",
-  "🏠 Home & Garden",
-  "🐕 Pets & Animals",
-  "💼 Business & Networking"
+  "👗 Fashion & Style"
 ];
 
 export const InterestsSelector = ({ 

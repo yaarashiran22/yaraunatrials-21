@@ -551,14 +551,16 @@ const LoginPage = () => {
               </div>
             </div>
 
-            {/* Interests Section */}
-            <div className="pt-6">
-              <InterestsSelector
-                selectedInterests={selectedInterests}
-                onChange={setSelectedInterests}
-                maxInterests={5}
-              />
-            </div>
+            {/* Interests Section - Only show for personal profiles */}
+            {formData.profileType === 'personal' && (
+              <div className="pt-6">
+                <InterestsSelector
+                  selectedInterests={selectedInterests}
+                  onChange={setSelectedInterests}
+                  maxInterests={5}
+                />
+              </div>
+            )}
 
             {/* Profile Photo Section */}
             <div className="pt-6">
