@@ -12,7 +12,7 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 async function handleUserQuery(userMessage: string, userPhone: string) {
-  console.log(`📱 Twilio WhatsApp - Received message from ${userPhone}: ${userMessage}`)
+  console.log(`📱 MessageBird WhatsApp - Received message from ${userPhone}: ${userMessage}`)
 
   try {
     // Get OpenAI API key
@@ -138,7 +138,7 @@ ${realData.localCoupons.map(c => `- ${c.discount_amount} off at ${c.business_nam
 }
 
 serve(async (req) => {
-  console.log('🌐 Twilio WhatsApp Webhook received');
+  console.log('🌐 MessageBird WhatsApp Webhook received');
   
   // Handle CORS
   if (req.method === 'OPTIONS') {
@@ -146,21 +146,20 @@ serve(async (req) => {
   }
 
   try {
-    // Twilio sends form data, not JSON
-    const formData = await req.formData()
-    const userPhone = formData.get('From') as string || ''
-    const messageText = formData.get('Body') as string || ''
+    const payload = await req.json()
+    console.log('📦 MessageBird payload:', JSON.stringify(payload, null, 2))
     
-    console.log('📦 Twilio webhook data:', { From: userPhone, Body: messageText })
+    // MessageBird Conversations API sends messages in this format
+    const userPhone = payload.message?.from || payload.contact?.id || ''
+    const messageText = payload.message?.content?.text || payload.message?.text || ''
+    
     console.log(`📱 Processing - From: ${userPhone}, Message: ${messageText}`)
 
     if (!messageText || !userPhone) {
       console.log('⚠️ Missing required fields')
-      // Twilio expects TwiML response
-      return new Response(
-        '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
-        { headers: { 'Content-Type': 'text/xml' } }
-      )
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Process the user's message and get AI response
@@ -171,33 +170,31 @@ serve(async (req) => {
       .from('user_messages')
       .insert({
         user_id: null,
-        message: `WhatsApp (Twilio) - From: ${userPhone} - Message: ${messageText} - Response: ${responseMessage}`
+        message: `WhatsApp (MessageBird) - From: ${userPhone} - Message: ${messageText} - Response: ${responseMessage}`
       })
 
     if (logError) {
       console.error('Error logging message:', logError)
     }
 
-    // Respond with TwiML (Twilio's XML format)
-    const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${responseMessage.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</Message>
-</Response>`
-
-    console.log('✅ Sending TwiML response back to Twilio')
+    console.log('✅ Processing complete, MessageBird will auto-respond')
     
-    return new Response(twimlResponse, {
-      headers: { 'Content-Type': 'text/xml' },
+    // MessageBird expects JSON acknowledgment
+    // Note: To auto-reply, you'll need to configure MessageBird Flow or use their API separately
+    return new Response(JSON.stringify({ 
+      success: true,
+      message: 'Received'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
   } catch (error) {
-    console.error('💥 Error processing Twilio webhook:', error)
-    // Return empty TwiML on error
+    console.error('💥 Error processing MessageBird webhook:', error)
     return new Response(
-      '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+      JSON.stringify({ error: error.message }),
       { 
-        status: 200, 
-        headers: { 'Content-Type': 'text/xml' }
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
   }
