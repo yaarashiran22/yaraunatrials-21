@@ -175,7 +175,7 @@ export const AddCouponModal = ({ isOpen, onClose }: AddCouponModalProps) => {
 
   return (
     <SimplifiedModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SimplifiedModalContent className="max-w-2xl bg-background border border-border/20 shadow-2xl">
+      <SimplifiedModalContent className="max-w-2xl bg-black border border-border/20 shadow-2xl">
         <SimplifiedModalHeader className="pb-6 border-b border-border/10">
           <SimplifiedModalTitle className="flex items-center gap-4 text-2xl">
             <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/10 rounded-2xl">
