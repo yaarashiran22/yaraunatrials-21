@@ -79,10 +79,10 @@ All colors MUST be HSL.
     --mustard-foreground: 30 10% 20%;        /* Dark text on mustard */
     --mustard-hover: 45 92% 50%;             /* Darker mustard for hover */
 
-    /* Teal - Complementary to mustard for price badge */
-    --teal: 175 70% 45%;                     /* Teal blue-green */
-    --teal-foreground: 0 0% 100%;            /* White text on teal */
-    --teal-hover: 175 70% 40%;               /* Darker teal for hover */
+    /* Dark Purple - Complementary to mustard for price badge */
+    --dark-purple: 270 60% 35%;              /* Dark purple */
+    --dark-purple-foreground: 0 0% 100%;     /* White text on dark purple */
+    --dark-purple-hover: 270 60% 30%;        /* Darker purple for hover */
 
     /* System Colors - Harmonious palette */
     --success: 142 76% 36%;                  /* Green success */
@@ -280,10 +280,10 @@ All colors MUST be HSL.
     --mustard-foreground: 30 10% 20%;        /* Dark text on mustard */
     --mustard-hover: 45 92% 55%;             /* Darker mustard for hover */
 
-    /* Teal - Dark mode */
-    --teal: 175 70% 55%;                     /* Brighter teal for dark mode */
-    --teal-foreground: 224 71% 4%;           /* Dark text on teal */
-    --teal-hover: 175 70% 50%;               /* Darker teal for hover */
+    /* Dark Purple - Dark mode */
+    --dark-purple: 270 60% 45%;              /* Brighter dark purple for dark mode */
+    --dark-purple-foreground: 0 0% 100%;     /* White text on dark purple */
+    --dark-purple-hover: 270 60% 40%;        /* Darker purple for hover */
 
     /* System Colors - Dark Mode Adjustments */
     --success: 142 76% 46%;                  /* Brighter green */

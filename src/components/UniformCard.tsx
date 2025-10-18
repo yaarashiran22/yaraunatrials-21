@@ -160,7 +160,7 @@ const UniformCard = ({
                   <span className="text-xs font-medium px-2.5 py-0.5 bg-mustard backdrop-blur-md rounded-full text-mustard-foreground border border-mustard/40 shadow-lg transition-all duration-300 group-hover:bg-mustard-hover group-hover:scale-105">{date}</span>
                 )}
                 {(price || (type === 'event')) && (
-                  <span className="text-xs font-medium px-2.5 py-0.5 bg-teal backdrop-blur-md rounded-full text-teal-foreground border border-teal/40 shadow-lg transition-all duration-300 group-hover:bg-teal-hover group-hover:scale-105">
+                  <span className="text-xs font-medium px-2.5 py-0.5 bg-dark-purple backdrop-blur-md rounded-full text-dark-purple-foreground border border-dark-purple/40 shadow-lg transition-all duration-300 group-hover:bg-dark-purple-hover group-hover:scale-105">
                     {price ? `$${price}` : 'free'}
                   </span>
                 )}

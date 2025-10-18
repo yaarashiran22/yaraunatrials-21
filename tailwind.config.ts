@@ -124,11 +124,11 @@ export default {
 					foreground: 'hsl(var(--mustard-foreground))',
 					hover: 'hsl(var(--mustard-hover))'
 				},
-				// Teal
-				teal: {
-					DEFAULT: 'hsl(var(--teal))',
-					foreground: 'hsl(var(--teal-foreground))',
-					hover: 'hsl(var(--teal-hover))'
+				// Dark Purple
+				'dark-purple': {
+					DEFAULT: 'hsl(var(--dark-purple))',
+					foreground: 'hsl(var(--dark-purple-foreground))',
+					hover: 'hsl(var(--dark-purple-hover))'
 				},
 				// Neutrals - Una Complete Scale
 				neutral: {
