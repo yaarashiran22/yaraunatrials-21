@@ -5,7 +5,6 @@ import { useState, useEffect, useMemo } from "react";
 import { useSecureAuth } from "@/hooks/useSecureAuth";
 import { format } from "date-fns";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useUserMessages } from "@/hooks/useUserMessages";
 import { validateUUID, canUserModifyItem } from "@/utils/security";
 import { useToast } from "@/hooks/use-toast";
 import BottomNavigation from "@/components/BottomNavigation";
@@ -54,7 +53,7 @@ const ProfilePage = () => {
   const { addFriend, isFriend } = useFriends();
   const { isFollowing, toggleFollow, isToggling } = useFollowing();
   const { myCoupons, loading: couponsLoading, deleteCoupon, deleting: deletingCoupon, refreshCoupons } = useMyCoupons(user?.id);
-  const { messages, loading: messagesLoading, creating: creatingMessage, updating: updatingMessage, createMessage, updateMessage, deleteMessage } = useUserMessages(actualProfileId);
+  // Messages feature removed
   
   
   const [showStoryPopup, setShowStoryPopup] = useState(false);
@@ -1107,40 +1106,7 @@ const ProfilePage = () => {
     navigate('/login');
   };
 
-  const handleAddMessage = async () => {
-    if (!newMessage.trim()) return;
-    
-    const success = await createMessage(newMessage);
-    if (success) {
-      setNewMessage("");
-    }
-  };
-
-  const handleEditMessage = (messageId: string, currentText: string) => {
-    setEditingMessageId(messageId);
-    setEditingMessageText(currentText);
-  };
-
-  const handleUpdateMessage = async () => {
-    if (!editingMessageId || !editingMessageText.trim()) return;
-    
-    const success = await updateMessage(editingMessageId, editingMessageText);
-    if (success) {
-      setEditingMessageId(null);
-      setEditingMessageText("");
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingMessageId(null);
-    setEditingMessageText("");
-  };
-
-  const handleDeleteMessage = async (messageId: string) => {
-    if (window.confirm('Are you sure you want to delete this message?')) {
-      await deleteMessage(messageId);
-    }
-  };
+  // Message handlers removed - feature disabled
 
   const handleAddFriend = async () => {
     if (!actualProfileId || isOwnProfile) return;

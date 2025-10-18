@@ -11,7 +11,6 @@ import SearchPopup from "@/components/SearchPopup";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
-import NewItemPopup from "@/components/NewItemPopup";
 import { useNewItem } from "@/contexts/NewItemContext";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -32,7 +31,6 @@ import MeetupsPage from "./pages/MeetupsPage";
 
 import RegisterPage from "./pages/RegisterPage";
 import SettingsPage from "./pages/SettingsPage";
-import NewItemPage from "./pages/NewItemPage";
 import CreatePostPage from "./pages/CreatePostPage";
 import CreateEventPage from "./pages/CreateEventPage";
 import EditProfilePage from "./pages/EditProfilePage";
@@ -95,7 +93,6 @@ const AppContent = () => {
               <Route path="/neighborhood/:id" element={<NeighborhoodProfilePage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/favorites" element={<FavoritesPage />} />
-              <Route path="/new-item" element={<NewItemPage />} />
               <Route path="/create-post" element={<CreatePostPage />} />
               <Route path="/create-event" element={<CreateEventPage />} />
               <Route path="/meetups" element={<MeetupsPage />} />
@@ -155,7 +152,6 @@ const AppContent = () => {
             
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
-            <Route path="/new-item" element={<NewItemPage />} />
             <Route path="/create-post" element={<CreatePostPage />} />
             <Route path="/create-event" element={<CreateEventPage />} />
             <Route path="/meetups" element={<MeetupsPage />} />
@@ -164,7 +160,7 @@ const AppContent = () => {
         </div>
       </div>
       
-      <NewItemPopup isOpen={isOpen} onClose={closeNewItem} onItemCreated={refreshItems} />
+      
       <SearchPopup />
     </BrowserRouter>
   );

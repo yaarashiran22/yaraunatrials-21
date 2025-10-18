@@ -139,14 +139,7 @@ export const useProfile = (profileId?: string) => {
           .from('profile-images')
           .getPublicUrl(smallFileName);
 
-        // Insert or update user_picture_galleries instead of smallprofiles
-        await supabase
-          .from('user_picture_galleries')
-          .upsert({
-            user_id: userId,
-            image_url: publicUrl,
-            title: 'Small Profile Photo'
-          });
+        // Picture galleries feature removed
       }
 
       // Clean up
