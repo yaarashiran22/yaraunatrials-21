@@ -393,7 +393,7 @@ const Index = () => {
         {/* Events Section - Vertical Carousel */}
         <section className="home-section">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-3xl font-bold text-white">
+            <h2 className="text-3xl font-bold text-coral">
             events going on
             </h2>
             <div className="flex items-center gap-2">
