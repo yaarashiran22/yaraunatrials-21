@@ -16,7 +16,7 @@ const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({ variant = 'floati
         <div className="w-full mb-6">
           <Button
             onClick={() => setIsPopupOpen(true)}
-            className="w-full h-12 rounded-2xl shadow-lg bg-gradient-to-r from-[#FF6B6B] to-[#FF8E53] hover:from-[#FF5555] hover:to-[#FF7A3D] text-white font-semibold text-base flex items-center justify-center gap-2.5 transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
+            className="w-full h-12 rounded-2xl shadow-lg bg-gradient-to-r from-[#E91E63] to-[#9C27B0] hover:from-[#D81B60] hover:to-[#8E24AA] text-white font-semibold text-base flex items-center justify-center gap-2.5 transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
           >
             <Sparkles className="w-5 h-5" />
             Ask Yara AI

@@ -16,16 +16,13 @@ import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import Index from "./pages/Index";
 import ProfilePage from "./pages/ProfilePage";
-import FeedPage from "./pages/FeedPage";
 import EventsPage from "./pages/EventsPage";
 import EventDetailsPage from "./pages/EventDetailsPage";
 import ItemDetailsPage from "./pages/ItemDetailsPage";
-import RecommendedPage from "./pages/RecommendedPage";
 import MarketplacePage from "./pages/MarketplacePage";
 import NeighborhoodProfilePage from "./pages/NeighborhoodProfilePage";
 import NeighborsPage from "./pages/NeighborsPage";
 import AllMeetupsPage from "./pages/AllMeetupsPage";
-import AllRecommendationsPage from "./pages/AllRecommendationsPage";
 
 import MeetupsPage from "./pages/MeetupsPage";
 
@@ -80,14 +77,11 @@ const AppContent = () => {
               <Route path="/profile/:id" element={<ProfilePage />} />
               <Route path="/profile/edit" element={<EditProfilePage />} />
               <Route path="/items/:itemId/edit" element={<EditItemPage />} />
-              <Route path="/feed" element={<FeedPage />} />
               <Route path="/events" element={<EventsPage />} />
               <Route path="/all-meetups" element={<AllMeetupsPage />} />
-              <Route path="/all-recommendations" element={<AllRecommendationsPage />} />
               <Route path="/event/:id" element={<EventDetailsPage />} />
               <Route path="/events/:id" element={<EventDetailsPage />} />
               <Route path="/item/:id" element={<ItemDetailsPage />} />
-              <Route path="/recommended" element={<RecommendedPage />} />
               <Route path="/marketplace" element={<MarketplacePage />} />
               <Route path="/neighbors" element={<NeighborsPage />} />
               <Route path="/neighborhood/:id" element={<NeighborhoodProfilePage />} />
@@ -120,7 +114,6 @@ const AppContent = () => {
               </div>
               <nav className="space-y-2">
                 <DesktopNavItem href="/" icon={Home} label={t('common.home')} />
-                <DesktopNavItem href="/feed" icon={Users} label={t('feed.title')} />
                 <DesktopNavItem href="/profile/1" icon={User} label={t('common.profile')} />
                 <DesktopNavItem href="/settings" icon={Settings} label={t('common.settings')} />
               </nav>
@@ -138,14 +131,11 @@ const AppContent = () => {
             <Route path="/profile/:id" element={<ProfilePage />} />
             <Route path="/profile/edit" element={<EditProfilePage />} />
             <Route path="/items/:itemId/edit" element={<EditItemPage />} />
-            <Route path="/feed" element={<FeedPage />} />
             <Route path="/events" element={<EventsPage />} />
             <Route path="/all-meetups" element={<AllMeetupsPage />} />
-            <Route path="/all-recommendations" element={<AllRecommendationsPage />} />
             <Route path="/event/:id" element={<EventDetailsPage />} />
             <Route path="/events/:id" element={<EventDetailsPage />} />
             <Route path="/item/:id" element={<ItemDetailsPage />} />
-            <Route path="/recommended" element={<RecommendedPage />} />
             <Route path="/marketplace" element={<MarketplacePage />} />
             <Route path="/neighbors" element={<NeighborsPage />} />
             <Route path="/neighborhood/:id" element={<NeighborhoodProfilePage />} />
