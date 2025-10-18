@@ -274,15 +274,6 @@ const RegisterPage = () => {
             <div className="space-y-4">
               <div>
                 <Input 
-                  placeholder="Instagram @"
-                  value={formData.instagram}
-                  onChange={(e) => handleInputChange('instagram', e.target.value)}
-                  className="w-full h-12 text-left bg-background border border-border rounded-lg"
-                />
-              </div>
-              
-              <div>
-                <Input 
                   placeholder="Facebook"
                   value={formData.facebook}
                   onChange={(e) => handleInputChange('facebook', e.target.value)}
