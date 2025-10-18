@@ -68,7 +68,7 @@ const DesktopHeader = ({
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="outline" 
-                  className="bg-background text-foreground hover:bg-accent border-border px-6 py-3 h-11 gap-2"
+                  className="bg-white text-black hover:bg-gray-100 border-gray-300 px-6 py-3 h-11 gap-2"
                 >
                   <MapPin className="h-5 w-5" />
                   {selectedNeighborhood}
