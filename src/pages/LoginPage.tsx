@@ -33,9 +33,9 @@ const LoginPage = () => {
     whatsappNumber: '',
     instagram: '',
     targetAgeRange: '',
-    targetAudienceDescription: ''
+    targetAudienceDescription: '',
+    personalDescription: ''
   });
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
   const handleInputChange = (field: string, value: string) => {
@@ -181,8 +181,10 @@ const LoginPage = () => {
           username: formData.instagram ? `https://instagram.com/${formData.instagram}` : null,
           show_in_search: true,
           is_private: false,
-          interests: selectedInterests,
-          bio: formData.profileType === 'business' ? formData.targetAudienceDescription : null,
+          interests: [],
+          bio: formData.profileType === 'business' 
+            ? formData.targetAudienceDescription 
+            : formData.personalDescription,
           specialties: formData.profileType === 'business' && formData.targetAgeRange 
             ? [formData.targetAgeRange] 
             : null
@@ -544,6 +546,16 @@ const LoginPage = () => {
                       <option value="Abroad">Abroad</option>
                     </select>
                   </div>
+
+                  <div>
+                    <textarea
+                      placeholder="Tell us about your interests and what you like to do when going out (music, food, activities, etc.)"
+                      value={formData.personalDescription}
+                      onChange={(e) => handleInputChange('personalDescription', e.target.value)}
+                      className="w-full min-h-24 text-left text-black bg-white border border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg px-3 py-2 placeholder:text-gray-500 resize-none"
+                      rows={4}
+                    />
+                  </div>
                 </>
               )}
 
@@ -596,17 +608,6 @@ const LoginPage = () => {
                 />
               </div>
             </div>
-
-            {/* Interests Section - Only show for personal profiles */}
-            {formData.profileType === 'personal' && (
-              <div className="pt-6">
-                <InterestsSelector
-                  selectedInterests={selectedInterests}
-                  onChange={setSelectedInterests}
-                  maxInterests={5}
-                />
-              </div>
-            )}
 
             {/* Profile Photo Section */}
             <div className="pt-6">
