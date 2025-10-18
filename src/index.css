@@ -511,7 +511,7 @@ All colors MUST be HSL.
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    font-size: 1.75em;
+    font-size: 1.5em;
     margin-bottom: 0.5rem;
   }
 
