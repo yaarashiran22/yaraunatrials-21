@@ -2,21 +2,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { QrCode, Download, Share, Clock, CheckCircle } from "lucide-react";
-import { CommunityPerk } from "@/hooks/useCommunityPerks";
 import { UserCoupon } from "@/hooks/useUserCoupons";
 import { CouponClaim } from "@/hooks/useCouponClaims";
 
 interface CouponQRModalProps {
   isOpen: boolean;
   onClose: () => void;
-  perk?: CommunityPerk | null;
   userCoupon?: UserCoupon | null;
   claim?: CouponClaim | null;
   qrCodeData?: string;
 }
 
-export const CouponQRModal = ({ isOpen, onClose, perk, userCoupon, claim, qrCodeData }: CouponQRModalProps) => {
-  const item = perk || userCoupon;
+export const CouponQRModal = ({ isOpen, onClose, userCoupon, claim, qrCodeData }: CouponQRModalProps) => {
+  const item = userCoupon;
   const displayQRCode = claim?.qr_code_data || qrCodeData;
   
   if (!item || !displayQRCode) return null;

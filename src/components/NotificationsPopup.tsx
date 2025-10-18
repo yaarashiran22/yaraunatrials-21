@@ -8,7 +8,6 @@ import {
   SimplifiedModalBody 
 } from "@/components/ui/simplified-modal";
 import { useNotifications } from "@/hooks/useNotifications";
-import { useCommunityRequests } from "@/hooks/useCommunityRequests";
 import { useMeetupJoinRequests } from "@/hooks/useMeetupJoinRequests";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
@@ -22,7 +21,6 @@ interface NotificationsPopupProps {
 
 const NotificationsPopup = ({ isOpen, onClose }: NotificationsPopupProps) => {
   const { notifications, loading, markAsRead, markAllAsRead, refreshNotifications } = useNotifications();
-  const { approveMembershipRequest, rejectMembershipRequest, getMembershipRequestDetails, loading: requestLoading } = useCommunityRequests();
   const { handleJoinRequest } = useMeetupJoinRequests();
   const [processingRequests, setProcessingRequests] = useState<Set<string>>(new Set());
   const { t } = useLanguage();
@@ -67,39 +65,6 @@ const NotificationsPopup = ({ isOpen, onClose }: NotificationsPopupProps) => {
     }
   };
 
-  const handleCommunityRequestAction = async (notificationId: string, relatedUserId: string, action: 'approve' | 'reject') => {
-    if (processingRequests.has(notificationId)) return;
-    
-    setProcessingRequests(prev => new Set(prev).add(notificationId));
-    
-    try {
-      const details = await getMembershipRequestDetails(notificationId, relatedUserId);
-      if (!details) {
-        throw new Error('Failed to get membership request details');
-      }
-
-      let success = false;
-      if (action === 'approve') {
-        success = await approveMembershipRequest(details.membershipId, details.communityName, details.userName);
-      } else {
-        success = await rejectMembershipRequest(details.membershipId, details.communityName, details.userName);
-      }
-
-      if (success) {
-        // Mark notification as read and refresh notifications
-        markAsRead(notificationId);
-        setTimeout(() => refreshNotifications(), 500);
-      }
-    } catch (error) {
-      console.error('Error handling community request:', error);
-    } finally {
-      setProcessingRequests(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(notificationId);
-        return newSet;
-      });
-    }
-  };
 
   const handleNotificationClick = (notificationId: string, isRead: boolean) => {
     if (!isRead) {
@@ -183,70 +148,6 @@ const NotificationsPopup = ({ isOpen, onClose }: NotificationsPopupProps) => {
                   <span className="text-sm text-muted-foreground">
                     {formatTimeAgo(notification.created_at)}
                   </span>
-                  
-                  {/* Community Join Request Actions */}
-                  {notification.type === 'community_join_request' && notification.related_user_id && !processingRequests.has(notification.id) && (
-                    <div className="flex gap-3 mt-3">
-                      <Button 
-                        size="default" 
-                        variant="default"
-                        className="min-h-touch-sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCommunityRequestAction(notification.id, notification.related_user_id!, 'approve');
-                        }}
-                        disabled={requestLoading}
-                      >
-                        <Check className="w-4 h-4 mr-2" />
-                        Approve
-                      </Button>
-                      <Button 
-                        size="default" 
-                        variant="outline"
-                        className="min-h-touch-sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCommunityRequestAction(notification.id, notification.related_user_id!, 'reject');
-                        }}
-                        disabled={requestLoading}
-                      >
-                        <X className="w-4 h-4 mr-2" />
-                        Reject
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Meetup Join Request Actions */}
-                  {notification.type === 'meetup_join_request' && notification.related_user_id && !processingRequests.has(notification.id) && (
-                    <div className="flex gap-3 mt-3">
-                      <Button 
-                        size="default" 
-                        variant="default"
-                        className="min-h-touch-sm bg-accent hover:bg-accent/90"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMeetupJoinRequestAction(notification.id, notification.related_user_id!, 'approve');
-                        }}
-                        disabled={requestLoading}
-                      >
-                        <Users className="w-4 h-4 mr-2" />
-                        Accept
-                      </Button>
-                      <Button 
-                        size="default" 
-                        variant="outline"
-                        className="min-h-touch-sm border-destructive/20 text-destructive hover:bg-destructive/10"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleMeetupJoinRequestAction(notification.id, notification.related_user_id!, 'decline');
-                        }}
-                        disabled={requestLoading}
-                      >
-                        <X className="w-4 h-4 mr-2" />
-                        Pass
-                      </Button>
-                    </div>
-                  )}
                  
                  {processingRequests.has(notification.id) && (
                    <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
