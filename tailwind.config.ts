@@ -124,11 +124,11 @@ export default {
 					foreground: 'hsl(var(--mustard-foreground))',
 					hover: 'hsl(var(--mustard-hover))'
 				},
-				// Dark Purple
-				'dark-purple': {
-					DEFAULT: 'hsl(var(--dark-purple))',
-					foreground: 'hsl(var(--dark-purple-foreground))',
-					hover: 'hsl(var(--dark-purple-hover))'
+				// Electric Pink Purple
+				'electric-pink': {
+					DEFAULT: 'hsl(var(--electric-pink))',
+					foreground: 'hsl(var(--electric-pink-foreground))',
+					hover: 'hsl(var(--electric-pink-hover))'
 				},
 				// Neutrals - Una Complete Scale
 				neutral: {

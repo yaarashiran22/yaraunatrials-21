@@ -79,10 +79,10 @@ All colors MUST be HSL.
     --mustard-foreground: 30 10% 20%;        /* Dark text on mustard */
     --mustard-hover: 45 92% 50%;             /* Darker mustard for hover */
 
-    /* Dark Purple - Complementary to mustard for price badge */
-    --dark-purple: 270 60% 35%;              /* Dark purple */
-    --dark-purple-foreground: 0 0% 100%;     /* White text on dark purple */
-    --dark-purple-hover: 270 60% 30%;        /* Darker purple for hover */
+    /* Electric Pink Purple - Price badge */
+    --electric-pink: 320 85% 60%;            /* Electric pink purple */
+    --electric-pink-foreground: 0 0% 100%;   /* White text on electric pink */
+    --electric-pink-hover: 320 85% 55%;      /* Darker electric pink for hover */
 
     /* System Colors - Harmonious palette */
     --success: 142 76% 36%;                  /* Green success */
@@ -280,10 +280,10 @@ All colors MUST be HSL.
     --mustard-foreground: 30 10% 20%;        /* Dark text on mustard */
     --mustard-hover: 45 92% 55%;             /* Darker mustard for hover */
 
-    /* Dark Purple - Dark mode */
-    --dark-purple: 270 60% 45%;              /* Brighter dark purple for dark mode */
-    --dark-purple-foreground: 0 0% 100%;     /* White text on dark purple */
-    --dark-purple-hover: 270 60% 40%;        /* Darker purple for hover */
+    /* Electric Pink Purple - Dark mode */
+    --electric-pink: 320 85% 65%;            /* Brighter electric pink for dark mode */
+    --electric-pink-foreground: 0 0% 100%;   /* White text on electric pink */
+    --electric-pink-hover: 320 85% 60%;      /* Darker electric pink for hover */
 
     /* System Colors - Dark Mode Adjustments */
     --success: 142 76% 46%;                  /* Brighter green */
