@@ -29,7 +29,7 @@ const MeetupsPage = () => {
   
   // Use optimized homepage hook for profiles data
   const {
-    profiles,
+    businessProfiles,
     loading: profilesLoading
   } = useOptimizedHomepage();
   
@@ -51,37 +51,23 @@ const MeetupsPage = () => {
     // TODO: Could implement mood-based filtering here if needed
   };
 
-  // Memoize display profiles for meetup organizers
+  // Memoize display profiles for business profiles only
   const displayProfiles = useMemo(() => {
-    const profilesList = [];
-
-    // Always show current user first if logged in
-    if (user) {
-      const currentUserDisplayProfile = {
-        id: user.id,
-        name: currentUserProfile?.name || user.email?.split('@')[0] || 'You',
-        image: currentUserProfile?.profile_image_url || user.user_metadata?.avatar_url || "/lovable-uploads/c7d65671-6211-412e-af1d-6e5cfdaa248e.png",
-        isCurrentUser: true,
-        hasStories: false
-      };
-      profilesList.push(currentUserDisplayProfile);
+    if (!businessProfiles || businessProfiles.length === 0) {
+      return [];
     }
 
-    // Show all other profiles as potential meetup organizers
-    if (profiles.length > 0) {
-      const filteredProfiles = profiles.filter(p => p.id !== user?.id && p.name?.toLowerCase() !== 'juani');
-      
-      const otherProfiles = filteredProfiles.map(p => ({
-        id: p.id,
-        name: p.name || "User",
-        image: p.image || "/lovable-uploads/c7d65671-6211-412e-af1d-6e5cfdaa248e.png",
-        hasStories: false,
-        isCurrentUser: false
-      }));
-      profilesList.push(...otherProfiles);
-    }
-    return profilesList;
-  }, [user, currentUserProfile, profiles, selectedMoodFilter]);
+    // Filter out 'juani' and map to display format
+    const filteredProfiles = businessProfiles.filter(p => p.name?.toLowerCase() !== 'juani');
+    
+    return filteredProfiles.map(p => ({
+      id: p.id,
+      name: p.name || "Business",
+      image: p.image || "/lovable-uploads/c7d65671-6211-412e-af1d-6e5cfdaa248e.png",
+      hasStories: false,
+      isCurrentUser: false
+    }));
+  }, [businessProfiles]);
 
   // Coupon click handler
   const handleCouponClick = useCallback(async (coupon: any) => {
@@ -114,21 +100,23 @@ const MeetupsPage = () => {
         {/* AI Assistant Toggle Bar */}
         <AIAssistantButton variant="toggle" />
         
-        {/* Community Members Section - Horizontal Carousel */}
-        <section className="-mb-1 lg:-mb-1">
-          <div className="px-1 lg:px-5 mb-3">
-            <h3 className="title-section-white">businesses</h3>
-          </div>
-          <div className="relative">
-            <div className="flex overflow-x-auto gap-2 pb-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40" dir="ltr" style={{
-            scrollBehavior: 'smooth'
-          }}>
-              {profilesLoading ? <FastLoadingSkeleton type="profiles" /> : displayProfiles.length > 0 ? displayProfiles.map((profile, index) => <OptimizedProfileCard key={profile.id} id={profile.id} image={profile.image} name={profile.name} className={`flex-shrink-0 min-w-[90px] animate-fade-in ${index === 0 && user?.id === profile.id ? '' : ''}`} style={{
-              animationDelay: `${Math.min(index * 0.03, 0.3)}s`
-            } as React.CSSProperties} isCurrentUser={user?.id === profile.id} />) : <div className="text-center py-8 text-muted-foreground w-full">No registered users yet</div>}
+        {/* Businesses Section - Only shown if there are business profiles */}
+        {displayProfiles.length > 0 && (
+          <section className="-mb-1 lg:-mb-1">
+            <div className="px-1 lg:px-5 mb-3">
+              <h3 className="title-section-white">businesses</h3>
             </div>
-          </div>
-        </section>
+            <div className="relative">
+              <div className="flex overflow-x-auto gap-2 pb-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40" dir="ltr" style={{
+              scrollBehavior: 'smooth'
+            }}>
+                {profilesLoading ? <FastLoadingSkeleton type="profiles" /> : displayProfiles.map((profile, index) => <OptimizedProfileCard key={profile.id} id={profile.id} image={profile.image} name={profile.name} className="flex-shrink-0 min-w-[90px] animate-fade-in" style={{
+                animationDelay: `${Math.min(index * 0.03, 0.3)}s`
+              } as React.CSSProperties} isCurrentUser={false} />)}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Coupons Section */}
         <section className="home-section">
