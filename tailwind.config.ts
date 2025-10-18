@@ -118,6 +118,18 @@ export default {
 					foreground: 'hsl(var(--coral-foreground))',
 					hover: 'hsl(var(--coral-hover))'
 				},
+				// Mustard Yellow
+				mustard: {
+					DEFAULT: 'hsl(var(--mustard))',
+					foreground: 'hsl(var(--mustard-foreground))',
+					hover: 'hsl(var(--mustard-hover))'
+				},
+				// Teal
+				teal: {
+					DEFAULT: 'hsl(var(--teal))',
+					foreground: 'hsl(var(--teal-foreground))',
+					hover: 'hsl(var(--teal-hover))'
+				},
 				// Neutrals - Una Complete Scale
 				neutral: {
 					900: 'hsl(var(--neutral-900))',

@@ -74,6 +74,16 @@ All colors MUST be HSL.
     --coral-foreground: 0 0% 100%;           /* White text on coral */
     --coral-hover: 14 100% 60%;              /* Darker coral for hover */
 
+    /* Mustard Yellow - Event date badge */
+    --mustard: 45 92% 55%;                   /* Warm mustard yellow */
+    --mustard-foreground: 30 10% 20%;        /* Dark text on mustard */
+    --mustard-hover: 45 92% 50%;             /* Darker mustard for hover */
+
+    /* Teal - Complementary to mustard for price badge */
+    --teal: 175 70% 45%;                     /* Teal blue-green */
+    --teal-foreground: 0 0% 100%;            /* White text on teal */
+    --teal-hover: 175 70% 40%;               /* Darker teal for hover */
+
     /* System Colors - Harmonious palette */
     --success: 142 76% 36%;                  /* Green success */
     --success-foreground: 0 0% 100%;
@@ -264,6 +274,16 @@ All colors MUST be HSL.
     --coral: 14 100% 70%;                    /* Brighter coral for dark mode */
     --coral-foreground: 224 71% 4%;          /* Dark text on coral */
     --coral-hover: 14 100% 65%;              /* Darker coral for hover */
+
+    /* Mustard Yellow - Dark mode */
+    --mustard: 45 92% 60%;                   /* Brighter mustard for dark mode */
+    --mustard-foreground: 30 10% 20%;        /* Dark text on mustard */
+    --mustard-hover: 45 92% 55%;             /* Darker mustard for hover */
+
+    /* Teal - Dark mode */
+    --teal: 175 70% 55%;                     /* Brighter teal for dark mode */
+    --teal-foreground: 224 71% 4%;           /* Dark text on teal */
+    --teal-hover: 175 70% 50%;               /* Darker teal for hover */
 
     /* System Colors - Dark Mode Adjustments */
     --success: 142 76% 46%;                  /* Brighter green */
