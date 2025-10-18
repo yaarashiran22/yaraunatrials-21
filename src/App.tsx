@@ -22,7 +22,7 @@ import ItemDetailsPage from "./pages/ItemDetailsPage";
 import MarketplacePage from "./pages/MarketplacePage";
 import NeighborhoodProfilePage from "./pages/NeighborhoodProfilePage";
 import NeighborsPage from "./pages/NeighborsPage";
-import AllMeetupsPage from "./pages/AllMeetupsPage";
+
 
 import MeetupsPage from "./pages/MeetupsPage";
 
@@ -78,7 +78,6 @@ const AppContent = () => {
               <Route path="/profile/edit" element={<EditProfilePage />} />
               <Route path="/items/:itemId/edit" element={<EditItemPage />} />
               <Route path="/events" element={<EventsPage />} />
-              <Route path="/all-meetups" element={<AllMeetupsPage />} />
               <Route path="/event/:id" element={<EventDetailsPage />} />
               <Route path="/events/:id" element={<EventDetailsPage />} />
               <Route path="/item/:id" element={<ItemDetailsPage />} />
@@ -132,7 +131,7 @@ const AppContent = () => {
             <Route path="/profile/edit" element={<EditProfilePage />} />
             <Route path="/items/:itemId/edit" element={<EditItemPage />} />
             <Route path="/events" element={<EventsPage />} />
-            <Route path="/all-meetups" element={<AllMeetupsPage />} />
+            
             <Route path="/event/:id" element={<EventDetailsPage />} />
             <Route path="/events/:id" element={<EventDetailsPage />} />
             <Route path="/item/:id" element={<ItemDetailsPage />} />
