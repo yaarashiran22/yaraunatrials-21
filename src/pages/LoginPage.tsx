@@ -638,7 +638,7 @@ const LoginPage = () => {
               <Button 
                 onClick={handleSignUpSubmit}
                 disabled={isLoading}
-                className="w-full h-12 text-white text-lg font-medium rounded-lg bg-gradient-to-r from-coral to-primary hover:from-coral-600 hover:to-primary-600 shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+                className="w-full h-12 text-white text-lg font-medium rounded-lg !bg-gradient-to-r !from-[#E91E63] !to-[#9C27B0] hover:!from-[#D81B60] hover:!to-[#8E24AA] shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
               >
                 {isLoading ? 'Registering...' : 'Sign Up'}
               </Button>
