@@ -19,6 +19,7 @@ import { CouponQRModal } from '@/components/CouponQRModal';
 import { AddCouponModal } from '@/components/AddCouponModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { QrCode, Gift, Store } from 'lucide-react';
+import AIAssistantButton from '@/components/AIAssistantButton';
 
 const MeetupsPage = () => {
   const { t } = useLanguage();
@@ -110,6 +111,9 @@ const MeetupsPage = () => {
       <MoodFilterStrip onFilterChange={handleMoodFilterChange} showTitle={false} />
       
       <main className="px-3 lg:px-6 py-3 lg:py-6 space-y-5 lg:space-y-10 pb-24 lg:pb-8 w-full max-w-md lg:max-w-none mx-auto lg:mx-0">
+        {/* AI Assistant Toggle Bar */}
+        <AIAssistantButton variant="toggle" />
+        
         {/* Community Members Section - Horizontal Carousel */}
         <section className="-mb-1 lg:-mb-1">
           <div className="px-1 lg:px-5 mb-3">
