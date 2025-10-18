@@ -199,8 +199,12 @@ const LoginPage = () => {
           <div className="text-center mb-8">
           <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate('/')}>
               <div 
-                className="text-5xl font-black cursor-pointer hover:opacity-80 transition-opacity bg-gradient-to-r from-coral via-primary to-coral bg-clip-text text-transparent"
+                className="text-5xl font-black cursor-pointer hover:opacity-80 transition-opacity"
                 style={{ 
+                  background: 'linear-gradient(90deg, hsl(340 82% 52%), hsl(276 83% 58%))',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
                   fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
                   fontWeight: 700,
                   textTransform: 'lowercase',
@@ -211,7 +215,13 @@ const LoginPage = () => {
               </div>
             </div>
             
-            <p className="text-2xl font-bold mt-3 mb-6 bg-gradient-to-r from-coral via-primary to-coral bg-clip-text text-transparent tracking-wide drop-shadow-sm">
+            <p className="text-2xl font-bold mt-3 mb-6 tracking-wide drop-shadow-sm"
+               style={{
+                 background: 'linear-gradient(90deg, hsl(340 82% 52%), hsl(276 83% 58%))',
+                 WebkitBackgroundClip: 'text',
+                 WebkitTextFillColor: 'transparent',
+                 backgroundClip: 'text'
+               }}>
               Everything Worth Knowing
             </p>
             
@@ -220,8 +230,12 @@ const LoginPage = () => {
           {/* Form */}
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-white/20">
             <h1 
-              className="text-xl text-center mb-6 bg-gradient-to-r from-coral via-primary to-coral bg-clip-text text-transparent"
+              className="text-xl text-center mb-6"
               style={{ 
+                background: 'linear-gradient(90deg, hsl(340 82% 52%), hsl(276 83% 58%))',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
                 fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
                 fontWeight: 700,
                 letterSpacing: '-0.03em'
@@ -266,7 +280,13 @@ const LoginPage = () => {
               <button
                 type="button"
                 onClick={() => setShowForgotPassword(true)}
-                className="text-sm text-white/70 hover:text-coral transition-colors"
+                className="text-sm hover:opacity-80 transition-opacity"
+                style={{
+                  background: 'linear-gradient(90deg, hsl(340 82% 62%), hsl(276 83% 68%))',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
+                }}
               >
                 Forgot your password?
               </button>
@@ -276,7 +296,13 @@ const LoginPage = () => {
               <button
                 type="button"
                 onClick={() => setIsLogin(false)}
-                className="bg-gradient-to-r from-coral via-primary to-coral bg-clip-text text-transparent hover:opacity-80 font-medium transition-opacity"
+                className="font-medium hover:opacity-80 transition-opacity"
+                style={{
+                  background: 'linear-gradient(90deg, hsl(340 82% 52%), hsl(276 83% 58%))',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
+                }}
               >
                 Don't have an account? Sign up
               </button>
@@ -360,8 +386,12 @@ const LoginPage = () => {
       <div className="text-center pt-4 pb-6">
         <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate('/')}>
           <div 
-            className="text-5xl font-black cursor-pointer hover:opacity-80 transition-opacity bg-gradient-to-r from-coral via-primary to-coral bg-clip-text text-transparent"
+            className="text-5xl font-black cursor-pointer hover:opacity-80 transition-opacity"
             style={{ 
+              background: 'linear-gradient(90deg, hsl(340 82% 52%), hsl(276 83% 58%))',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
               fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
               fontWeight: 700,
               textTransform: 'lowercase',
@@ -376,7 +406,13 @@ const LoginPage = () => {
       <main className="container mx-auto px-4">
         {/* Page Title */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-coral via-primary to-coral bg-clip-text text-transparent">Sign Up</h1>
+          <h1 className="text-2xl font-bold"
+              style={{
+                background: 'linear-gradient(90deg, hsl(340 82% 52%), hsl(276 83% 58%))',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>Sign Up</h1>
         </div>
 
         <div className="max-w-md mx-auto">
