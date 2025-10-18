@@ -181,7 +181,7 @@ const LoginPage = () => {
 
   if (isLogin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-primary-50/30 to-coral-50/30 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-black flex items-center justify-center px-4">
         <div className="w-full max-w-md">
           {/* Header with X button */}
           <div className="flex justify-end mb-4">
@@ -199,9 +199,8 @@ const LoginPage = () => {
           <div className="text-center mb-8">
           <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate('/')}>
               <div 
-                className="text-5xl font-black cursor-pointer hover:opacity-80 transition-opacity"
+                className="text-5xl font-black cursor-pointer hover:opacity-80 transition-opacity bg-gradient-to-r from-coral via-primary to-coral bg-clip-text text-transparent"
                 style={{ 
-                  color: 'hsl(var(--primary))', 
                   fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
                   fontWeight: 700,
                   textTransform: 'lowercase',
@@ -219,9 +218,9 @@ const LoginPage = () => {
           </div>
 
           {/* Form */}
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-primary-200/30">
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-white/20">
             <h1 
-              className="text-xl text-center mb-6 bg-gradient-to-r from-primary to-coral bg-clip-text text-transparent"
+              className="text-xl text-center mb-6 bg-gradient-to-r from-coral via-primary to-coral bg-clip-text text-transparent"
               style={{ 
                 fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
                 fontWeight: 700,
@@ -238,7 +237,7 @@ const LoginPage = () => {
                   placeholder="Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-12 text-left text-black bg-white/80 border-primary-200/40 focus:border-primary focus:ring-primary/20 rounded-lg"
+                  className="w-full h-12 text-left text-white bg-white/10 border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-white/60"
                   required
                 />
               </div>
@@ -249,7 +248,7 @@ const LoginPage = () => {
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-12 text-left text-black bg-white/80 border-primary-200/40 focus:border-primary focus:ring-primary/20 rounded-lg"
+                  className="w-full h-12 text-left text-white bg-white/10 border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-white/60"
                   required
                 />
               </div>
@@ -267,7 +266,7 @@ const LoginPage = () => {
               <button
                 type="button"
                 onClick={() => setShowForgotPassword(true)}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                className="text-sm text-white/70 hover:text-coral transition-colors"
               >
                 Forgot your password?
               </button>
@@ -277,7 +276,7 @@ const LoginPage = () => {
               <button
                 type="button"
                 onClick={() => setIsLogin(false)}
-                className="text-primary hover:text-coral font-medium transition-colors"
+                className="bg-gradient-to-r from-coral via-primary to-coral bg-clip-text text-transparent hover:opacity-80 font-medium transition-opacity"
               >
                 Don't have an account? Sign up
               </button>
@@ -343,7 +342,7 @@ const LoginPage = () => {
 
   // Sign up form
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-coral-50/30 to-primary-50/30 pb-20">
+    <div className="min-h-screen bg-black pb-20">
       {/* Header with X button */}
       <div className="flex justify-between items-center pt-4 px-4">
         <Button 
@@ -361,9 +360,8 @@ const LoginPage = () => {
       <div className="text-center pt-4 pb-6">
         <div className="flex items-center justify-center cursor-pointer" onClick={() => navigate('/')}>
           <div 
-            className="text-5xl font-black cursor-pointer hover:opacity-80 transition-opacity"
+            className="text-5xl font-black cursor-pointer hover:opacity-80 transition-opacity bg-gradient-to-r from-coral via-primary to-coral bg-clip-text text-transparent"
             style={{ 
-              color: 'hsl(var(--coral))', 
               fontFamily: 'Poppins, -apple-system, BlinkMacSystemFont, sans-serif',
               fontWeight: 700,
               textTransform: 'lowercase',
@@ -378,12 +376,12 @@ const LoginPage = () => {
       <main className="container mx-auto px-4">
         {/* Page Title */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Sign Up</h1>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-coral via-primary to-coral bg-clip-text text-transparent">Sign Up</h1>
         </div>
 
         <div className="max-w-md mx-auto">
           {/* Form Container */}
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-xl p-6 mb-6 border border-coral-200/30">
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl shadow-xl p-6 mb-6 border border-white/20">
             <div className="space-y-4">
               <div>
                 <Input 
