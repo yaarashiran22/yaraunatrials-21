@@ -112,7 +112,7 @@ const UniformCard = ({
         width: '320px'
       }}
     >
-      <div className="aspect-[3/4] overflow-hidden relative rounded-3xl">
+      <div className="aspect-[3/4.5] overflow-hidden relative rounded-3xl">
         {video ? (
           <video 
             src={video} 
