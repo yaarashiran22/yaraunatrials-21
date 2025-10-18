@@ -31,7 +31,9 @@ const LoginPage = () => {
     origin: '',
     profileType: 'personal',
     whatsappNumber: '',
-    instagram: ''
+    instagram: '',
+    targetAgeRange: '',
+    targetAudienceDescription: ''
   });
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -132,6 +134,15 @@ const LoginPage = () => {
       return;
     }
 
+    if (formData.profileType === 'business' && !formData.targetAgeRange) {
+      toast({
+        title: "Error",
+        description: "Business profiles must specify target audience age range",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -162,15 +173,19 @@ const LoginPage = () => {
           name: formData.name,
           mobile_number: '',
           location: formData.neighborhood,
-          age: parseInt(formData.age),
-          origin: formData.origin,
+          age: parseInt(formData.age) || null,
+          origin: formData.origin || null,
           profile_type: formData.profileType,
           whatsapp_number: formData.profileType === 'business' ? formData.whatsappNumber : null,
           profile_image_url: profileImage,
           username: formData.instagram ? `https://instagram.com/${formData.instagram}` : null,
           show_in_search: true,
           is_private: false,
-          interests: selectedInterests
+          interests: selectedInterests,
+          bio: formData.profileType === 'business' ? formData.targetAudienceDescription : null,
+          specialties: formData.profileType === 'business' && formData.targetAgeRange 
+            ? [formData.targetAgeRange] 
+            : null
         };
 
         const { error: profileError } = await supabase
@@ -533,16 +548,43 @@ const LoginPage = () => {
               )}
 
               {formData.profileType === 'business' && (
-                <div>
-                  <Input 
-                    type="tel"
-                    placeholder="WhatsApp Number (for internal use only)"
-                    value={formData.whatsappNumber}
-                    onChange={(e) => handleInputChange('whatsappNumber', e.target.value)}
-                    className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
-                    required
-                  />
-                </div>
+                <>
+                  <div>
+                    <Input 
+                      type="tel"
+                      placeholder="WhatsApp Number (for internal use only)"
+                      value={formData.whatsappNumber}
+                      onChange={(e) => handleInputChange('whatsappNumber', e.target.value)}
+                      className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <select
+                      value={formData.targetAgeRange}
+                      onChange={(e) => handleInputChange('targetAgeRange', e.target.value)}
+                      className="w-full h-12 text-left text-black bg-white border border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg px-3 py-2"
+                      required
+                    >
+                      <option value="">Target Audience Age Range</option>
+                      <option value="18-24">18-24</option>
+                      <option value="25-30">25-30</option>
+                      <option value="30-40">30-40</option>
+                      <option value="all">All Ages</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <textarea
+                      placeholder="Describe your target audience (what type of people, interests, etc.)"
+                      value={formData.targetAudienceDescription}
+                      onChange={(e) => handleInputChange('targetAudienceDescription', e.target.value)}
+                      className="w-full min-h-24 text-left text-black bg-white border border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg px-3 py-2 placeholder:text-gray-500 resize-none"
+                      rows={3}
+                    />
+                  </div>
+                </>
               )}
               
               <div>
