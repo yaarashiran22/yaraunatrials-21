@@ -12,7 +12,7 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Modern Harmonious Color Palette - Blue, Indigo, Purple with Coral Accents */
-    --background: 260 88% 18%;                 /* Electric purple background - lighter and more vibrant */
+    --background: 0 0% 0%;                       /* Black background */
     --foreground: 210 40% 95%;                /* Light text for dark background */
 
     --card: 0 0% 100%;                       /* Pure white cards */
@@ -317,12 +317,7 @@ All colors MUST be HSL.
   }
 
   body {
-    background: 
-      radial-gradient(circle at 20% 30%, hsl(230 40% 22% / 0.4) 0%, transparent 60%),
-      radial-gradient(circle at 80% 70%, hsl(245 45% 20% / 0.3) 0%, transparent 70%),
-      radial-gradient(circle at 60% 10%, hsl(270 35% 22% / 0.3) 0%, transparent 50%),
-      radial-gradient(circle at 10% 80%, hsl(220 30% 18% / 0.4) 0%, transparent 65%),
-      hsl(var(--background));
+    background: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     direction: ltr;
