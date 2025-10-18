@@ -24,7 +24,7 @@ const AIAssistantPopup: React.FC<AIAssistantPopupProps> = ({ isOpen, onClose }) 
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      content: "What are you looking for around you?",
+      content: "Hey! Welcome to Yara AI- If you're looking for indie events, hidden spots or exclusive deals in BA- i'm here. What vibe are you after?",
       role: 'assistant',
       timestamp: new Date()
     }
