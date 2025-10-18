@@ -21,7 +21,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { QrCode, Gift, Store } from 'lucide-react';
 import AIAssistantButton from '@/components/AIAssistantButton';
 
-const MeetupsPage = () => {
+const CouponsPage = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
   const { profile: currentUserProfile } = useProfile(user?.id);
@@ -223,4 +223,4 @@ const MeetupsPage = () => {
   );
 };
 
-export default MeetupsPage;
+export default CouponsPage;

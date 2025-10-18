@@ -24,7 +24,7 @@ import NeighborhoodProfilePage from "./pages/NeighborhoodProfilePage";
 import NeighborsPage from "./pages/NeighborsPage";
 
 
-import MeetupsPage from "./pages/MeetupsPage";
+import CouponsPage from "./pages/CouponsPage";
 
 import RegisterPage from "./pages/RegisterPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -88,7 +88,7 @@ const AppContent = () => {
               <Route path="/favorites" element={<FavoritesPage />} />
               <Route path="/create-post" element={<CreatePostPage />} />
               <Route path="/create-event" element={<CreateEventPage />} />
-              <Route path="/meetups" element={<MeetupsPage />} />
+            <Route path="/meetups" element={<CouponsPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
@@ -143,7 +143,7 @@ const AppContent = () => {
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/create-post" element={<CreatePostPage />} />
             <Route path="/create-event" element={<CreateEventPage />} />
-            <Route path="/meetups" element={<MeetupsPage />} />
+            <Route path="/meetups" element={<CouponsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
