@@ -67,10 +67,6 @@ const LoginPage = () => {
           variant: "destructive",
         });
       } else {
-        toast({
-          title: "Success!",
-          description: "Logged in successfully",
-        });
         navigate('/');
       }
     } catch (error) {
