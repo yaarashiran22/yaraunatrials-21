@@ -151,7 +151,11 @@ const EditProfilePage = () => {
       });
 
       if (profile.profile_image_url) {
-        setProfileImage(profile.profile_image_url);
+        // Add cache-busting to prevent stale images
+        const imageUrl = profile.profile_image_url.includes('?') 
+          ? profile.profile_image_url 
+          : `${profile.profile_image_url}?t=${Date.now()}`;
+        setProfileImage(imageUrl);
       }
     }
   }, [profile]);

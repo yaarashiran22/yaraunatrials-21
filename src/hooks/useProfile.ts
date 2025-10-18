@@ -167,15 +167,18 @@ export const useProfile = (profileId?: string) => {
       throw uploadError;
     }
 
-    // Get the public URL
+    // Get the public URL with cache-busting timestamp
+    const timestamp = Date.now();
     const { data: { publicUrl } } = supabase.storage
       .from('profile-images')
       .getPublicUrl(fileName);
     
+    const publicUrlWithCache = `${publicUrl}?t=${timestamp}`;
+    
     // Automatically create small version
     await createSmallProfilePicture(file, user.id);
     
-    return publicUrl;
+    return publicUrlWithCache;
   }, [user?.id, createSmallProfilePicture]);
 
   useEffect(() => {
