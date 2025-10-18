@@ -225,10 +225,10 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 pb-20" dir="ltr">
-      <div className="bg-gradient-to-br from-pink-500/10 via-purple-500/10 to-pink-500/10 backdrop-blur-xl border border-pink-500/20 rounded-t-3xl md:rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl shadow-pink-500/20">
+      <div className="bg-black rounded-t-3xl md:rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-pink-500/20">
-          <h2 className="text-lg font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+        <div className="flex items-center justify-between p-6 border-b">
+          <h2 className="text-lg font-bold text-foreground">
             {eventType === 'meetup' ? 'New Meetup' : 'New Event'}
           </h2>
           <Button 
@@ -440,7 +440,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
             <Button 
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="w-full h-12 bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 hover:from-pink-600 hover:via-purple-600 hover:to-pink-600 text-white rounded-full text-lg font-medium shadow-lg shadow-pink-500/30"
+              className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full text-lg font-medium"
             >
               {isSubmitting ? 
                 (eventType === 'meetup' ? "Creating meetup..." : "Creating event...") : 

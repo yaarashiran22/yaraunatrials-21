@@ -175,14 +175,14 @@ export const AddCouponModal = ({ isOpen, onClose }: AddCouponModalProps) => {
 
   return (
     <SimplifiedModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <SimplifiedModalContent className="max-w-2xl bg-gradient-to-br from-pink-500/10 via-purple-500/10 to-pink-500/10 backdrop-blur-xl border border-pink-500/20 shadow-2xl shadow-pink-500/20">
-        <SimplifiedModalHeader className="pb-6 border-b border-pink-500/20">
+      <SimplifiedModalContent className="max-w-2xl bg-black border border-border/20 shadow-2xl">
+        <SimplifiedModalHeader className="pb-6 border-b border-border/10">
           <SimplifiedModalTitle className="flex items-center gap-4 text-2xl">
-            <div className="p-3 bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-pink-500/20 rounded-2xl">
-              <Upload className="w-6 h-6 bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 bg-clip-text text-transparent" />
+            <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/10 rounded-2xl">
+              <Upload className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h2 className="font-bold bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 bg-clip-text text-transparent text-xl">Add Community Coupon</h2>
+              <h2 className="font-bold text-foreground text-xl">Add Community Coupon</h2>
               <p className="text-base text-white font-normal mt-1">Create an exclusive deal for your community</p>
             </div>
           </SimplifiedModalTitle>
@@ -357,23 +357,23 @@ export const AddCouponModal = ({ isOpen, onClose }: AddCouponModalProps) => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col-reverse md:flex-row gap-4 pt-6 border-t border-pink-500/20">
+            <div className="flex flex-col-reverse md:flex-row gap-4 pt-6 border-t border-border/10">
               <Button 
                 type="button"
                 variant="outline" 
                 onClick={onClose}
-                className="flex-1 h-12 border-2 border-pink-500/40 hover:bg-pink-500/10 transition-colors text-base font-medium rounded-xl"
+                className="flex-1 h-12 border-2 border-border/40 hover:bg-muted/50 transition-colors text-base font-medium rounded-xl"
               >
                 Cancel
               </Button>
               <Button 
                 type="submit"
                 disabled={creating || uploading || !formData.title.trim()}
-                className="flex-1 h-12 bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 hover:from-pink-600 hover:via-purple-600 hover:to-pink-600 text-white font-semibold shadow-lg shadow-pink-500/30 disabled:opacity-50 text-base rounded-xl"
+                className="flex-1 h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md disabled:opacity-50 text-base rounded-xl"
               >
                 {creating ? (
                   <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                     Creating coupon...
                   </div>
                 ) : (
