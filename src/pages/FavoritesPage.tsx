@@ -64,7 +64,7 @@ const FavoritesPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-black">
       {/* Mobile Header */}
       <div className="lg:hidden">
         <Header />

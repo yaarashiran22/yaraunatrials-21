@@ -356,7 +356,7 @@ const Index = () => {
     });
     setIsMarketplacePopupOpen(true);
   }, []);
-  return <div className="min-h-screen bg-background" dir="ltr">
+  return <div className="min-h-screen bg-black" dir="ltr">
       {/* Mobile Header */}
       <div className="lg:hidden">
         <Header title={t('common.home')} />
