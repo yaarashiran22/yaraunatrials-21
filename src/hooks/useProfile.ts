@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -19,49 +20,42 @@ export interface Profile {
   updated_at: string | null;
 }
 
+const fetchProfile = async (targetId: string | undefined): Promise<Profile | null> => {
+  if (!targetId) {
+    return null;
+  }
+
+  const { data, error: fetchError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', targetId)
+    .maybeSingle();
+
+  if (fetchError) {
+    throw new Error(fetchError.message);
+  }
+  
+  if (!data) {
+    throw new Error('Profile not found');
+  }
+
+  return data as unknown as Profile;
+};
+
 export const useProfile = (profileId?: string) => {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const targetId = profileId || user?.id;
 
-  const fetchProfile = useCallback(async () => {
-    const targetId = profileId || user?.id;
-    
-    if (!targetId) {
-      setProfile(null);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', targetId)
-        .maybeSingle();
-
-      if (fetchError) {
-        setError(fetchError.message);
-        setProfile(null);
-      } else if (!data) {
-        setError('Profile not found');
-        setProfile(null);
-      } else {
-        // Cast the data to our Profile interface
-        setProfile(data as unknown as Profile);
-        setError(null);
-      }
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
-      setProfile(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [profileId, user?.id]);
+  // Use React Query for caching and preventing unnecessary fetches
+  const { data: profile, isLoading: loading, error, refetch } = useQuery({
+    queryKey: ['profile', targetId],
+    queryFn: () => fetchProfile(targetId),
+    enabled: !!targetId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
+    retry: 1,
+  });
 
   const updateProfile = useCallback(async (updates: Partial<Profile>) => {
     if (!user?.id) {
@@ -79,10 +73,12 @@ export const useProfile = (profileId?: string) => {
       throw updateError;
     }
 
-    // Cast the data to our Profile interface
-    setProfile(data as unknown as Profile);
+    // Invalidate and update cache
+    queryClient.setQueryData(['profile', user.id], data as unknown as Profile);
+    queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
+    
     return data;
-  }, [user?.id]);
+  }, [user?.id, queryClient]);
 
   const createSmallProfilePicture = useCallback(async (file: File, userId: string) => {
     try {
@@ -181,15 +177,11 @@ export const useProfile = (profileId?: string) => {
     return publicUrlWithCache;
   }, [user?.id, createSmallProfilePicture]);
 
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
-
   return {
-    profile,
+    profile: profile || null,
     loading,
-    error,
-    refetch: fetchProfile,
+    error: error?.message || null,
+    refetch,
     updateProfile,
     uploadProfileImage,
     createSmallProfilePicture
