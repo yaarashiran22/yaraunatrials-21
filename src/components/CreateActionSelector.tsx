@@ -3,11 +3,16 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/useProfile";
 
 const CreateActionSelector = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { user } = useAuth();
+  const { profile } = useProfile(user?.id);
   const [isOpen, setIsOpen] = useState(false);
+
 
   const actions = [
     {
@@ -16,7 +21,8 @@ const CreateActionSelector = () => {
       onClick: () => {
         navigate('/create-post');
         setIsOpen(false);
-      }
+      },
+      visible: true // Always visible for all users
     },
     {
       icon: Calendar,
@@ -24,7 +30,8 @@ const CreateActionSelector = () => {
       onClick: () => {
         navigate('/create-event');
         setIsOpen(false);
-      }
+      },
+      visible: (profile as any)?.profile_type === 'business' // Only visible for business users
     },
     {
       icon: ShoppingBag,
@@ -32,9 +39,10 @@ const CreateActionSelector = () => {
       onClick: () => {
         navigate('/new-item');
         setIsOpen(false);
-      }
+      },
+      visible: true // Always visible for all users
     }
-  ];
+  ].filter(action => action.visible); // Filter out non-visible actions
 
   if (isOpen) {
     return (
