@@ -417,7 +417,7 @@ const Index = () => {
           
           {loading ? <FastLoadingSkeleton type="cards" count={3} /> : filteredEvents.length === 0 ? <div className="text-center py-6 text-muted-foreground">
               <p>No events available at the moment</p>
-            </div> : <div className="flex flex-col items-center space-y-5 p-4 overflow-visible">
+            </div> : <div className="flex flex-col items-center space-y-6 p-4 overflow-visible">
               {filteredEvents.map((event, index) => <ScrollAnimatedCard key={`event-${event.id}`} index={index}>
                    <UniformCard 
                      id={event.id} 
