@@ -82,7 +82,7 @@ const Header = ({
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-background border-border z-50">
+              <DropdownMenuContent className="bg-white border-border z-[9999]">
                 {neighborhoods.map((neighborhood) => (
                   <DropdownMenuItem 
                     key={neighborhood}
