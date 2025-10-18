@@ -1194,18 +1194,6 @@ const ProfilePage = () => {
           {/* Subtle background pattern */}
           <div className="absolute inset-0 opacity-5 bg-[radial-gradient(circle_at_25%_25%,hsl(var(--primary))_0%,transparent_50%),radial-gradient(circle_at_75%_75%,hsl(var(--coral))_0%,transparent_50%)]"></div>
           
-          {/* Settings button positioned at top right */}
-          {isOwnProfile && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="absolute top-4 right-4 z-20 rounded-full px-3 py-1 h-7 text-xs bg-white/80 backdrop-blur-sm border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all shadow-md hover:shadow-lg font-medium" 
-              onClick={() => navigate('/settings')}
-            >
-              <Settings className="h-3 w-3 mr-1" />
-              Settings
-            </Button>
-          )}
           
           <div className="relative flex items-start gap-4">
             <div className="relative flex-shrink-0 z-10">
@@ -1284,6 +1272,15 @@ const ProfilePage = () => {
                        >
                         <Pencil className="h-3 w-3 mr-1" />
                         Edit
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="rounded-full px-3 py-1 h-7 text-xs bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all shadow-md hover:shadow-lg font-medium" 
+                        onClick={() => navigate('/settings')}
+                      >
+                        <Settings className="h-3 w-3 mr-1" />
+                        Settings
                       </Button>
                     </>
                   )}
