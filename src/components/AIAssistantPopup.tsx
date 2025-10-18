@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageCircle, Send, X, Sparkles, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Message {
   id: string;
@@ -21,6 +22,7 @@ interface AIAssistantPopupProps {
 }
 
 const AIAssistantPopup: React.FC<AIAssistantPopupProps> = ({ isOpen, onClose }) => {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -32,6 +34,7 @@ const AIAssistantPopup: React.FC<AIAssistantPopupProps> = ({ isOpen, onClose }) 
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [userLocation, setUserLocation] = useState<string>('');
+  const [userProfile, setUserProfile] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -42,6 +45,25 @@ const AIAssistantPopup: React.FC<AIAssistantPopupProps> = ({ isOpen, onClose }) 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Fetch user profile if logged in
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user?.id) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('age, location, bio, interests')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        if (data && !error) {
+          setUserProfile(data);
+        }
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
 
   useEffect(() => {
     // Only get location if we don't have it yet and user hasn't been asked recently
@@ -116,7 +138,8 @@ const AIAssistantPopup: React.FC<AIAssistantPopupProps> = ({ isOpen, onClose }) 
           body: {
             message: inputMessage,
             userLocation: userLocation,
-            conversationHistory: conversationHistory
+            conversationHistory: conversationHistory,
+            userProfile: userProfile // Send user profile data
           }
         }),
         timeoutPromise
