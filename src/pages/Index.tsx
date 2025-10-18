@@ -393,23 +393,23 @@ const Index = () => {
         {/* Events Section - Vertical Carousel */}
         <section className="home-section">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-3xl font-bold text-coral">
-            events going on
+            <h2 className="title-section">
+            trending events
             </h2>
             <div className="flex items-center gap-2">
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={() => setShowEventFilters(true)}
-                className="text-xs px-1.5 py-0.5 rounded-full border-2 border-primary bg-transparent text-foreground hover:border-primary/80 gap-1 h-7"
+                className="text-xs px-2 py-1 rounded-full border-2 border-primary bg-transparent text-foreground hover:border-primary/80 gap-1"
               >
-                <Filter className="h-2.5 w-2.5 text-black" />
+                <Filter className="h-3 w-3 text-black" />
               </Button>
               <Button variant="outline" size="sm" onClick={() => {
               setCreateEventType('event');
               setShowCreateEvent(true);
-            }} className="text-xs px-1.5 py-0.5 rounded-full border-2 border-primary bg-transparent text-foreground hover:border-primary/80 gap-1 h-7">
-                <Plus className="h-2.5 w-2.5 text-black" />
+            }} className="text-xs px-2 py-1 rounded-full border-2 border-primary bg-transparent text-foreground hover:border-primary/80 gap-1">
+                <Plus className="h-3 w-3 text-black" />
               </Button>
             </div>
           </div>
