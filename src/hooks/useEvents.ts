@@ -171,17 +171,9 @@ const fetchEvents = async (eventType?: 'event' | 'meetup', filterType?: boolean,
     return acc;
   }, {});
 
-  // Filter out past events before adding uploader info
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Start of today
-  
-  const futureEvents = prioritizedEvents.filter(event => {
-    if (!event.date) return true; // Keep events without dates
-    const eventDate = new Date(event.date);
-    return eventDate >= today;
-  });
+  // Don't filter out past events - show all events
 
-  return futureEvents.map(event => ({
+  return prioritizedEvents.map(event => ({
     ...event,
     uploader: {
       name: profilesMap[event.user_id]?.name || 'משתמש',
