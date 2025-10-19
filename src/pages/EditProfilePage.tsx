@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import BottomNavigation from "@/components/BottomNavigation";
 import NotificationsPopup from "@/components/NotificationsPopup";
+import InterestsSelector from "@/components/InterestsSelector";
 
 const EditProfilePage = () => {
   const navigate = useNavigate();
@@ -19,16 +20,13 @@ const EditProfilePage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
 
   // Form state
   const [formData, setFormData] = useState({
     name: "",
     bio: "",
     location: "",
-    instagram: "",
-    facebook: "",
-    tiktok: "",
-    linkedin: ""
   });
 
   const handleImageClick = () => {
@@ -80,6 +78,7 @@ const EditProfilePage = () => {
         name: formData.name,
         bio: formData.bio,
         location: formData.location,
+        interests: selectedInterests,
       };
 
       // Only include profile_image_url if a new image was uploaded
@@ -123,11 +122,12 @@ const EditProfilePage = () => {
         name: profile.name || "",
         bio: profile.bio || "",
         location: profile.location || "",
-        instagram: "",
-        facebook: "",
-        tiktok: "",
-        linkedin: ""
       });
+
+      // Load interests
+      if (profile.interests && Array.isArray(profile.interests)) {
+        setSelectedInterests(profile.interests);
+      }
 
       if (profile.profile_image_url) {
         // Add cache-busting to prevent stale images
@@ -226,58 +226,25 @@ const EditProfilePage = () => {
             </div>
           </div>
 
-          {/* Social Networks Section */}
+          {/* Interests Section */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+            <InterestsSelector
+              selectedInterests={selectedInterests}
+              onChange={setSelectedInterests}
+              maxInterests={5}
+            />
+          </div>
+
+          {/* Save Button */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-bold text-black mb-4 text-center">Social Networks</h2>
-            <div className="space-y-4">
-              <div>
-                <Input 
-                  placeholder="Instagram @"
-                  value={formData.instagram}
-                  onChange={(e) => handleInputChange('instagram', e.target.value)}
-                  className="w-full h-12 text-left bg-white border border-gray-300 rounded-lg text-black placeholder:text-gray-400"
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  placeholder="Facebook"
-                  value={formData.facebook}
-                  onChange={(e) => handleInputChange('facebook', e.target.value)}
-                  className="w-full h-12 text-left bg-white border border-gray-300 rounded-lg text-black placeholder:text-gray-400"
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  placeholder="TikTok @"
-                  value={formData.tiktok}
-                  onChange={(e) => handleInputChange('tiktok', e.target.value)}
-                  className="w-full h-12 text-left bg-white border border-gray-300 rounded-lg text-black placeholder:text-gray-400"
-                />
-              </div>
-              
-              <div>
-                <Input 
-                  placeholder="LinkedIn"
-                  value={formData.linkedin}
-                  onChange={(e) => handleInputChange('linkedin', e.target.value)}
-                  className="w-full h-12 text-left bg-white border border-gray-300 rounded-lg text-black placeholder:text-gray-400"
-                />
-              </div>
-            </div>
-            
-            {/* Save Button */}
-            <div className="mt-6">
-              <Button 
-                onClick={handleSaveChanges}
-                disabled={isLoading}
-                className="w-full h-12 text-white text-lg font-medium rounded-lg"
-                style={{ backgroundColor: '#BB31E9' }}
-              >
-                {isLoading ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
+            <Button 
+              onClick={handleSaveChanges}
+              disabled={isLoading}
+              className="w-full h-12 text-white text-lg font-medium rounded-lg"
+              style={{ backgroundColor: '#BB31E9' }}
+            >
+              {isLoading ? 'Saving...' : 'Save Changes'}
+            </Button>
           </div>
         </div>
       </main>
