@@ -31,7 +31,8 @@ async function handleUserQuery(userMessage: string, userPhone: string) {
       neighborIdeasData,
       neighborQuestionsData,
       couponsData,
-      storiesData
+      storiesData,
+      businessProfilesData
     ] = await Promise.all([
       supabase.from('events').select('id, title, description, location, date, time, price, mood, event_type').limit(8),
       supabase.from('communities').select('id, name, tagline, description, category, subcategory, member_count').limit(6),
@@ -40,10 +41,11 @@ async function handleUserQuery(userMessage: string, userPhone: string) {
       supabase.from('neighborhood_ideas').select('id, question, neighborhood, market').limit(4),
       supabase.from('neighbor_questions').select('id, content, market, message_type').limit(4),
       supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood, coupon_code').limit(8),
-      supabase.from('stories').select('id, text_content, story_type').gt('expires_at', 'now()').limit(3)
+      supabase.from('stories').select('id, text_content, story_type').gt('expires_at', 'now()').limit(3),
+      supabase.from('profiles').select('id, name, bio, location, age, interests, specialties, whatsapp_number').eq('profile_type', 'business').limit(10)
     ]);
 
-    console.log('📊 Data fetched successfully for WhatsApp');
+    console.log('📊 Data fetched successfully for WhatsApp - Businesses:', businessProfilesData.data?.length);
 
     // Prepare comprehensive context with REAL data
     const realData = {
@@ -55,6 +57,7 @@ async function handleUserQuery(userMessage: string, userPhone: string) {
       neighborQuestions: neighborQuestionsData.data || [],
       localCoupons: couponsData.data || [],
       activeStories: storiesData.data || [],
+      businessProfiles: businessProfilesData.data || [],
       userLocation: 'WhatsApp User'
     };
 
@@ -65,6 +68,9 @@ async function handleUserQuery(userMessage: string, userPhone: string) {
 
 📅 EVENTS (${realData.currentEvents.length}):
 ${realData.currentEvents.map(e => `- "${e.title}" at ${e.location} on ${e.date} ${e.time ? 'at ' + e.time : ''} ${e.price ? '($' + e.price + ')' : ''} - ${e.description?.substring(0, 100)}...`).join('\n')}
+
+🏢 BUSINESSES (${realData.businessProfiles.length}):
+${realData.businessProfiles.map(b => `- "${b.name}"${b.age ? ` (ages ${b.age}+)` : ''} in ${b.location || 'location'} - ${b.bio?.substring(0, 100)}...${b.specialties?.length > 0 ? ' - Vibe: ' + b.specialties.join(', ') : ''}${b.whatsapp_number ? ' - WhatsApp: ' + b.whatsapp_number : ''}`).join('\n')}
 
 👥 COMMUNITIES (${realData.activeCommunities.length}):
 ${realData.activeCommunities.map(c => `- "${c.name}" (${c.member_count} members) - ${c.category} - ${c.tagline || c.description?.substring(0, 80)}`).join('\n')}
@@ -86,10 +92,12 @@ ${realData.localCoupons.map(c => `- "${c.title}" at ${c.business_name} - ${c.dis
 2. Be direct - straight to the point
 3. Use casual WhatsApp language (tbh, ngl, def, lowkey, fr)
 4. ONLY mention real stuff from data above
-5. When sharing coupon codes, just drop the code naturally
-6. If nothing matches: "nothing rn"
-7. Sound indie/bohemian but authentic
-8. Use WhatsApp formatting (*bold*, _italic_) sparingly`;
+5. When users ask about places to go out/things to do: recommend BOTH events AND businesses that match their vibe
+6. When sharing business info, mention their WhatsApp number if available
+7. When sharing coupon codes, just drop the code naturally
+8. If nothing matches: "nothing rn"
+9. Sound indie/bohemian but authentic
+10. Use WhatsApp formatting (*bold*, _italic_) sparingly`;
 
     console.log('🤖 Calling OpenAI with comprehensive data context...');
 
