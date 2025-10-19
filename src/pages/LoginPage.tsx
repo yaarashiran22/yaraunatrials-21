@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Paperclip, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import InterestsSelector from "@/components/InterestsSelector";
+import { useQueryClient } from "@tanstack/react-query";
 
 const LoginPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -19,6 +20,7 @@ const LoginPage = () => {
   const { signIn, signUp, resetPassword } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Sign up form data
   const [formData, setFormData] = useState({
@@ -217,6 +219,9 @@ const LoginPage = () => {
         description: "Your profile has been created and will appear on the home page",
         variant: "default",
       });
+
+      // Invalidate homepage data cache to refresh business profiles
+      await queryClient.invalidateQueries({ queryKey: ['homepage-data-v7'] });
 
       // Navigate to home page
       navigate('/');
