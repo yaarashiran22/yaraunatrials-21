@@ -86,8 +86,11 @@ serve(async (req) => {
     const isFirstMessage = !conversationHistory || conversationHistory.length <= 1;
     
     let greetingContext = '';
-    if (isGreeting && isFirstMessage) {
-      greetingContext = '\n\n🎯 IMPORTANT: User just greeted you. Give a warm intro like: "Hey! I\'m Yara, your local vibe curator for TheUnaHub. I can help you find events, deals, communities, or whatever\'s happening around you. What are you looking for?" Keep it friendly but concise (3-4 sentences max).';
+    if (isFirstMessage) {
+      // Always introduce on first message
+      greetingContext = '\n\n🎯 CRITICAL - FIRST MESSAGE: This is the user\'s FIRST interaction with you. You MUST introduce yourself first before anything else. Say something like: "Hey! I\'m Yara, your AI vibe curator for TheUnaHub 🌟 I can help you discover events, businesses, communities, deals, and whatever\'s happening in your neighborhood. What brings you here today?" Keep it warm, friendly, and conversational (4-5 sentences max for intro).';
+    } else if (isGreeting) {
+      greetingContext = '\n\n🎯 IMPORTANT: User greeted you mid-conversation. Keep it brief like: "Hey! What can I help you find?" (1-2 sentences max).';
     }
 
     // Detect repetitive messages
@@ -216,7 +219,7 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: messages,
-        max_tokens: isGreeting && isFirstMessage ? 150 : 100,
+        max_tokens: isFirstMessage ? 180 : (isGreeting ? 150 : 100),
         temperature: 0.9
       })
     });
