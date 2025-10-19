@@ -112,9 +112,9 @@ const UniformCard = ({
         width: '320px'
       }}
     >
-      <div className="aspect-[3/4.5] overflow-hidden relative rounded-3xl">
+      <div className="aspect-[3/4] overflow-hidden relative rounded-3xl">
         {video ? (
-          <video 
+          <video
             src={video} 
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
             muted
@@ -147,20 +147,20 @@ const UniformCard = ({
         {/* Subtle glow border on hover */}
         <div className="absolute inset-0 rounded-3xl border-2 border-transparent group-hover:border-primary/30 transition-all duration-500"></div>
         
-        {/* Enhanced text overlay - smaller to show more image */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 transform translate-y-0 group-hover:translate-y-[-2px] transition-transform duration-300">
-          <div className="space-y-1">
-            <h3 className="font-black text-white line-clamp-2 text-xl leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] group-hover:drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)] transition-all duration-300 font-display tracking-wide text-shadow-strong bg-gradient-to-r from-white to-white/95 bg-clip-text [text-shadow:_0_2px_4px_rgb(0_0_0_/_80%)]">{title}</h3>
+        {/* Enhanced text overlay - more compact to show more image */}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-2.5 transform translate-y-0 group-hover:translate-y-[-2px] transition-transform duration-300">
+          <div className="space-y-0.5">
+            <h3 className="font-black text-white line-clamp-1 text-lg leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] group-hover:drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)] transition-all duration-300 font-display tracking-wide text-shadow-strong bg-gradient-to-r from-white to-white/95 bg-clip-text [text-shadow:_0_2px_4px_rgb(0_0_0_/_80%)]">{title}</h3>
             {subtitle && (
               <p className="text-xs text-white/80 line-clamp-1 drop-shadow-md transform translate-y-0 group-hover:translate-y-[-1px] transition-transform duration-300">{subtitle}</p>
             )}
-            <div className="flex items-center justify-between gap-1.5 mt-1">
-              <div className="flex items-center gap-1.5">
+            <div className="flex items-center justify-between gap-1">
+              <div className="flex items-center gap-1">
                 {date && (
-                  <span className="text-xs font-medium px-2.5 py-0.5 bg-gradient-to-r from-[#E91E63] to-[#9C27B0] backdrop-blur-md rounded-full text-white border border-pink-400/40 shadow-lg transition-all duration-300 group-hover:shadow-pink-400/50 group-hover:scale-105">{date}</span>
+                  <span className="text-[10px] font-medium px-2 py-0.5 bg-gradient-to-r from-[#E91E63] to-[#9C27B0] backdrop-blur-md rounded-full text-white border border-pink-400/40 shadow-lg transition-all duration-300 group-hover:shadow-pink-400/50 group-hover:scale-105">{date}</span>
                 )}
                 {(price || (type === 'event')) && (
-                  <span className="text-xs font-medium px-2.5 py-0.5 bg-black backdrop-blur-md rounded-full text-white border border-black/40 shadow-lg transition-all duration-300 group-hover:bg-black/90 group-hover:scale-105">
+                  <span className="text-[10px] font-medium px-2 py-0.5 bg-black backdrop-blur-md rounded-full text-white border border-black/40 shadow-lg transition-all duration-300 group-hover:bg-black/90 group-hover:scale-105">
                     {price ? `$${price}` : 'free'}
                   </span>
                 )}
@@ -169,7 +169,7 @@ const UniformCard = ({
               {/* User profile section for events */}
               {type === 'event' && uploader && (
                 <div 
-                  className="flex items-center gap-1.5 cursor-pointer group/profile transition-all duration-300 hover:scale-105"
+                  className="flex items-center gap-1 cursor-pointer group/profile transition-all duration-300 hover:scale-105"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onProfileClick && uploader.user_id) {
@@ -177,9 +177,9 @@ const UniformCard = ({
                     }
                   }}
                 >
-                  <span className="text-xs font-medium text-white/90 drop-shadow-md line-clamp-1 max-w-20 group-hover/profile:text-white transition-colors duration-300">by {uploader.name}</span>
-                  <div className="w-5 h-5 rounded-full overflow-hidden border border-white/30 shadow-lg group-hover/profile:border-white/60 transition-all duration-300">
-                    <img 
+                  <span className="text-[10px] font-medium text-white/90 drop-shadow-md line-clamp-1 max-w-16 group-hover/profile:text-white transition-colors duration-300">by {uploader.name}</span>
+                  <div className="w-4 h-4 rounded-full overflow-hidden border border-white/30 shadow-lg group-hover/profile:border-white/60 transition-all duration-300">
+                    <img
                       src={uploader.image || uploader.small_photo} 
                       alt={uploader.name}
                       className="w-full h-full object-cover"
