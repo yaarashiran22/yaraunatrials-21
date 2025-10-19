@@ -8,7 +8,8 @@ export interface CouponClaim {
   user_id: string;
   perk_id: string;
   claimed_at: string;
-  qr_code_data: string;
+  qr_code_data?: string;
+  coupon_code?: string;
   is_used: boolean;
   used_at?: string;
   created_at: string;
@@ -19,7 +20,8 @@ export interface UserCouponClaim {
   id: string;
   user_id: string;
   user_coupon_id: string;
-  qr_code_data: string;
+  qr_code_data?: string;
+  coupon_code?: string;
   created_at: string;
 }
 
@@ -51,33 +53,23 @@ const fetchUserCouponClaims = async (userId?: string) => {
   }
 };
 
-const generateUserCouponQR = async ({ userCouponId, userId }: { userCouponId: string; userId: string }) => {
+const generateUserCouponCode = async ({ userCouponId, userId }: { userCouponId: string; userId: string }) => {
   try {
-    // Generate unique QR code data for user coupon
-    const qrCodeData = JSON.stringify({
-      type: 'user_coupon',
-      userCouponId,
-      userId,
-      generatedAt: new Date().toISOString(),
-      uniqueId: crypto.randomUUID()
-    });
+    // Call Supabase function to generate unique code
+    const { data, error } = await supabase
+      .rpc('generate_coupon_code');
 
-    // Generate QR code
-    const qrCodeUrl = await QRCode.toDataURL(qrCodeData, {
-      width: 300,
-      margin: 2,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      }
-    });
+    if (error) throw error;
 
-    return qrCodeUrl;
+    const couponCode = data;
+
+    // Return the coupon code (no QR needed)
+    return couponCode;
   } catch (error) {
-    console.error('Error generating user coupon QR:', error);
+    console.error('Error generating user coupon code:', error);
     toast({
       title: "Error",
-      description: "Failed to generate QR code. Please try again.",
+      description: "Failed to generate coupon code. Please try again.",
       variant: "destructive",
     });
     throw error;
@@ -86,23 +78,13 @@ const generateUserCouponQR = async ({ userCouponId, userId }: { userCouponId: st
 
 const claimCoupon = async ({ perkId, userId }: { perkId: string; userId: string }) => {
   try {
-    // Generate unique QR code data
-    const qrCodeData = JSON.stringify({
-      perkId,
-      userId,
-      claimedAt: new Date().toISOString(),
-      uniqueId: crypto.randomUUID()
-    });
+    // Generate unique coupon code via database function
+    const { data: codeData, error: codeError } = await supabase
+      .rpc('generate_coupon_code');
 
-    // Generate QR code
-    const qrCodeUrl = await QRCode.toDataURL(qrCodeData, {
-      width: 300,
-      margin: 2,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      }
-    });
+    if (codeError) throw codeError;
+
+    const couponCode = codeData;
 
     // Save to database
     const { data, error } = await supabase
@@ -110,7 +92,7 @@ const claimCoupon = async ({ perkId, userId }: { perkId: string; userId: string 
       .insert({
         user_id: userId,
         perk_id: perkId,
-        qr_code_data: qrCodeUrl
+        coupon_code: couponCode
       })
       .select()
       .single();
@@ -119,7 +101,7 @@ const claimCoupon = async ({ perkId, userId }: { perkId: string; userId: string 
     
     toast({
       title: "Coupon Claimed!",
-      description: "Your QR code has been generated successfully.",
+      description: `Your coupon code: ${couponCode}`,
     });
 
     return data;
@@ -151,8 +133,8 @@ export const useCouponClaims = (userId?: string) => {
     },
   });
 
-  const generateQRMutation = useMutation({
-    mutationFn: generateUserCouponQR,
+  const generateCodeMutation = useMutation({
+    mutationFn: generateUserCouponCode,
   });
 
   const checkIfClaimed = (perkId: string) => {
@@ -163,17 +145,17 @@ export const useCouponClaims = (userId?: string) => {
     return claims?.find(claim => claim.perk_id === perkId);
   };
 
-  const handleGenerateUserCouponQR = (userCouponId: string) => {
+  const handleGenerateUserCouponCode = (userCouponId: string) => {
     if (!userId) {
       toast({
         title: "Login Required",
-        description: "Please log in to generate QR codes",
+        description: "Please log in to generate coupon codes",
         variant: "destructive",
       });
       return;
     }
 
-    return generateQRMutation.mutateAsync({ userCouponId, userId });
+    return generateCodeMutation.mutateAsync({ userCouponId, userId });
   };
 
   return {
@@ -183,7 +165,7 @@ export const useCouponClaims = (userId?: string) => {
     claiming: claimMutation.isPending,
     checkIfClaimed,
     getClaim,
-    generateUserCouponQR: handleGenerateUserCouponQR,
-    generatingQR: generateQRMutation.isPending,
+    generateUserCouponCode: handleGenerateUserCouponCode,
+    generatingCode: generateCodeMutation.isPending,
   };
 };

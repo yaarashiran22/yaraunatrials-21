@@ -1,32 +1,32 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { QrCode, Download, Share, Clock, CheckCircle } from "lucide-react";
+import { Ticket, Share, Clock, CheckCircle, Copy } from "lucide-react";
 import { UserCoupon } from "@/hooks/useUserCoupons";
 import { CouponClaim } from "@/hooks/useCouponClaims";
+import { toast } from "@/hooks/use-toast";
 
 interface CouponQRModalProps {
   isOpen: boolean;
   onClose: () => void;
   userCoupon?: UserCoupon | null;
   claim?: CouponClaim | null;
-  qrCodeData?: string;
+  couponCode?: string;
 }
 
-export const CouponQRModal = ({ isOpen, onClose, userCoupon, claim, qrCodeData }: CouponQRModalProps) => {
+export const CouponQRModal = ({ isOpen, onClose, userCoupon, claim, couponCode }: CouponQRModalProps) => {
   const item = userCoupon;
-  const displayQRCode = claim?.qr_code_data || qrCodeData;
+  const displayCode = claim?.coupon_code || couponCode;
   
-  if (!item || !displayQRCode) return null;
+  if (!item || !displayCode) return null;
 
-  const handleDownload = () => {
-    if (displayQRCode) {
-      const link = document.createElement('a');
-      link.href = displayQRCode;
-      link.download = `coupon-${item.business_name || item.title}-${item.title}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+  const handleCopyCode = () => {
+    if (displayCode) {
+      navigator.clipboard.writeText(displayCode);
+      toast({
+        title: "Copied!",
+        description: "Coupon code copied to clipboard",
+      });
     }
   };
 
@@ -35,7 +35,7 @@ export const CouponQRModal = ({ isOpen, onClose, userCoupon, claim, qrCodeData }
       try {
         await navigator.share({
           title: `Coupon: ${item.title}`,
-          text: `Check out this coupon from ${item.business_name || item.title}!`,
+          text: `Check out this coupon from ${item.business_name || item.title}! Code: ${displayCode}`,
         });
       } catch (error) {
         console.log('Error sharing:', error);
@@ -48,8 +48,8 @@ export const CouponQRModal = ({ isOpen, onClose, userCoupon, claim, qrCodeData }
       <DialogContent className="max-w-md mx-auto bg-background border border-border/50 shadow-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="text-center space-y-3">
           <DialogTitle className="text-xl font-bold text-foreground flex items-center justify-center gap-2">
-            <QrCode className="w-6 h-6 text-primary" />
-            Your Coupon
+            <Ticket className="w-6 h-6 text-primary" />
+            Your Coupon Code
           </DialogTitle>
         </DialogHeader>
         
@@ -65,16 +65,23 @@ export const CouponQRModal = ({ isOpen, onClose, userCoupon, claim, qrCodeData }
             )}
           </div>
 
-          {/* QR Code */}
+          {/* Coupon Code Display */}
           <Card className="border-2 border-primary/20">
             <CardContent className="p-6 text-center">
-              {displayQRCode && (
-                <img 
-                  src={displayQRCode} 
-                  alt="Coupon QR Code"
-                  className="w-48 h-48 mx-auto rounded-lg border border-border/20"
-                />
-              )}
+              <div className="bg-gradient-to-br from-primary/10 to-secondary/10 rounded-2xl p-8 mb-4">
+                <div className="text-4xl font-black text-foreground tracking-widest mb-2 font-mono">
+                  {displayCode}
+                </div>
+                <Button
+                  onClick={handleCopyCode}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 mt-3"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copy Code
+                </Button>
+              </div>
               <div className="mt-4 space-y-2">
                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                   {claim?.is_used ? (
@@ -90,7 +97,7 @@ export const CouponQRModal = ({ isOpen, onClose, userCoupon, claim, qrCodeData }
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Show this QR code to the merchant to redeem your coupon
+                  Show this code to the merchant to redeem your coupon
                 </p>
               </div>
             </CardContent>
@@ -99,12 +106,12 @@ export const CouponQRModal = ({ isOpen, onClose, userCoupon, claim, qrCodeData }
           {/* Action Buttons */}
           <div className="flex gap-3">
             <Button 
-              onClick={handleDownload}
+              onClick={handleCopyCode}
               variant="outline" 
               className="flex-1 gap-2"
             >
-              <Download className="w-4 h-4" />
-              Download
+              <Copy className="w-4 h-4" />
+              Copy Code
             </Button>
             {navigator.share && (
               <Button 

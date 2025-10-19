@@ -58,7 +58,7 @@ serve(async (req) => {
       supabase.from('items').select('id, title, description, category, location, price').eq('status', 'active').limit(6),
       supabase.from('neighborhood_ideas').select('id, question, neighborhood, market').limit(4),
       supabase.from('neighbor_questions').select('id, content, market, message_type').limit(4),
-      supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood').eq('is_active', true).limit(4),
+      supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood, coupon_code').eq('is_active', true).limit(8),
       supabase.from('stories').select('id, text_content, story_type').gt('expires_at', 'now()').limit(3)
     ]);
 
@@ -158,7 +158,7 @@ ${realData.neighborhoodIdeas.length > 0 ? realData.neighborhoodIdeas.map(n => `-
 ${realData.neighborQuestions.length > 0 ? realData.neighborQuestions.map(q => `- ${q.content?.substring(0, 80)}...`).join('\n') : 'Nothing rn.'}
 
 🎫 DEALS (${realData.localCoupons.length}):
-${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- ${c.discount_amount} off at ${c.business_name} - ${c.title}`).join('\n') : 'Nothing rn.'}
+${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.title}" at ${c.business_name} - ${c.discount_amount}% OFF${c.coupon_code ? ` - Code: ${c.coupon_code}` : ''} in ${c.neighborhood || 'neighborhood'}`).join('\n') : 'Nothing rn.'}
 
 📍 Location: ${realData.userLocation}
 
@@ -167,9 +167,10 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- ${c.disco
 2. Be direct - no fluff, no lists unless asked
 3. Use casual language like you're texting
 4. ONLY mention real stuff from data above
-5. If nothing matches: "nothing rn for that vibe"
-6. Sound indie/artsy but authentic
-7. Don't oversell - keep it chill${repetitionContext}`;
+5. When sharing coupon codes, just drop the code naturally in conversation
+6. If nothing matches: "nothing rn for that vibe"
+7. Sound indie/artsy but authentic
+8. Don't oversell - keep it chill${repetitionContext}`;
 
     console.log('🤖 Calling OpenAI with comprehensive data context...');
 

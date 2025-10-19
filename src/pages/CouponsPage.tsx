@@ -43,7 +43,7 @@ const CouponsPage = () => {
   
   // Fetch all coupons
   const { coupons, loading: couponsLoading } = useUserCoupons();
-  const { generateUserCouponQR } = useCouponClaims(user?.id);
+  const { generateUserCouponCode } = useCouponClaims(user?.id);
 
   // Mood filter handler
   const handleMoodFilterChange = (filterId: string) => {
@@ -72,16 +72,16 @@ const CouponsPage = () => {
   // Coupon click handler
   const handleCouponClick = useCallback(async (coupon: any) => {
     try {
-      const qrCodeUrl = await generateUserCouponQR(coupon.id);
+      const couponCode = await generateUserCouponCode(coupon.id);
       setSelectedCoupon({
         ...coupon,
-        qr_code_data: qrCodeUrl
+        coupon_code: couponCode
       });
       setShowCouponQR(true);
     } catch (error) {
-      console.error('Error generating QR code:', error);
+      console.error('Error generating coupon code:', error);
     }
-  }, [generateUserCouponQR]);
+  }, [generateUserCouponCode]);
 
   return (
     <div className="min-h-screen bg-black" dir="ltr">
@@ -217,7 +217,7 @@ const CouponsPage = () => {
             setSelectedCoupon(null);
           }}
           userCoupon={selectedCoupon}
-          qrCodeData={selectedCoupon.qr_code_data}
+          couponCode={selectedCoupon.coupon_code}
         />
       )}
       

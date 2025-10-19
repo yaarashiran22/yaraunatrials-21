@@ -453,6 +453,7 @@ export type Database = {
       user_coupon_claims: {
         Row: {
           claimed_at: string | null
+          coupon_code: string | null
           created_at: string | null
           id: string
           is_used: boolean | null
@@ -463,6 +464,7 @@ export type Database = {
         }
         Insert: {
           claimed_at?: string | null
+          coupon_code?: string | null
           created_at?: string | null
           id?: string
           is_used?: boolean | null
@@ -473,6 +475,7 @@ export type Database = {
         }
         Update: {
           claimed_at?: string | null
+          coupon_code?: string | null
           created_at?: string | null
           id?: string
           is_used?: boolean | null
@@ -486,11 +489,13 @@ export type Database = {
       user_coupons: {
         Row: {
           business_name: string | null
+          coupon_code: string | null
           created_at: string | null
           description: string | null
           discount_amount: string | null
           id: string
           image_url: string | null
+          is_active: boolean | null
           neighborhood: string | null
           title: string
           updated_at: string | null
@@ -499,11 +504,13 @@ export type Database = {
         }
         Insert: {
           business_name?: string | null
+          coupon_code?: string | null
           created_at?: string | null
           description?: string | null
           discount_amount?: string | null
           id?: string
           image_url?: string | null
+          is_active?: boolean | null
           neighborhood?: string | null
           title: string
           updated_at?: string | null
@@ -512,11 +519,13 @@ export type Database = {
         }
         Update: {
           business_name?: string | null
+          coupon_code?: string | null
           created_at?: string | null
           description?: string | null
           discount_amount?: string | null
           id?: string
           image_url?: string | null
+          is_active?: boolean | null
           neighborhood?: string | null
           title?: string
           updated_at?: string | null
@@ -635,6 +644,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_coupon_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       update_community_membership_status: {
         Args: { membership_id: string; new_status: string }
         Returns: Json

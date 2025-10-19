@@ -39,7 +39,7 @@ async function handleUserQuery(userMessage: string, userPhone: string) {
       supabase.from('items').select('id, title, description, category, location, price').eq('status', 'active').limit(6),
       supabase.from('neighborhood_ideas').select('id, question, neighborhood, market').limit(4),
       supabase.from('neighbor_questions').select('id, content, market, message_type').limit(4),
-      supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood').limit(4),
+      supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood, coupon_code').limit(8),
       supabase.from('stories').select('id, text_content, story_type').gt('expires_at', 'now()').limit(3)
     ]);
 
@@ -79,16 +79,17 @@ ${realData.neighborhoodIdeas.map(n => `- "${n.question}" in ${n.neighborhood}`).
 ${realData.neighborQuestions.map(q => `- ${q.content?.substring(0, 80)}...`).join('\n')}
 
 🎫 DEALS (${realData.localCoupons.length}):
-${realData.localCoupons.map(c => `- ${c.discount_amount} off at ${c.business_name} - ${c.title}`).join('\n')}
+${realData.localCoupons.map(c => `- "${c.title}" at ${c.business_name} - ${c.discount_amount}% OFF${c.coupon_code ? ` - Code: ${c.coupon_code}` : ''}`).join('\n')}
 
 🤖 WHATSAPP VIBE:
 1. SUPER SHORT responses (1-2 sentences)
 2. Be direct - straight to the point
 3. Use casual WhatsApp language (tbh, ngl, def, lowkey, fr)
 4. ONLY mention real stuff from data above
-5. If nothing matches: "nothing rn"
-6. Sound indie/bohemian but authentic
-7. Use WhatsApp formatting (*bold*, _italic_) sparingly`;
+5. When sharing coupon codes, just drop the code naturally
+6. If nothing matches: "nothing rn"
+7. Sound indie/bohemian but authentic
+8. Use WhatsApp formatting (*bold*, _italic_) sparingly`;
 
     console.log('🤖 Calling OpenAI with comprehensive data context...');
 
