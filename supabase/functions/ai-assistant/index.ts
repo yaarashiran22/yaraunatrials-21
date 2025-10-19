@@ -77,6 +77,16 @@ serve(async (req) => {
       userLocation: userLocation || 'Not specified'
     };
 
+    // Detect conversation starters (greetings with no specific question)
+    const greetingPatterns = /^(hey|hi|hello|sup|yo|what's up|whats up|hola|heya)[\s!?.]*$/i;
+    const isGreeting = greetingPatterns.test(message.trim());
+    const isFirstMessage = !conversationHistory || conversationHistory.length <= 1;
+    
+    let greetingContext = '';
+    if (isGreeting && isFirstMessage) {
+      greetingContext = '\n\n🎯 IMPORTANT: User just greeted you. Give a warm intro like: "Hey! I\'m Yara, your local vibe curator for TheUnaHub. I can help you find events, deals, communities, or whatever\'s happening around you. What are you looking for?" Keep it friendly but concise (3-4 sentences max).';
+    }
+
     // Detect repetitive messages
     let repetitionContext = '';
     if (conversationHistory && conversationHistory.length >= 3) {
@@ -163,14 +173,14 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
 📍 Location: ${realData.userLocation}
 
 🤖 HOW TO RESPOND:
-1. Keep it SUPER SHORT (2-3 sentences max)
+1. Keep it SUPER SHORT (2-3 sentences max) - UNLESS it's a greeting, then give a proper intro
 2. Be direct - no fluff, no lists unless asked
 3. Use casual language like you're texting
 4. ONLY mention real stuff from data above
 5. When sharing coupon codes, just drop the code naturally in conversation
 6. If nothing matches: "nothing rn for that vibe"
 7. Sound indie/artsy but authentic
-8. Don't oversell - keep it chill${repetitionContext}`;
+8. Don't oversell - keep it chill${greetingContext}${repetitionContext}`;
 
     console.log('🤖 Calling OpenAI with comprehensive data context...');
 
@@ -196,7 +206,7 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: messages,
-        max_tokens: 100,
+        max_tokens: isGreeting && isFirstMessage ? 150 : 100,
         temperature: 0.9
       })
     });
