@@ -280,9 +280,12 @@ const Index = () => {
       // Date filter
       if (eventFilters.dateRange !== "All") {
         const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
         const eventDate = event.date ? new Date(event.date) : null;
         
         if (!eventDate) return false;
+        
+        eventDate.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
         
         switch (eventFilters.dateRange) {
           case "Today":
