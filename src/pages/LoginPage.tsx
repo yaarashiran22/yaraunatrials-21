@@ -103,7 +103,8 @@ const LoginPage = () => {
   };
 
   const handleSignUpSubmit = async () => {
-    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.age || !formData.origin) {
+    // Basic validation for all profiles
+    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim()) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -121,22 +122,37 @@ const LoginPage = () => {
       return;
     }
 
-    if (formData.profileType === 'business' && !formData.whatsappNumber.trim()) {
-      toast({
-        title: "Error",
-        description: "Business profiles must provide a WhatsApp number",
-        variant: "destructive",
-      });
-      return;
+    // Personal profile specific validation
+    if (formData.profileType === 'personal') {
+      if (!formData.age || !formData.origin) {
+        toast({
+          title: "Error",
+          description: "Please fill in your age and origin",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
-    if (formData.profileType === 'business' && !formData.targetAgeRange) {
-      toast({
-        title: "Error",
-        description: "Business profiles must specify target audience age range",
-        variant: "destructive",
-      });
-      return;
+    // Business profile specific validation
+    if (formData.profileType === 'business') {
+      if (!formData.whatsappNumber.trim()) {
+        toast({
+          title: "Error",
+          description: "Business profiles must provide a WhatsApp number",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!formData.targetAgeRange) {
+        toast({
+          title: "Error",
+          description: "Business profiles must specify target audience age range",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     setIsLoading(true);
