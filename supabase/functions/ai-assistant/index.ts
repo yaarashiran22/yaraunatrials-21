@@ -87,8 +87,8 @@ serve(async (req) => {
     
     let greetingContext = '';
     if (isFirstMessage) {
-      // Always introduce on first message
-      greetingContext = '\n\n🎯 CRITICAL - FIRST MESSAGE: This is the user\'s FIRST interaction with you. You MUST introduce yourself first before anything else. Say something like: "Hey! I\'m Yara, your AI vibe curator for TheUnaHub 🌟 I can help you discover events, businesses, communities, deals, and whatever\'s happening in your neighborhood. What brings you here today?" Keep it warm, friendly, and conversational (4-5 sentences max for intro).';
+      // Always introduce on first message with this exact message
+      greetingContext = '\n\n🎯 CRITICAL - FIRST MESSAGE: This is the user\'s FIRST interaction with you. You MUST say EXACTLY this: "Hey welcome to yara ai :) if you\'re looking for indie events, underground spots or any exclusive deals in BA- i got you. Let me know what vibe you\'re after and i\'ll recommend something specific" - Use this EXACT wording, don\'t paraphrase.';
     } else if (isGreeting) {
       greetingContext = '\n\n🎯 IMPORTANT: User greeted you mid-conversation. Keep it brief like: "Hey! What can I help you find?" (1-2 sentences max).';
     }
