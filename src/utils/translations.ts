@@ -71,6 +71,20 @@ export const translations = {
       events: "EVENTS",
       all: "All"
     },
+    moodFilters: {
+      all: "All",
+      chill: "Chill",
+      goOut: "Go Out",
+      romantic: "Romantic",
+      active: "Active",
+      creative: "Creative",
+      wellness: "Wellness",
+      music: "Music",
+      whatMood: "What mood are you in?"
+    },
+    ai: {
+      askYaraAI: "Ask Yara AI"
+    },
     popups: {
       navigationOpened: "Opening Navigation",
       redirectingToMaps: "Redirecting to Maps App",
@@ -157,6 +171,20 @@ export const translations = {
       organizersBusinesses: "organizadores y negocios",
       events: "EVENTOS",
       all: "Todos"
+    },
+    moodFilters: {
+      all: "Todos",
+      chill: "Relajado",
+      goOut: "Salir",
+      romantic: "Romántico",
+      active: "Activo",
+      creative: "Creativo",
+      wellness: "Bienestar",
+      music: "Música",
+      whatMood: "¿De qué humor estás?"
+    },
+    ai: {
+      askYaraAI: "Pregunta a Yara AI"
     },
     popups: {
       navigationOpened: "Abriendo Navegación",

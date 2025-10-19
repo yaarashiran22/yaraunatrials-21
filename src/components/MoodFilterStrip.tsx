@@ -8,16 +8,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useGlobalSearch, SearchResult } from "@/hooks/useGlobalSearch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-const moodFilters = [
-  { id: "all", label: "All", icon: null, color: "text-muted-foreground", activeBg: "bg-muted/80" },
-  { id: "chill", label: "Chill", icon: Coffee, color: "text-blue-500", activeBg: "bg-blue-50 dark:bg-blue-950/30" },
-  { id: "go-out", label: "Go Out", icon: Zap, color: "text-orange-500", activeBg: "bg-orange-50 dark:bg-orange-950/30" },
-  { id: "romantic", label: "Romantic", icon: Heart, color: "text-pink-500", activeBg: "bg-pink-50 dark:bg-pink-950/30" },
-  { id: "active", label: "Active", icon: Dumbbell, color: "text-green-400", activeBg: "bg-green-50/70 dark:bg-green-950/20" },
-  { id: "creative", label: "Creative", icon: Palette, color: "text-purple-500", activeBg: "bg-purple-50 dark:bg-purple-950/30" },
-  { id: "social", label: "Wellness", icon: Leaf, color: "text-green-500", activeBg: "bg-green-50/70 dark:bg-green-950/20" },
-  { id: "music", label: "Music", icon: Music, color: "text-cyan-500", activeBg: "bg-cyan-50 dark:bg-cyan-950/30" }
+const getMoodFilters = (t: (key: string) => string) => [
+  { id: "all", label: t('moodFilters.all'), icon: null, color: "text-muted-foreground", activeBg: "bg-muted/80" },
+  { id: "chill", label: t('moodFilters.chill'), icon: Coffee, color: "text-blue-500", activeBg: "bg-blue-50 dark:bg-blue-950/30" },
+  { id: "go-out", label: t('moodFilters.goOut'), icon: Zap, color: "text-orange-500", activeBg: "bg-orange-50 dark:bg-orange-950/30" },
+  { id: "romantic", label: t('moodFilters.romantic'), icon: Heart, color: "text-pink-500", activeBg: "bg-pink-50 dark:bg-pink-950/30" },
+  { id: "active", label: t('moodFilters.active'), icon: Dumbbell, color: "text-green-400", activeBg: "bg-green-50/70 dark:bg-green-950/20" },
+  { id: "creative", label: t('moodFilters.creative'), icon: Palette, color: "text-purple-500", activeBg: "bg-purple-50 dark:bg-purple-950/30" },
+  { id: "social", label: t('moodFilters.wellness'), icon: Leaf, color: "text-green-500", activeBg: "bg-green-50/70 dark:bg-green-950/20" },
+  { id: "music", label: t('moodFilters.music'), icon: Music, color: "text-cyan-500", activeBg: "bg-cyan-50 dark:bg-cyan-950/30" }
 ];
 
 interface MoodFilterStripProps {
@@ -31,6 +32,9 @@ const MoodFilterStrip = ({ onFilterChange, showTitle = true }: MoodFilterStripPr
   const [searchQuery, setSearchQuery] = useState("");
   const { results, loading, searchAll, clearSearch } = useGlobalSearch();
   const navigate = useNavigate();
+  const { t } = useLanguage();
+  
+  const moodFilters = getMoodFilters(t);
 
   const handleFilterClick = (filterId: string) => {
     setActiveFilter(filterId);
@@ -163,7 +167,7 @@ const MoodFilterStrip = ({ onFilterChange, showTitle = true }: MoodFilterStripPr
         <div className="px-4 lg:px-8 py-3">
           {showTitle && (
             <h3 className="text-lg font-semibold text-foreground mb-4 text-center">
-              What mood are you in?
+              {t('moodFilters.whatMood')}
             </h3>
           )}
           <div className="flex overflow-x-auto gap-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40">

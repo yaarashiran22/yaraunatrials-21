@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sparkles } from 'lucide-react';
 import AIAssistantPopup from './AIAssistantPopup';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface AIAssistantButtonProps {
   variant?: 'floating' | 'toggle';
@@ -9,6 +10,7 @@ interface AIAssistantButtonProps {
 
 const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({ variant = 'floating' }) => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const { t } = useLanguage();
 
   if (variant === 'toggle') {
     return (
@@ -19,7 +21,7 @@ const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({ variant = 'floati
             className="w-full h-12 rounded-2xl shadow-lg bg-gradient-to-r from-[#E91E63] to-[#9C27B0] hover:from-[#D81B60] hover:to-[#8E24AA] text-white font-semibold text-base flex items-center justify-center gap-2.5 transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
           >
             <Sparkles className="w-5 h-5" />
-            Ask Yara AI
+            {t('ai.askYaraAI')}
           </Button>
         </div>
         
