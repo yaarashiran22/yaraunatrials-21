@@ -379,7 +379,7 @@ const Index = () => {
         {businessProfiles && businessProfiles.length > 0 && (
           <section className="-mb-1 lg:-mb-1">
             <div className="px-1 lg:px-5 mb-3">
-              <h3 className="title-section-white">organizers & businesses</h3>
+              <h3 className="title-section-white">{t('sections.organizersBusinesses')}</h3>
             </div>
             <div className="relative">
               <div className="flex overflow-x-auto gap-6 pb-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40" dir="ltr" style={{
@@ -398,7 +398,7 @@ const Index = () => {
         <section className="home-section">
           <div className="flex justify-between items-center mb-4">
             <h2 className="title-section">
-            EVENTS
+            {t('sections.events')}
             </h2>
             <div className="flex items-center gap-2">
               <Button 
@@ -407,7 +407,7 @@ const Index = () => {
                 onClick={() => navigate('/events')}
                 className="text-xs px-3 py-1 rounded-full border-2 border-primary bg-transparent text-black hover:border-primary/80 gap-1"
               >
-                All
+                {t('sections.all')}
                 <ArrowRight className="h-3 w-3 text-black" />
               </Button>
               <Button variant="outline" size="sm" onClick={() => {

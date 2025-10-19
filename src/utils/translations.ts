@@ -66,7 +66,10 @@ export const translations = {
       neighbors: "Neighbors",
       joinMe: "Trending Meetups",
       knowYourNeighborhood: "Know Your Neighborhood",
-      communityCoupons: "The Deals"
+      communityCoupons: "The Deals",
+      organizersBusinesses: "organizers & businesses",
+      events: "EVENTS",
+      all: "All"
     },
     popups: {
       navigationOpened: "Opening Navigation",
@@ -150,7 +153,10 @@ export const translations = {
       neighbors: "Vecinos y Amigos",
       joinMe: "Encuentros Populares",
       knowYourNeighborhood: "Conoce tu Barrio",
-      communityCoupons: "Las Ofertas"
+      communityCoupons: "Las Ofertas",
+      organizersBusinesses: "organizadores y negocios",
+      events: "EVENTOS",
+      all: "Todos"
     },
     popups: {
       navigationOpened: "Abriendo Navegación",
