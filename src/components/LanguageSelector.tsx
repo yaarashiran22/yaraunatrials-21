@@ -25,8 +25,8 @@ const LanguageSelector = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm">
-          <Globe className="h-4 w-4" />
+        <Button variant="outline" size="sm" className="bg-white hover:bg-gray-100 border-2 border-purple-500">
+          <Globe className="h-4 w-4 text-purple-600" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-background border shadow-lg">
