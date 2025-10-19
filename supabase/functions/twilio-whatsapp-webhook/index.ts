@@ -37,12 +37,42 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Call the AI assistant function
+    // Get conversation history for this phone number (last 20 messages, last 24 hours)
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: history } = await supabase
+      .from('whatsapp_conversations')
+      .select('role, content')
+      .eq('phone_number', from)
+      .gte('created_at', twentyFourHoursAgo)
+      .order('created_at', { ascending: true })
+      .limit(20);
+
+    const conversationHistory = history || [];
+    console.log(`Found ${conversationHistory.length} previous messages for ${from}`);
+
+    // Try to find user profile by WhatsApp number
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('name, age, location, interests, bio')
+      .eq('whatsapp_number', from)
+      .maybeSingle();
+
+    console.log('User profile:', profile ? `Found profile for ${profile.name}` : 'No profile found');
+
+    // Store user message
+    await supabase.from('whatsapp_conversations').insert({
+      phone_number: from,
+      role: 'user',
+      content: body
+    });
+
+    // Call the AI assistant function with history and profile
     const { data: aiResponse, error: aiError } = await supabase.functions.invoke('ai-assistant', {
       body: { 
         message: body,
-        userLocation: null,
-        conversationHistory: []
+        userLocation: profile?.location || null,
+        conversationHistory: conversationHistory,
+        userProfile: profile || null
       }
     });
 
@@ -54,11 +84,11 @@ Deno.serve(async (req) => {
     const assistantMessage = aiResponse?.response || 'Sorry, I encountered an error processing your request.';
     console.log('AI response:', assistantMessage);
 
-    // Log the conversation to database
-    await supabase.from('direct_messages').insert({
-      sender_id: null, // WhatsApp user (external)
-      receiver_id: null,
-      content: `User (${from}): ${body}\n\nYara AI: ${assistantMessage}`
+    // Store assistant response
+    await supabase.from('whatsapp_conversations').insert({
+      phone_number: from,
+      role: 'assistant',
+      content: assistantMessage
     });
 
     // Return TwiML response for Twilio
