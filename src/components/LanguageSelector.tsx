@@ -26,18 +26,18 @@ const LanguageSelector = () => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="bg-white hover:bg-gray-100 border-2 border-purple-500">
-          <Globe className="h-4 w-4 text-purple-600" />
+          <Globe className="h-4 w-4" color="#9C27B0" strokeWidth={2.5} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="bg-background border shadow-lg">
+      <DropdownMenuContent align="end" className="bg-white border shadow-lg z-[9999]">
         {languages.map((lang) => (
           <DropdownMenuItem 
             key={lang.code}
             onClick={() => handleLanguageChange(lang.code as 'en' | 'es')}
-            className={`cursor-pointer ${language === lang.code ? 'bg-primary/10' : ''}`}
+            className={`cursor-pointer ${language === lang.code ? 'bg-purple-100' : 'hover:bg-gray-100'}`}
           >
             <span className="mr-2">{lang.flag}</span>
-            <span>{lang.name}</span>
+            <span className="text-black">{lang.name}</span>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
