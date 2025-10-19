@@ -1,6 +1,7 @@
 
 import NeighborhoodSelector from "@/components/NeighborhoodSelector";
 import NeighborhoodIndicator from "@/components/NeighborhoodIndicator";
+import LanguageSelector from "@/components/LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -100,8 +101,9 @@ const Header = ({
             </DropdownMenu>
           </div>
           
-          {/* Right side - Profile Button */}
+          {/* Right side - Language & Profile */}
           <div className="flex items-center gap-2 flex-shrink-0">
+            <LanguageSelector />
             {user ? (
               <Button 
                 variant="ghost" 

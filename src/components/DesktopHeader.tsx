@@ -89,8 +89,9 @@ const DesktopHeader = ({
             </DropdownMenu>
           </div>
           
-          {/* Right section - Actions */}
+          {/* Right section - Language & Actions */}
           <div className="flex items-center gap-4 flex-shrink-0">
+            <LanguageSelector />
             {/* Profile Button */}
             {user ? (
               <Button 
