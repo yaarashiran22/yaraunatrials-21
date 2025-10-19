@@ -401,10 +401,11 @@ const Index = () => {
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => setShowEventFilters(true)}
-                className="text-xs px-2 py-1 rounded-full border-2 border-primary bg-transparent text-foreground hover:border-primary/80 gap-1"
+                onClick={() => navigate('/events')}
+                className="text-xs px-3 py-1 rounded-full border-2 border-primary bg-transparent text-foreground hover:border-primary/80 gap-1"
               >
-                <Filter className="h-3 w-3 text-black" />
+                View All
+                <ArrowRight className="h-3 w-3 text-black" />
               </Button>
               <Button variant="outline" size="sm" onClick={() => {
               setCreateEventType('event');
