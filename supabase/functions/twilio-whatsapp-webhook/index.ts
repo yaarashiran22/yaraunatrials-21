@@ -47,9 +47,17 @@ Deno.serve(async (req) => {
       .order('created_at', { ascending: true })
       .limit(20);
 
+    // Check if this phone number has EVER messaged before (for truly first-time detection)
+    const { count: totalMessageCount } = await supabase
+      .from('whatsapp_conversations')
+      .select('*', { count: 'exact', head: true })
+      .eq('phone_number', from);
+
     const conversationHistory = recentHistory || [];
     const isNewConversation = conversationHistory.length === 0;
-    console.log(`Found ${conversationHistory.length} messages in last 7 minutes for ${from}. Is new conversation: ${isNewConversation}`);
+    const isTrulyFirstMessage = (totalMessageCount === 0); // Has NEVER messaged before
+    
+    console.log(`Found ${conversationHistory.length} messages in last 7 minutes for ${from}. Is new conversation: ${isNewConversation}. Is truly first message ever: ${isTrulyFirstMessage}`);
 
     // Try to find user profile by WhatsApp number
     const { data: profile } = await supabase
@@ -74,7 +82,8 @@ Deno.serve(async (req) => {
         userLocation: profile?.location || null,
         conversationHistory: conversationHistory,
         userProfile: profile || null,
-        isWhatsApp: true  // Enable ultra-short WhatsApp mode
+        isWhatsApp: true,
+        isTrulyFirstMessage: isTrulyFirstMessage
       }
     });
 

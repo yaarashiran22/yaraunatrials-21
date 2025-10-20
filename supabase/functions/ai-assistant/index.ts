@@ -16,8 +16,8 @@ serve(async (req) => {
   }
 
   try {
-    const { message, userLocation, conversationHistory, userProfile, isWhatsApp } = await req.json();
-    console.log('AI Assistant v9.0 - Conversational & Context-Aware - Processing:', { message, userLocation, historyLength: conversationHistory?.length, hasUserProfile: !!userProfile, isWhatsApp });
+    const { message, userLocation, conversationHistory, userProfile, isWhatsApp, isTrulyFirstMessage } = await req.json();
+    console.log('AI Assistant v9.0 - Conversational & Context-Aware - Processing:', { message, userLocation, historyLength: conversationHistory?.length, hasUserProfile: !!userProfile, isWhatsApp, isTrulyFirstMessage });
     
     // Get OpenAI API key
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -95,14 +95,18 @@ serve(async (req) => {
     }
     
     let greetingContext = '';
-    if (isFirstMessage || shouldResetConversation) {
-      console.log('Starting fresh conversation - first message or timeout exceeded');
-      // Always introduce on first message or after timeout with this exact message
+    if (isTrulyFirstMessage) {
+      // Truly first time this phone number has EVER messaged
+      console.log('Truly first message ever from this user');
       greetingContext = `\n\n🚨 MANDATORY FIRST MESSAGE - DO NOT DEVIATE:
 You MUST respond with this EXACT text word-for-word (copy it exactly as written):
-"Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I'm here. What are you looking for?"
+"Hey! Welcome to Yara AI- if you're looking for cool events, hidden deals and bohemian spots in BA- I got you. What vibe are you after?"
 
 DO NOT paraphrase, DO NOT add anything, DO NOT change the wording. Use EXACTLY this text.`;
+    } else if (isFirstMessage || shouldResetConversation) {
+      // Returning user after timeout or new session
+      console.log('Returning user - keep it simple with Hey + AI response');
+      greetingContext = '\n\n🎯 RETURNING USER: Start with "Hey" then provide an AI response based on their message. Be conversational and helpful.';
     } else if (isGreeting) {
       greetingContext = '\n\n🎯 IMPORTANT: User greeted you mid-conversation. Keep it brief like: "Hey! What can I help you find?" (1-2 sentences max).';
     }
