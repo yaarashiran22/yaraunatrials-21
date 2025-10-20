@@ -196,6 +196,17 @@ Deno.serve(async (req) => {
       // Send follow-up messages with images as background task
       const sendRecommendations = async () => {
         console.log('Starting to send recommendations...');
+        
+        // Ensure both numbers have whatsapp: prefix
+        const fromNumber = twilioWhatsAppNumber.startsWith('whatsapp:') 
+          ? twilioWhatsAppNumber 
+          : `whatsapp:${twilioWhatsAppNumber}`;
+        const toNumber = from.startsWith('whatsapp:') 
+          ? from 
+          : `whatsapp:${from}`;
+        
+        console.log(`Will send from: ${fromNumber} to: ${toNumber}`);
+        
         for (let i = 0; i < parsedResponse.recommendations.length; i++) {
           const rec = parsedResponse.recommendations[i];
           if (rec.image_url && rec.title && rec.description) {
@@ -213,8 +224,8 @@ Deno.serve(async (req) => {
                     'Content-Type': 'application/x-www-form-urlencoded',
                   },
                   body: new URLSearchParams({
-                    From: twilioWhatsAppNumber,
-                    To: from,
+                    From: fromNumber,
+                    To: toNumber,
                     Body: messageBody,
                     MediaUrl: rec.image_url
                   }).toString()
