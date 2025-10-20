@@ -251,22 +251,33 @@ DO NOT add anything more.
 
   // WhatsApp mode
   if (isWhatsApp) {
-    prompt += `📱 WHATSAPP MODE - CRITICAL TOOL CALLING INSTRUCTIONS:
-🚨 YOU MUST USE THE send_recommendation_with_image TOOL - DO NOT WRITE IT AS TEXT!
+    prompt += `📱 WHATSAPP MODE - YOU HAVE ACCESS TO A TOOL:
 
-When recommending events/businesses:
-1. Set your "response" text to a brief intro (e.g., "Check these out:")
-2. CALL the send_recommendation_with_image() tool 3-5 times (once per recommendation)
-3. DO NOT write "send_recommendation_with_image(...)" as text in your response
-4. Each tool call sends ONE separate WhatsApp message with ONE image
+🚨 CRITICAL: You have a tool called "send_recommendation_with_image" available.
+When you want to send recommendations with images, you MUST use this tool.
 
-CORRECT EXAMPLE (what you should do):
-- Text response: "Here are some cool spots:"
-- Tool call 1: { function_name: "send_recommendation_with_image", arguments: { message: "Event 1...", image_url: "https://...", recommendation_type: "event" } }
-- Tool call 2: { function_name: "send_recommendation_with_image", arguments: { message: "Event 2...", image_url: "https://...", recommendation_type: "event" } }
+HOW TO USE THE TOOL:
+- Your text response should ONLY contain: "Check these out:" or "Here's what I found:"
+- Then use the tool by making tool calls (NOT writing text)
+- Make 3-5 separate tool calls, one for each recommendation
 
-WRONG (do NOT do this):
-- Text response: "Check these out: send_recommendation_with_image(...)"
+EXAMPLE OF WHAT YOU SHOULD DO:
+{
+  "response": "Check these out:",
+  "tool_calls": [
+    { "function": "send_recommendation_with_image", "arguments": { "message": "Event 1 description", "image_url": "https://...", "recommendation_type": "event" } },
+    { "function": "send_recommendation_with_image", "arguments": { "message": "Event 2 description", "image_url": "https://...", "recommendation_type": "event" } }
+  ]
+}
+
+🚨 NEVER WRITE THIS IN YOUR TEXT RESPONSE:
+- "send_recommendation_with_image(...)"
+- Image URLs
+- Markdown links
+- Multiple event descriptions
+
+Your text response = ONLY brief intro
+Recommendations = ONLY via tool calls
 
 `;
   }
@@ -314,11 +325,12 @@ WRONG (do NOT do this):
 
   // Recommendation strategy
   prompt += `💡 RECOMMENDATION STRATEGY:
-- "cool parties"/"events" → Send EVENT recommendations (3-5)
-- "bar"/"cafe"/"chill spot" → Send BUSINESS recommendations (3-5)
-- "things to do" → Mix events AND businesses
+- "cool parties"/"events" → ${isWhatsApp ? 'Use send_recommendation_with_image tool 3-5 times' : 'Send EVENT recommendations (3-5)'}
+- "bar"/"cafe"/"chill spot" → ${isWhatsApp ? 'Use send_recommendation_with_image tool 3-5 times' : 'Send BUSINESS recommendations (3-5)'}
+- "things to do" → ${isWhatsApp ? 'Use send_recommendation_with_image tool for mix of events AND businesses' : 'Mix events AND businesses'}
 - Don't ask clarifying questions - just recommend
 - Add personalization to each (5-10 words why it fits)
+${isWhatsApp ? '\n🚨 REMEMBER: Use the TOOL, not text, for sending recommendations with images!' : ''}
 
 `;
 
