@@ -72,7 +72,8 @@ Deno.serve(async (req) => {
         message: body,
         userLocation: profile?.location || null,
         conversationHistory: conversationHistory,
-        userProfile: profile || null
+        userProfile: profile || null,
+        isWhatsApp: true  // Enable ultra-short WhatsApp mode
       }
     });
 

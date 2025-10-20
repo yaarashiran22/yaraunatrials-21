@@ -16,8 +16,8 @@ serve(async (req) => {
   }
 
   try {
-    const { message, userLocation, conversationHistory, userProfile } = await req.json();
-    console.log('AI Assistant v9.0 - Conversational & Context-Aware - Processing:', { message, userLocation, historyLength: conversationHistory?.length, hasUserProfile: !!userProfile });
+    const { message, userLocation, conversationHistory, userProfile, isWhatsApp } = await req.json();
+    console.log('AI Assistant v9.0 - Conversational & Context-Aware - Processing:', { message, userLocation, historyLength: conversationHistory?.length, hasUserProfile: !!userProfile, isWhatsApp });
     
     // Get OpenAI API key
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -85,12 +85,23 @@ serve(async (req) => {
     const isGreeting = greetingPatterns.test(message.trim());
     const isFirstMessage = !conversationHistory || conversationHistory.length <= 1;
     
+    // Check for conversation reset (2+ hours of inactivity for WhatsApp)
+    let shouldResetConversation = false;
+    if (isWhatsApp && conversationHistory && conversationHistory.length > 0) {
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      const lastMessageTime = new Date(conversationHistory[conversationHistory.length - 1].created_at || 0);
+      shouldResetConversation = lastMessageTime < twoHoursAgo;
+    }
+
+    const isFirstMessage = !conversationHistory || conversationHistory.length <= 1;
+    const isGreeting = greetingPatterns.test(message.trim());
+    
     let greetingContext = '';
-    if (isFirstMessage) {
+    if (isFirstMessage || (isWhatsApp && shouldResetConversation && isGreeting)) {
       // Always introduce on first message with this exact message
       greetingContext = `\n\n🚨 MANDATORY FIRST MESSAGE - DO NOT DEVIATE:
 You MUST respond with this EXACT text word-for-word (copy it exactly as written):
-"Hey welcome to yara ai :) if you're looking for indie events, underground spots or any exclusive deals in BA- i got you. Let me know what vibe you're after and i'll recommend something specific"
+"Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I'm here. What are you looking for?"
 
 DO NOT paraphrase, DO NOT add anything, DO NOT change the wording. Use EXACTLY this text.`;
     } else if (isGreeting) {
@@ -137,12 +148,21 @@ ${hasInterests ? `- Their vibe: ${userProfile.interests.join(', ')}` : '- Ask in
 ` : ''}
 
 🎯 YOUR VIBE:
+${isWhatsApp ? `
+🚨 WHATSAPP MODE - ULTRA SHORT & DIRECT:
+- Max 1-2 sentences ONLY (this is WhatsApp, not an essay)
+- Cut straight to the point - no intros, no fluff
+- One specific recommendation, drop the info, done
+- If they ask for more, THEN give more - but default to minimal
+- Example: "There's 'Jazz Night' at Café Tortoni tonight 9pm, $15. Cool vibe." (That's it. Done.)
+` : `
 - Keep it SHORT (max 2-3 sentences unless they ask for more)
 - Be direct and authentic - no corporate fluff
+`}
 - Sound like a cool local, not a tour guide
 - Use casual language - "tbh", "ngl", "lowkey", "def", "fr", etc. (but don't overdo it)
 - Get straight to the point
-- If data's limited, just say "not much happening rn, but check back"
+- If data's limited, just say "nothing rn, but check back"
 - Drop the formalities - you're a friend texting back
 
 ⚠️ CRITICAL - REAL DATA ONLY:
