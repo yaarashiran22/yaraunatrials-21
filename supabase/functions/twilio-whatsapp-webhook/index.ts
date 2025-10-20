@@ -51,6 +51,16 @@ Deno.serve(async (req) => {
     const isNewConversation = conversationHistory.length === 0;
     console.log(`Found ${conversationHistory.length} messages in last 7 minutes for ${from}. Is new conversation: ${isNewConversation}`);
 
+    // Check if this is the very first time this phone number has texted (ever)
+    const { data: allHistory } = await supabase
+      .from('whatsapp_conversations')
+      .select('id')
+      .eq('phone_number', from)
+      .limit(1);
+
+    const isFirstTimeUser = !allHistory || allHistory.length === 0;
+    console.log(`Is first time user: ${isFirstTimeUser}`);
+
     // Check if message is a greeting OR a conversation starter
     const greetingPatterns = /^(hey|hi|hello|sup|yo|hola|what's up|whats up)[\s!?.]*$/i;
     const conversationStarterPatterns = /^(i'm looking for|i want|show me|find me|i need|looking for|what's|whats|tell me about|i'm into|im into|help me find)/i;
@@ -79,7 +89,12 @@ Deno.serve(async (req) => {
         content: body
       });
 
-      const welcomeMessage = "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I'm here. What are you looking for?";
+      // Different welcome message for first-time users vs returning users
+      const welcomeMessage = isFirstTimeUser 
+        ? "Hey, welcome to Yara AI! If you're looking for indie events, hidden spots and exclusive deals in Buenos Aires- I got you. What vibe are you after?"
+        : "hey- what are you looking for?";
+      
+      console.log(`Sending ${isFirstTimeUser ? 'first-time' : 'returning'} user welcome message`);
       
       // Store welcome response
       await supabase.from('whatsapp_conversations').insert({
