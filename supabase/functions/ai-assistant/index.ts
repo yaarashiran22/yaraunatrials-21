@@ -53,7 +53,7 @@ serve(async (req) => {
       storiesData,
       businessProfilesData
     ] = await Promise.all([
-      supabase.from('events').select('id, title, description, location, date, time, price, mood, event_type').limit(8),
+      supabase.from('events').select('id, title, description, location, date, time, price, mood, event_type').gte('date', new Date().toISOString().split('T')[0]).order('date', { ascending: true }).limit(8),
       supabase.from('communities').select('id, name, tagline, description, category, subcategory, member_count').limit(6),
       supabase.from('posts').select('id, content, location, created_at').limit(5),
       supabase.from('items').select('id, title, description, category, location, price').eq('status', 'active').limit(6),
