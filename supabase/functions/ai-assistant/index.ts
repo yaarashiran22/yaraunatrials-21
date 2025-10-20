@@ -285,49 +285,13 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
 
     console.log('🤖 Calling OpenAI with conversation context...');
 
-    // Define tools for structured recommendations with images
-    const tools = isWhatsApp ? [
-      {
-        type: "function",
-        function: {
-          name: "send_recommendation_with_image",
-          description: "Send a recommendation with an image (event, business, or coupon)",
-          parameters: {
-            type: "object",
-            properties: {
-              message: {
-                type: "string",
-                description: "The text message to send"
-              },
-              image_url: {
-                type: "string",
-                description: "The URL of the image to send (event image, business profile picture, or coupon image)"
-              },
-              recommendation_type: {
-                type: "string",
-                enum: ["event", "business", "coupon"],
-                description: "Type of recommendation"
-              }
-            },
-            required: ["message", "image_url", "recommendation_type"]
-          }
-        }
-      }
-    ] : undefined;
-
-    // Make OpenAI API call with comprehensive context
+    // Make OpenAI API call with comprehensive context - DISABLE TOOLS FOR NOW DUE TO TRUNCATION BUG
     const requestBody: any = {
       model: 'gpt-4o-mini',
       messages: messages,
       max_tokens: isFirstMessage ? 180 : (isGreeting ? 150 : 100),
       temperature: 0.9
     };
-
-    // Add tools for WhatsApp to enable image sending
-    if (isWhatsApp) {
-      requestBody.tools = tools;
-      requestBody.tool_choice = "auto"; // Let AI decide when to use the tool
-    }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -369,6 +333,9 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
       const toolCall = assistantMessage.tool_calls[0];
       if (toolCall.function.name === 'send_recommendation_with_image') {
         try {
+          // Log raw arguments before parsing
+          console.log('🔍 Raw tool call arguments (first 500 chars):', toolCall.function.arguments.substring(0, 500));
+          
           const args = JSON.parse(toolCall.function.arguments);
           console.log('🖼️ AI wants to send image:', args.image_url);
           
@@ -385,8 +352,8 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
           );
         } catch (parseError) {
           console.error('❌ Failed to parse tool call arguments:', parseError);
-          console.error('Tool call arguments:', toolCall.function.arguments);
-          // Fall through to return text-only response
+          console.error('Full tool call object:', JSON.stringify(toolCall, null, 2));
+          // Fall through to return text-only response instead of crashing
         }
       }
     }

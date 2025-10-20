@@ -136,7 +136,17 @@ Deno.serve(async (req) => {
 
     if (aiError) {
       console.error('AI assistant error:', aiError);
-      throw aiError;
+      
+      // Return user-friendly error message
+      const errorResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Sorry, I encountered an error processing your request.</Message>
+</Response>`;
+      
+      return new Response(errorResponse, {
+        headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+        status: 200
+      });
     }
 
     const assistantMessage = aiResponse?.response || 'Sorry, I encountered an error processing your request.';
