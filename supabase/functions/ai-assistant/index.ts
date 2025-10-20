@@ -8,103 +8,358 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log('🚀 Yara AI Assistant - Initialized');
+  console.log('AI Assistant function started - v5.0 - Fresh Deploy!');
   
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { message, userLocation, conversationHistory, userProfile, isWhatsApp, isTrulyFirstMessage } = await req.json();
-    console.log('📥 Request:', { message, historyLength: conversationHistory?.length, hasProfile: !!userProfile, isWhatsApp, isTrulyFirstMessage });
+    const { message, userLocation, conversationHistory, userProfile, isWhatsApp } = await req.json();
+    console.log('AI Assistant v9.0 - Conversational & Context-Aware - Processing:', { message, userLocation, historyLength: conversationHistory?.length, hasUserProfile: !!userProfile, isWhatsApp });
     
-    // Initialize OpenAI
+    // Get OpenAI API key
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
-      console.error('❌ OpenAI API key missing');
+      console.error('❌ OpenAI API key not found');
       return new Response(
         JSON.stringify({ 
           response: "I'm having configuration issues. Please try again later.",
-          success: true
+          success: true,
+          error: false
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // Initialize Supabase
+    console.log('✅ API key found! Fetching comprehensive data from TheUnaHub...');
+
+    // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Fetch data in parallel
-    const [eventsData, businessesData] = await Promise.all([
-      supabase
-        .from('events')
-        .select('id, title, description, location, date, time, image_url')
-        .gte('date', new Date().toISOString().split('T')[0])
-        .order('date', { ascending: true })
-        .limit(10),
-      supabase
-        .from('profiles')
-        .select('id, name, bio, location, profile_image_url')
-        .eq('profile_type', 'business')
-        .limit(10)
+    // Fetch comprehensive data from ALL relevant tables in parallel
+    const [
+      eventsData,
+      communitiesData, 
+      postsData,
+      itemsData,
+      neighborIdeasData,
+      neighborQuestionsData,
+      couponsData,
+      storiesData,
+      businessProfilesData
+    ] = await Promise.all([
+      supabase.from('events').select('id, title, description, location, date, time, price, mood, event_type, image_url, target_audience, music_type, venue_size, price_range').gte('date', new Date().toISOString().split('T')[0]).order('date', { ascending: true }).limit(8),
+      supabase.from('communities').select('id, name, tagline, description, category, subcategory, member_count').limit(6),
+      supabase.from('posts').select('id, content, location, created_at').limit(5),
+      supabase.from('items').select('id, title, description, category, location, price').eq('status', 'active').limit(6),
+      supabase.from('neighborhood_ideas').select('id, question, neighborhood, market').limit(4),
+      supabase.from('neighbor_questions').select('id, content, market, message_type').limit(4),
+      supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood, coupon_code, image_url').eq('is_active', true).limit(8),
+      supabase.from('stories').select('id, text_content, story_type').gt('expires_at', 'now()').limit(3),
+      supabase.from('profiles').select('id, name, bio, location, age, interests, specialties, whatsapp_number, profile_image_url').eq('profile_type', 'business').limit(10)
     ]);
 
-    console.log('✅ Data loaded - Events:', eventsData.data?.length, 'Businesses:', businessesData.data?.length);
+    console.log('📊 Data fetched - Events:', eventsData.data?.length, 'Communities:', communitiesData.data?.length, 'Posts:', postsData.data?.length, 'Items:', itemsData.data?.length, 'Businesses:', businessProfilesData.data?.length);
 
-    // Build system prompt
-    const systemPrompt = buildSystemPrompt({
-      userProfile,
-      conversationHistory,
-      isTrulyFirstMessage,
-      isWhatsApp,
-      message,
-      events: eventsData.data || [],
-      businesses: businessesData.data || []
-    });
+    // Prepare comprehensive context with REAL data
+    const realData = {
+      currentEvents: eventsData.data || [],
+      activeCommunities: communitiesData.data || [],
+      recentPosts: postsData.data || [],
+      marketplaceItems: itemsData.data || [],
+      neighborhoodIdeas: neighborIdeasData.data || [],
+      neighborQuestions: neighborQuestionsData.data || [],
+      localCoupons: couponsData.data || [],
+      activeStories: storiesData.data || [],
+      businessProfiles: businessProfilesData.data || [],
+      userLocation: userLocation || 'Not specified'
+    };
 
-    // Prepare messages
-    const recentHistory = conversationHistory?.slice(-6) || [];
+    // Detect conversation starters (greetings with no specific question)
+    const greetingPatterns = /^(hey|hi|hello|sup|yo|what's up|whats up|hola|heya)[\s!?.]*$/i;
+    const isGreeting = greetingPatterns.test(message.trim());
+    const isFirstMessage = !conversationHistory || conversationHistory.length <= 1;
+    
+    // Check for conversation reset (7 minutes of inactivity)
+    let shouldResetConversation = false;
+    if (conversationHistory && conversationHistory.length > 0) {
+      const sevenMinutesAgo = new Date(Date.now() - 7 * 60 * 1000);
+      const lastMessageTime = new Date(conversationHistory[conversationHistory.length - 1].created_at || 0);
+      shouldResetConversation = lastMessageTime < sevenMinutesAgo;
+      console.log('Conversation timeout check:', { lastMessageTime, sevenMinutesAgo, shouldReset: shouldResetConversation });
+    }
+    
+    let greetingContext = '';
+    if (isFirstMessage || shouldResetConversation) {
+      console.log('Starting fresh conversation - first message or timeout exceeded');
+      // Always introduce on first message or after timeout with this exact message
+      greetingContext = `\n\n🚨 MANDATORY FIRST MESSAGE - DO NOT DEVIATE:
+You MUST respond with this EXACT text word-for-word (copy it exactly as written):
+"Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I'm here. What are you looking for?"
+
+DO NOT paraphrase, DO NOT add anything, DO NOT change the wording. Use EXACTLY this text.`;
+    } else if (isGreeting) {
+      greetingContext = '\n\n🎯 IMPORTANT: User greeted you mid-conversation. Keep it brief like: "Hey! What can I help you find?" (1-2 sentences max).';
+    }
+
+    // Detect repetitive messages
+    let repetitionContext = '';
+    if (conversationHistory && conversationHistory.length >= 3) {
+      const lastThreeUser = conversationHistory
+        .filter(m => m.role === 'user')
+        .slice(-3)
+        .map(m => m.content.toLowerCase().trim());
+      
+      if (lastThreeUser.length === 3 && 
+          lastThreeUser[0] === lastThreeUser[1] && 
+          lastThreeUser[1] === lastThreeUser[2]) {
+        repetitionContext = '\n\n⚠️ IMPORTANT: User has asked the same question 3 times. They likely need more specific help or a different approach. Be proactive, offer specific suggestions, ask clarifying questions, or provide actionable next steps.';
+      }
+    }
+
+    // Detect gratitude/thanks
+    const gratitudePatterns = /^(thanks|thank you|thx|ty|appreciate it|cool|awesome|perfect|great|sounds good)[\s!?.]*$/i;
+    const isGratitude = gratitudePatterns.test(message.trim());
+    let gratitudeContext = '';
+    if (isGratitude) {
+      gratitudeContext = '\n\n🙏 IMPORTANT: User just said thanks/expressed gratitude. Respond EXACTLY with: "You\'re welcome- I\'m here if you need anything else 😊" - DO NOT add anything more, DO NOT ask questions, DO NOT make suggestions.';
+    }
+
+    // Check if user has meaningful profile data
+    const hasName = userProfile?.name;
+    const hasLocation = userProfile?.location;
+    const hasAge = userProfile?.age;
+    const hasInterests = userProfile?.interests && userProfile.interests.length > 0;
+    
+    // Create detailed system prompt with ALL real data
+    const systemPrompt = `You are Yara, TheUnaHub's AI vibe curator. You're chill, direct, and keep it real - like that artsy friend who knows all the best spots but never overhypes.
+${gratitudeContext}${greetingContext}${repetitionContext}
+${userProfile ? `
+🎯 USER PROFILE - PERSONALIZE HEAVILY:
+- Name: ${userProfile.name || 'Not specified'}
+- Age: ${userProfile.age || 'Not specified'}
+- Neighborhood: ${userProfile.location || 'Not specified'}
+- Interests: ${userProfile.interests?.join(', ') || 'Not specified'}
+- Bio: ${userProfile.bio || 'Not specified'}
+
+🚨 CRITICAL PERSONALIZATION RULES:
+${hasLocation ? '1. ONLY recommend things in or near ' + userProfile.location + ' - this is their neighborhood, prioritize it heavily' : '1. Ask which neighborhood they are in to give local recs'}
+${hasAge ? '2. They are ' + userProfile.age + ' - filter out events/places that do not match their age range' : ''}
+${hasInterests ? '3. Match their vibe: ' + userProfile.interests.join(', ') + ' - ONLY suggest things that align with these interests' : '2. Ask what they are into to personalize'}
+4. Reference past conversations - if they asked about jazz before, mention new jazz events
+5. Build on context - if they liked a specific place, suggest similar ones
+6. Notice patterns - if they always ask about Palermo, focus there
+` : `
+🎯 NO PROFILE - GET INFO FAST:
+User is NOT logged in. To personalize:
+1. Ask: "Which neighborhood? What are you into?"
+2. Use this info immediately to filter recommendations
+DO NOT ask for their name or age - focus on location and interests only.
+`}
+
+🎯 YOUR VIBE:
+${isWhatsApp ? `
+🚨 WHATSAPP MODE - MULTIPLE RECOMMENDATIONS WITH IMAGES:
+- Give 3-4 SPECIFIC recommendations (not just 1) unless fewer options exist
+- Each recommendation should be 1-2 sentences max
+- 🖼️ **CRITICAL - YOU MUST USE THE TOOL FOR EVERY RECOMMENDATION**:
+  * ALWAYS call send_recommendation_with_image() for EACH event, business, or coupon you recommend
+  * For events: Use the image_url from the event data
+  * For businesses: Use profile_image_url from business data
+  * For coupons: Use image_url from coupon data
+  * If no image is available, still use the tool but pass empty string for image_url
+  * Example: send_recommendation_with_image(message: "Jazz Night at Café Tortoni tonight 9pm, $15 🎷", image_url: "https://...", recommendation_type: "event")
+  * Call this tool MULTIPLE times (3-4 times) to send multiple recommendations with their images
+- NEVER just send an image link/URL in text - ALWAYS use the tool to send the actual image
+- ALWAYS filter by their neighborhood first - don't suggest things across the city
+- Match their interests - if they love jazz, don't suggest techno clubs
+` : `
+🎨 WEBSITE CHAT MODE - CONVERSATIONAL BUT CONCISE:
+- Keep it SHORT (max 2-3 sentences per response unless they specifically ask for more details)
+- Be direct and authentic - no corporate fluff, no over-explaining
+- Match the same chill, local friend vibe as WhatsApp
+- If recommending multiple things, use bullet points to keep it scannable
+- ALWAYS filter by their neighborhood if known
+- Match their interests from profile
+`}
+- Sound like a cool local, not a tour guide
+- Use casual language - "tbh", "ngl", "lowkey", "def", "fr", etc. (but don't overdo it)
+- Get straight to the point
+- If data's limited, just say "nothing rn, but check back"
+- Drop the formalities - you're a friend texting back
+
+📚 CONVERSATION MEMORY:
+${conversationHistory && conversationHistory.length > 0 ? `
+You have ${conversationHistory.length} messages of history. USE IT:
+- Remember what they asked about before
+- Build on previous recommendations
+- Don't repeat suggestions
+- Notice their preferences from past questions
+- Reference things they seemed interested in
+` : 'First conversation - get to know them!'}
+
+⚠️ CRITICAL - REAL DATA ONLY:
+- ONLY mention events/businesses/coupons that actually exist below
+- NEVER make stuff up
+- If nothing matches, say "nothing rn" - don't fake it
+- Be honest about what's available
+- 🚨 CRITICAL: MATCH BUSINESS CATEGORIES CORRECTLY!
+  - If someone asks for FOOD/RESTAURANTS → ONLY recommend businesses with food/restaurant/cafe in their bio or specialties
+  - If someone asks for ART → ONLY recommend businesses with art/gallery/creative in their bio or specialties
+  - If someone asks for MUSIC → ONLY recommend music venues/events
+  - NEVER recommend an art shop for food, or a restaurant for art supplies!
+
+🎯 SMART QUESTION FLOW FOR "GOING OUT" QUERIES:
+When user asks about "places to go out", "what to do tonight", "where should I go", etc:
+  
+  🧠 UNDERSTAND WHAT THEY REALLY MEAN:
+  - "place with events" / "something happening" / "cool event" → They want EVENTS only
+  - "bar" / "cafe" / "chill spot" / "hang with friends" / "just drinks" → They want BUSINESSES only (bars/cafes)
+  - "things to do" / "what's up" / "what to do" → Could be EITHER - ask them to clarify
+  - "tonight" / "today" / "this weekend" → Check BOTH events and businesses, recommend what fits best
+  
+  🎯 INTELLIGENT RESPONSE STRATEGY:
+  1. If their message clearly indicates events → Go straight to event recommendations
+  2. If their message clearly indicates bars/cafes → Go straight to business recommendations
+  3. If ambiguous → Ask: "You looking for a spot with a cool event happening, or just a good bar/cafe to chill?"
+  4. Once they clarify → ONLY recommend from that category (events OR businesses, not both)
+  5. Match recommendations to their neighborhood, age, and interests from profile
+  
+  📝 EXAMPLES OF SMART UNDERSTANDING:
+  - "Looking for something fun today" → AMBIGUOUS → Ask to clarify
+  - "Any good bars in Palermo?" → CLEAR (business) → Recommend bars directly
+  - "What events are tonight?" → CLEAR (events) → Recommend events directly
+  - "Where should I go out?" → AMBIGUOUS → Ask to clarify
+  - "Cool party tonight?" → CLEAR (events) → Recommend party events directly
+
+📸 PHOTO RECOMMENDATIONS LIMIT:
+- When sending recommendations WITH PHOTOS: Send MAX 5 recommendations with photos
+- If you have MORE than 5 recommendations: Send first 5 with photos, then send the rest in ONE text message without photos
+- Format the text-only recommendations clearly with numbering (e.g., "6. Bar Name - Description")
+
+🔍 SMART MATCHING ALGORITHM:
+${userProfile ? `
+PRIORITY ORDER FOR RECOMMENDATIONS:
+1. ${hasLocation ? `Must be in ${userProfile.location} (or walking distance)` : 'Ask neighborhood first'}
+2. ${hasInterests && userProfile.interests.length > 0 ? `Must match at least one interest: ${userProfile.interests.join(', ')}` : 'Ask interests to filter'}
+3. 🚨 CATEGORY MATCH: Check business bio/specialties match what user is looking for (food→food, art→art, etc.)
+4. ${hasAge ? `Filter events by target_audience - user is ${userProfile.age}, so recommend events that match their age group` : 'Ask age to avoid mismatches'}
+5. Match music preferences if user mentioned specific genres (use music_type field)
+6. Match venue size to user preferences (intimate for smaller groups, big for parties)
+7. Match price_range to user budget (cheap/moderate/expensive)
+8. Check conversation history - don't repeat, build on what they liked
+9. If they asked for specifics (e.g., "jazz"), ONLY show events with that music_type
+` : `Ask: "What neighborhood? What are you into?" then match based on category and location`}
+
+🎯 REAL DATA:
+
+🚨 CRITICAL - ONLY FUTURE EVENTS:
+ALL events listed below are happening TODAY OR IN THE FUTURE. NEVER mention past events. If a user asks about something that already happened, say "that was in the past, but here's what's coming up..."
+
+📅 EVENTS (${realData.currentEvents.length}) - ALL UPCOMING:
+${realData.currentEvents.length > 0 ? realData.currentEvents.map(e => `- "${e.title}" at ${e.location} on ${e.date} ${e.time ? 'at ' + e.time : ''}${e.target_audience ? ` (Ages: ${e.target_audience})` : ''}${e.music_type ? ` | Music: ${e.music_type}` : ''}${e.venue_size ? ` | Venue: ${e.venue_size}` : ''}${e.price_range ? ` | Price: ${e.price_range}` : e.price ? ` ($${e.price})` : ''}${e.image_url ? ` [IMAGE: ${e.image_url}]` : ''} - ${e.description?.substring(0, 100)}...`).join('\n') : 'Nothing upcoming rn.'}
+
+🏢 BUSINESSES (${realData.businessProfiles.length}):
+${realData.businessProfiles.length > 0 ? realData.businessProfiles.map(b => `- "${b.name}"${b.age ? ` (ages ${b.age}+)` : ''} in ${b.location || 'location'}${b.profile_image_url ? ` [IMAGE: ${b.profile_image_url}]` : ''} - ${b.bio?.substring(0, 100)}...${b.specialties?.length > 0 ? ' - Vibe: ' + b.specialties.join(', ') : ''}${b.whatsapp_number ? ' - WhatsApp: ' + b.whatsapp_number : ''}`).join('\n') : 'Nothing rn.'}
+
+👥 COMMUNITIES (${realData.activeCommunities.length}):
+${realData.activeCommunities.length > 0 ? realData.activeCommunities.map(c => `- "${c.name}" (${c.member_count} members) - ${c.category} - ${c.tagline || c.description?.substring(0, 80)}`).join('\n') : 'Nothing rn.'}
+
+🏪 MARKETPLACE (${realData.marketplaceItems.length}):
+${realData.marketplaceItems.length > 0 ? realData.marketplaceItems.map(i => `- "${i.title}" in ${i.category} at ${i.location} for $${i.price} - ${i.description?.substring(0, 60)}...`).join('\n') : 'Nothing rn.'}
+
+💡 IDEAS (${realData.neighborhoodIdeas.length}):
+${realData.neighborhoodIdeas.length > 0 ? realData.neighborhoodIdeas.map(n => `- "${n.question}" in ${n.neighborhood}`).join('\n') : 'Nothing rn.'}
+
+❓ QUESTIONS (${realData.neighborQuestions.length}):
+${realData.neighborQuestions.length > 0 ? realData.neighborQuestions.map(q => `- ${q.content?.substring(0, 80)}...`).join('\n') : 'Nothing rn.'}
+
+🎫 DEALS (${realData.localCoupons.length}):
+${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.title}" at ${c.business_name} - ${c.discount_amount}% OFF${c.coupon_code ? ` - Code: ${c.coupon_code}` : ''}${c.image_url ? ` [IMAGE: ${c.image_url}]` : ''} in ${c.neighborhood || 'neighborhood'}`).join('\n') : 'Nothing rn.'}
+
+📍 Location: ${realData.userLocation}
+
+🤖 HOW TO RESPOND:
+1. READ THE USER'S MESSAGE CAREFULLY - understand their actual intent (events vs bars vs ambiguous)
+2. Keep it SUPER SHORT (2-3 sentences max) - UNLESS it's a greeting, then give a proper intro
+3. Be direct - no fluff, no lists unless asked
+4. Use casual language like you're texting
+5. ONLY mention real stuff from data above
+6. When users ask about places to go out/things to do:
+   - If they're clearly asking for events → recommend events
+   - If they're clearly asking for bars/cafes → recommend businesses
+   - If ambiguous → ask them to clarify (event or bar?)
+7. Match businesses by age (if user age is known) and neighborhood preference
+8. When sharing business info, mention their WhatsApp if available so users can reach out
+9. When sharing coupon codes, just drop the code naturally in conversation
+10. If nothing matches: "nothing rn for that vibe"
+11. Sound indie/artsy but authentic
+12. Don't oversell - keep it chill
+13. Prioritize businesses with similar age targets as the user
+14. BE CONVERSATIONAL - understand context, pick up on hints, read between the lines${greetingContext}${repetitionContext}`;
+
+    console.log('🤖 Calling OpenAI with comprehensive data context...');
+
+    // Prepare messages with conversation history
     const messages = [
       { role: 'system', content: systemPrompt },
-      ...recentHistory,
+      ...(conversationHistory && conversationHistory.length > 1 
+        ? conversationHistory.slice(1, -1) // Exclude initial greeting and current message
+        : []
+      ),
       { role: 'user', content: message }
     ];
 
-    // Define tools for WhatsApp
-    const tools = isWhatsApp ? [{
-      type: "function",
-      function: {
-        name: "send_recommendation_with_image",
-        description: "Send ONE recommendation with image. Call multiple times for multiple recommendations.",
-        parameters: {
-          type: "object",
-          properties: {
-            message: { type: "string", description: "1-2 sentence description with personalization" },
-            image_url: { type: "string", description: "Full image URL" },
-            recommendation_type: { type: "string", enum: ["event", "business"] }
-          },
-          required: ["message", "image_url", "recommendation_type"]
+    console.log('🤖 Calling OpenAI with conversation context...');
+
+    // Define tools for structured recommendations with images
+    const tools = isWhatsApp ? [
+      {
+        type: "function",
+        function: {
+          name: "send_recommendation_with_image",
+          description: "Send a single recommendation with an image. Call this function MULTIPLE times (3-4 times) to send multiple recommendations, each with their own image.",
+          parameters: {
+            type: "object",
+            properties: {
+              message: {
+                type: "string",
+                description: "The text message for this ONE recommendation (1-2 sentences max)"
+              },
+              image_url: {
+                type: "string",
+                description: "The URL of the image to send with this recommendation (event image, business profile picture, or coupon image). If no image available, use empty string."
+              },
+              recommendation_type: {
+                type: "string",
+                enum: ["event", "business", "coupon"],
+                description: "Type of this recommendation"
+              }
+            },
+            required: ["message", "image_url", "recommendation_type"]
+          }
         }
       }
-    }] : undefined;
+    ] : undefined;
 
-    // Call OpenAI - using 4o-mini for better tool calling reliability
-    console.log('🤖 Calling OpenAI with GPT-4o-mini...');
+    // Make OpenAI API call with comprehensive context
     const requestBody: any = {
       model: 'gpt-4o-mini',
-      messages,
-      max_tokens: 500,
-      temperature: 0.7
+      messages: messages,
+      max_tokens: isFirstMessage ? 180 : (isGreeting ? 150 : 100),
+      temperature: 0.9
     };
 
-    if (isWhatsApp && tools) {
+    // Add tools for WhatsApp to enable image sending
+    if (isWhatsApp) {
       requestBody.tools = tools;
-      requestBody.parallel_tool_calls = true;
-      // Don't force tool usage - let AI decide when to use tools vs text
-      console.log('📱 WhatsApp mode: Tools available (AI will decide when to use)');
+      requestBody.tool_choice = "auto"; // Let AI decide when to use the tool
+      requestBody.parallel_tool_calls = true; // Enable calling the tool multiple times for multiple recommendations
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -116,52 +371,37 @@ serve(async (req) => {
       body: JSON.stringify(requestBody)
     });
 
+    console.log('📡 OpenAI response status:', response.status);
+
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('❌ OpenAI error:', response.status, errorData);
+      console.error('❌ OpenAI API error:', response.status, errorData);
+      
       return new Response(
         JSON.stringify({ 
-          response: "I'm having trouble connecting right now. Try again in a moment.",
-          success: true
+          response: "I'm having trouble connecting to my AI service. Please try again in a moment.",
+          success: true,
+          error: false
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const data = await response.json();
-    const assistantMessage = data.choices?.[0]?.message;
-
-    if (!assistantMessage) {
-      console.error('❌ Invalid OpenAI response - no message in choices');
-      console.error('Full response:', JSON.stringify(data));
-      return new Response(
-        JSON.stringify({ 
-          response: "Something went wrong. Please try again.",
-          success: true
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    console.log('✅ Got OpenAI response successfully');
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('❌ Invalid response format');
+      throw new Error('Invalid response format');
     }
-
-    console.log('🔍 Response analysis:', {
-      hasContent: !!assistantMessage.content,
-      contentLength: assistantMessage.content?.length || 0,
-      hasToolCalls: !!assistantMessage.tool_calls,
-      toolCallsCount: assistantMessage.tool_calls?.length || 0,
-      finishReason: data.choices?.[0]?.finish_reason
-    });
-
-    // Log if response is empty
-    if (!assistantMessage.content && !assistantMessage.tool_calls) {
-      console.error('❌ EMPTY RESPONSE from OpenAI');
-      console.error('Full assistant message:', JSON.stringify(assistantMessage));
-      console.error('Finish reason:', data.choices?.[0]?.finish_reason);
-    }
-
-    // Handle tool calls (recommendations with images)
-    if (assistantMessage.tool_calls?.length > 0) {
-      console.log(`📸 Processing ${assistantMessage.tool_calls.length} tool calls for recommendations`);
+    
+    const assistantMessage = data.choices[0].message;
+    
+    // Check if AI used the tool to send images (can be multiple calls)
+    if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+      console.log(`🖼️ AI wants to send ${assistantMessage.tool_calls.length} recommendations with images`);
       
+      // Collect all recommendations with images
       const recommendations = assistantMessage.tool_calls
         .filter(tc => tc.function.name === 'send_recommendation_with_image')
         .map(tc => {
@@ -175,210 +415,49 @@ serve(async (req) => {
       
       return new Response(
         JSON.stringify({ 
-          response: assistantMessage.content || 'Check these out:',
-          recommendations,
+          response: assistantMessage.content || '',
+          recommendations: recommendations, // Array of multiple recommendations
           success: true 
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
       );
     }
-
-    // Regular text response
-    const textResponse = assistantMessage.content || "Hey! What can I help you find?";
-    console.log('✅ Response sent');
+    
+    const aiResponse = assistantMessage.content;
+    console.log('🎉 Success! Returning AI response with comprehensive real data');
 
     return new Response(
       JSON.stringify({ 
-        response: textResponse,
+        response: aiResponse,
         success: true 
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
     );
 
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error('💥 Error in ai-assistant function:', error);
+    
+    let errorMessage = "Sorry, I'm having technical difficulties. Please try again.";
+    
+    if (error.message.includes('API key')) {
+      errorMessage = "I'm having API configuration issues. Please contact support.";
+    } else if (error.message.includes('timeout')) {
+      errorMessage = "The request timed out. Please try a shorter question.";
+    }
+    
     return new Response(
       JSON.stringify({ 
-        response: "Sorry, something went wrong. Please try again.",
-        success: true
+        response: errorMessage,
+        success: true,
+        error: false
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
     );
   }
 });
-
-// Build system prompt based on context
-function buildSystemPrompt(context: {
-  userProfile: any;
-  conversationHistory: any[];
-  isTrulyFirstMessage: boolean;
-  isWhatsApp: boolean;
-  message: string;
-  events: any[];
-  businesses: any[];
-}): string {
-  const { userProfile, conversationHistory, isTrulyFirstMessage, isWhatsApp, message, events, businesses } = context;
-  
-  // Core personality
-  let prompt = `You are Yara, TheUnaHub's AI vibe curator. You're chill, direct, and authentic - like a local friend who knows all the best spots in Buenos Aires.
-
-🎯 PERSONALITY:
-- Speak casually (use "tbh", "ngl", "lowkey", "def" naturally, don't overdo it)
-- Be decisive - don't ask unnecessary questions
-- Keep responses SHORT (2-3 sentences max unless asked for details)
-- Sound like you're texting a friend, not giving a tour
-- Be honest - if nothing matches, say "nothing rn"
-
-`;
-
-  // Greeting behavior
-  const greetingPatterns = /^(hey|hi|hello|sup|yo|what's up|whats up|hola)[\s!?.]*$/i;
-  const isGreeting = greetingPatterns.test(message.trim());
-  
-  if (isTrulyFirstMessage) {
-    prompt += `🚨 FIRST MESSAGE EVER:
-Start with: "Hey! Welcome to Yara AI- if you're looking for cool events, hidden deals and bohemian spots in BA- I got you."
-Then add a relevant response based on their message.
-
-`;
-  } else if (isGreeting && (!conversationHistory || conversationHistory.length < 2)) {
-    prompt += `🚨 GREETING:
-Keep it brief: "Hey! What can I help you find?" 
-
-`;
-  }
-
-  // Gratitude detection
-  const gratitudePatterns = /^(thanks|thank you|thx|ty|cool|awesome|perfect|great)[\s!?.]*$/i;
-  const hasQuestionOrRequest = /\b(can|could|would|what|where|when|why|how|tell|show|find|more|about)\b/i.test(message);
-  
-  if (gratitudePatterns.test(message.trim()) && !hasQuestionOrRequest) {
-    prompt += `🙏 USER SAID THANKS:
-Respond exactly: "You're welcome- I'm here if you need anything else 😊"
-DO NOT add anything more.
-
-`;
-  }
-
-  // WhatsApp mode
-  if (isWhatsApp) {
-    prompt += `📱 WHATSAPP MODE - TOOL USAGE FOR RECOMMENDATIONS:
-
-🚨 CRITICAL: When recommending 2+ events/businesses, you MUST use the send_recommendation_with_image tool.
-
-WHEN TO USE THE TOOL:
-- User asks for: "events", "parties", "bars", "cafes", "recommendations", "things to do"
-- You want to share multiple places with images
-- Use it 3-5 times (once per recommendation)
-
-WHEN TO USE REGULAR TEXT:
-- Greetings ("hi", "hello")
-- Questions ("what neighborhood?")  
-- Thanks/gratitude responses
-- Clarifications
-- Single-item responses
-
-TOOL FORMAT:
-{
-  content: "Check these out:",
-  tool_calls: [
-    { function: "send_recommendation_with_image", arguments: {...} },
-    { function: "send_recommendation_with_image", arguments: {...} }
-  ]
-}
-
-🚨 NEVER write "send_recommendation_with_image(...)" as text in your response!
-
-`;
-  }
-
-  // User profile personalization
-  if (userProfile) {
-    const interests = userProfile.interests?.join(', ') || 'None specified';
-    const location = userProfile.location || 'Unknown';
-    const age = userProfile.age || 'Unknown';
-    const name = userProfile.name || 'Unknown';
-    
-    prompt += `👤 USER PROFILE:
-- Name: ${name}
-- Location: ${location}
-- Age: ${age}
-- Interests: ${interests}
-
-🎯 PERSONALIZATION RULES:
-`;
-    
-    if (userProfile.location) {
-      prompt += `- ONLY recommend things in/near ${location}\n`;
-    } else {
-      prompt += `- Ask their neighborhood\n`;
-    }
-    
-    if (userProfile.interests?.length > 0) {
-      prompt += `- Match their interests: ${interests}\n`;
-    } else {
-      prompt += `- Ask what they're into\n`;
-    }
-    
-    if (userProfile.age) {
-      prompt += `- Filter by age appropriateness (they're ${age})\n`;
-    }
-    
-    prompt += '\n';
-  } else {
-    prompt += `❓ NO PROFILE:
-- Ask: "Which neighborhood? What are you into?"
-- Use answers to filter recommendations
-
-`;
-  }
-
-  // Recommendation strategy
-  prompt += `💡 RECOMMENDATION STRATEGY:
-- "cool parties"/"events" → ${isWhatsApp ? 'Use send_recommendation_with_image tool 3-5 times' : 'Send EVENT recommendations (3-5)'}
-- "bar"/"cafe"/"chill spot" → ${isWhatsApp ? 'Use send_recommendation_with_image tool 3-5 times' : 'Send BUSINESS recommendations (3-5)'}
-- "things to do" → ${isWhatsApp ? 'Use send_recommendation_with_image tool for mix of events AND businesses' : 'Mix events AND businesses'}
-- Don't ask clarifying questions - just recommend
-- Add personalization to each (5-10 words why it fits)
-${isWhatsApp ? '\n🚨 REMEMBER: Use the TOOL, not text, for sending recommendations with images!' : ''}
-
-`;
-
-  // Data context
-  prompt += `📊 AVAILABLE DATA:
-
-📅 UPCOMING EVENTS (${events.length}):
-${events.length > 0 ? events.map(e => 
-  `- "${e.title}" at ${e.location} on ${e.date} ${e.time || ''}${e.image_url ? ` [IMAGE: ${e.image_url}]` : ''}`
-).join('\n') : 'None available'}
-
-🏢 BUSINESSES (${businesses.length}):
-${businesses.length > 0 ? businesses.map(b => 
-  `- "${b.name}" in ${b.location || 'BA'}${b.profile_image_url ? ` [IMAGE: ${b.profile_image_url}]` : ''} - ${b.bio?.substring(0, 100) || 'No description'}`
-).join('\n') : 'None available'}
-
-`;
-
-  // Conversation history context
-  if (conversationHistory && conversationHistory.length > 0) {
-    prompt += `💬 CONVERSATION CONTEXT:
-- You have ${conversationHistory.length} previous messages
-- Remember what was discussed
-- Don't repeat recommendations
-- Build on previous context
-
-`;
-  }
-
-  // Critical rules
-  prompt += `⚠️ CRITICAL RULES:
-1. ONLY mention real events/businesses from data above
-2. NEVER make up venues, events, or dates
-3. If nothing matches: "nothing rn, but check back"
-4. Match categories correctly (food→food, art→art, music→music)
-5. ALWAYS respond with real content (no generic "I'm here" messages)
-6. When user says "more info" - provide details about what was just discussed
-7. Be conversational and context-aware`;
-
-  return prompt;
-}
