@@ -51,9 +51,11 @@ Deno.serve(async (req) => {
     const isNewConversation = conversationHistory.length === 0;
     console.log(`Found ${conversationHistory.length} messages in last 7 minutes for ${from}. Is new conversation: ${isNewConversation}`);
 
-    // Check if message is a greeting
+    // Check if message is a greeting OR a conversation starter
     const greetingPatterns = /^(hey|hi|hello|sup|yo|hola|what's up|whats up)[\s!?.]*$/i;
+    const conversationStarterPatterns = /^(i'm looking for|i want|show me|find me|i need|looking for|what's|whats|tell me about|i'm into|im into|help me find)/i;
     const isGreeting = greetingPatterns.test(body.trim());
+    const isConversationStarter = conversationStarterPatterns.test(body.trim());
 
     // Try to find user profile by WhatsApp number
     const { data: profile } = await supabase
@@ -64,9 +66,11 @@ Deno.serve(async (req) => {
 
     console.log('User profile:', profile ? `Found profile for ${profile.name}` : 'No profile found');
 
-    // If it's a greeting AND a new conversation (no messages in last 7 minutes), send welcome
-    if (isGreeting && isNewConversation) {
-      console.log('Sending welcome message for new conversation with greeting - timeout exceeded or first message');
+    // If it's a greeting/conversation starter AND a new conversation, OR it's a conversation starter regardless of history, send welcome
+    const shouldSendWelcome = (isGreeting && isNewConversation) || isConversationStarter;
+    
+    if (shouldSendWelcome) {
+      console.log('Sending welcome message - new conversation or conversation starter detected');
       
       // Store user message
       await supabase.from('whatsapp_conversations').insert({
