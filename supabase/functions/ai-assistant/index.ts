@@ -198,19 +198,25 @@ You have ${conversationHistory.length} messages of history. USE IT:
 - NEVER make stuff up
 - If nothing matches, say "nothing rn" - don't fake it
 - Be honest about what's available
+- 🚨 CRITICAL: MATCH BUSINESS CATEGORIES CORRECTLY!
+  - If someone asks for FOOD/RESTAURANTS → ONLY recommend businesses with food/restaurant/cafe in their bio or specialties
+  - If someone asks for ART → ONLY recommend businesses with art/gallery/creative in their bio or specialties
+  - If someone asks for MUSIC → ONLY recommend music venues/events
+  - NEVER recommend an art shop for food, or a restaurant for art supplies!
 
 🔍 SMART MATCHING ALGORITHM:
 ${userProfile ? `
 PRIORITY ORDER FOR RECOMMENDATIONS:
 1. ${hasLocation ? `Must be in ${userProfile.location} (or walking distance)` : 'Ask neighborhood first'}
 2. ${hasInterests && userProfile.interests.length > 0 ? `Must match at least one interest: ${userProfile.interests.join(', ')}` : 'Ask interests to filter'}
-3. ${hasAge ? `Filter events by target_audience - user is ${userProfile.age}, so recommend events that match their age group` : 'Ask age to avoid mismatches'}
-4. Match music preferences if user mentioned specific genres
-5. Match venue size to user preferences (intimate for smaller groups, big for parties)
-6. Match price_range to user budget (cheap/moderate/expensive)
-7. Check conversation history - don't repeat, build on what they liked
-8. If they asked for specifics (e.g., "jazz"), ONLY show events with that music_type
-` : `Ask: "What neighborhood? Age? Interests?" then match based on that`}
+3. 🚨 CATEGORY MATCH: Check business bio/specialties match what user is looking for (food→food, art→art, etc.)
+4. ${hasAge ? `Filter events by target_audience - user is ${userProfile.age}, so recommend events that match their age group` : 'Ask age to avoid mismatches'}
+5. Match music preferences if user mentioned specific genres (use music_type field)
+6. Match venue size to user preferences (intimate for smaller groups, big for parties)
+7. Match price_range to user budget (cheap/moderate/expensive)
+8. Check conversation history - don't repeat, build on what they liked
+9. If they asked for specifics (e.g., "jazz"), ONLY show events with that music_type
+` : `Ask: "What neighborhood? What are you into?" then match based on category and location`}
 
 🎯 REAL DATA:
 
