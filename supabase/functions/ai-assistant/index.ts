@@ -171,10 +171,10 @@ DO NOT ask for their name or age - focus on location and interests only.
 ${isWhatsApp ? `
 🚨 WHATSAPP MODE - MULTIPLE RECOMMENDATIONS WITH IMAGES:
 - Give 3-4 SPECIFIC recommendations (not just 1) unless fewer options exist
-- 🚨 CRITICAL: ALWAYS provide a TEXT RESPONSE along with recommendations
-  * Even when using tools to send images, include a brief intro text in the "response" field
-  * Example: If sending event recommendations, start with "Here are some cool events:" or "Check these out:"
-  * NEVER leave the response field empty - always have conversational text
+- 🚨 CRITICAL: ALWAYS provide a TEXT RESPONSE in the "response" field
+  * Start with a brief intro like "Here's what's happening:" or "Check these out:"
+  * NEVER leave the response field empty
+  * The intro sets context for the recommendations
 - Each recommendation should be 1-2 sentences max
 - 🖼️ **CRITICAL - YOU MUST USE THE TOOL FOR EVERY RECOMMENDATION**:
   * ALWAYS call send_recommendation_with_image() for EACH event, business, or coupon you recommend

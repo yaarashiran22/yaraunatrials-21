@@ -99,102 +99,53 @@ Deno.serve(async (req) => {
     if (aiResponse?.recommendations && Array.isArray(aiResponse.recommendations) && aiResponse.recommendations.length > 0) {
       console.log(`📸 AI wants to send ${aiResponse.recommendations.length} recommendations with images`);
       
-      // Get Twilio credentials
-      const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-      const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-      const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
+      // Build TwiML response with recommendations
+      let twimlMessages = '';
       
-      if (!twilioAccountSid || !twilioAuthToken || !twilioWhatsAppNumber) {
-        console.error('❌ Twilio credentials missing');
-        throw new Error('Twilio credentials not configured');
-      }
-
-      // Prepare all message sends (parallel execution)
-      const messageSends = [];
-
-      // Send text response first if there is one
-      if (aiResponse.response && aiResponse.response.trim()) {
-        messageSends.push(
-          fetch(
-            `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
-                'Content-Type': 'application/x-www-form-urlencoded',
-              },
-              body: new URLSearchParams({
-                From: twilioWhatsAppNumber,
-                To: from,
-                Body: aiResponse.response
-              }).toString()
-            }
-          ).then(() => {
-            console.log('✅ Sent text intro');
-            // Store in background
-            supabase.from('whatsapp_conversations').insert({
-              phone_number: from,
-              role: 'assistant',
-              content: aiResponse.response
-            });
-          }).catch(err => console.error('Error sending intro:', err))
-        );
-      }
+      // 🚨 CRITICAL: Add a default intro text if AI didn't provide one
+      const introText = aiResponse.response && aiResponse.response.trim() 
+        ? aiResponse.response 
+        : "Here are some recommendations for you:";
       
-      // Send all recommendations in parallel
-      for (const rec of aiResponse.recommendations) {
-        const messageData: any = {
-          From: twilioWhatsAppNumber,
-          To: from,
-          Body: rec.message
-        };
-        
-        // Add image if URL exists and is complete
-        if (rec.image_url && rec.image_url.trim() !== '' && rec.image_url.startsWith('http')) {
-          messageData.MediaUrl = rec.image_url;
-        }
-        
-        messageSends.push(
-          fetch(
-            `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
-                'Content-Type': 'application/x-www-form-urlencoded',
-              },
-              body: new URLSearchParams(messageData).toString()
-            }
-          ).then(response => {
-            if (!response.ok) {
-              return response.text().then(errorText => {
-                console.error('Twilio API error:', response.status, errorText);
-              });
-            }
-            console.log(`✅ Sent recommendation ${rec.image_url ? 'with image' : 'text only'}`);
-            // Store in background
-            supabase.from('whatsapp_conversations').insert({
-              phone_number: from,
-              role: 'assistant',
-              content: rec.message
-            });
-          }).catch(err => console.error('Error sending recommendation:', err))
-        );
-      }
+      twimlMessages += `<Message>${introText}</Message>\n`;
       
-      // Send all messages in parallel and return immediately
-      Promise.all(messageSends).then(() => {
-        console.log('✅ All messages sent');
+      // Store the intro text
+      await supabase.from('whatsapp_conversations').insert({
+        phone_number: from,
+        role: 'assistant',
+        content: introText
       });
       
-      // Return empty TwiML immediately (don't wait for messages to send)
-      return new Response(
-        '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
-          status: 200
+      // Add each recommendation as a separate message with image
+      for (const rec of aiResponse.recommendations) {
+        // CRITICAL: Send text AND image together in one message
+        if (rec.image_url && rec.image_url.trim() !== '' && rec.image_url.startsWith('http')) {
+          twimlMessages += `<Message>
+  <Body>${rec.message}</Body>
+  <Media>${rec.image_url}</Media>
+</Message>\n`;
+        } else {
+          twimlMessages += `<Message>${rec.message}</Message>\n`;
         }
-      );
+        
+        // Store each recommendation in conversation history
+        await supabase.from('whatsapp_conversations').insert({
+          phone_number: from,
+          role: 'assistant',
+          content: rec.message
+        });
+      }
+      
+      const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+${twimlMessages}</Response>`;
+
+      console.log('Sending TwiML response with recommendations');
+      
+      return new Response(twimlResponse, {
+        headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+        status: 200
+      });
     }
 
     // Single message responses (no recommendations)
