@@ -243,11 +243,15 @@ Example: send_recommendation_with_image(
 → They're acknowledging, not requesting - respond naturally
 → "Right? It's gonna be good!" / "Let me know if you want more options"
 
-**"Anything else?" / "More?" / "What else?"**: 🚨 CRITICAL - NO DUPLICATES!
-→ They want DIFFERENT recommendations - NOT the same ones again
-→ Check what you've already sent and recommend something COMPLETELY DIFFERENT
-→ If you've sent 2 events, send 2 NEW events (different titles, different locations)
-→ NEVER repeat the same event/business/coupon you already sent in this conversation
+**🚨 "ANYTHING ELSE?" / "IS THERE ANYTHING ELSE?" / "MORE?" / "WHAT ELSE?"**: CRITICAL!
+→ User wants MORE event recommendations - NOT the same ones
+→ YOU MUST:
+  1. Look at the events you already sent (listed in "ALREADY SENT" section above)
+  2. Find DIFFERENT events from the available events list
+  3. Use send_recommendation_with_image() tool for EACH new event
+  4. Send 2-3 NEW events (different titles, locations) with their images
+  5. NEVER repeat events from "ALREADY SENT" list
+→ Example: If you sent "Jazz Night" and "Techno Party", now send "Art Gallery Opening" and "Coffee Tasting"
 
 **New Requests**: "any parties?", "what about coffee shops?", "show me more"
 → They want a new recommendation
