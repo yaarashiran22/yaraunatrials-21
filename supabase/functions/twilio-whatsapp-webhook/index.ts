@@ -64,9 +64,9 @@ Deno.serve(async (req) => {
 
     console.log('User profile:', profile ? `Found profile for ${profile.name}` : 'No profile found');
 
-    // If it's a new conversation or just a greeting after inactivity, send welcome message
-    if (isNewConversation || (isGreeting && conversationHistory.length === 0)) {
-      console.log('Sending welcome message for new conversation');
+    // If it's a greeting AND a new conversation (no messages in last 2 hours), send welcome
+    if (isGreeting && isNewConversation) {
+      console.log('Sending welcome message for new conversation with greeting');
       
       // Store user message
       await supabase.from('whatsapp_conversations').insert({
