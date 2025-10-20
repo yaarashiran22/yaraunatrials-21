@@ -116,9 +116,31 @@ Deno.serve(async (req) => {
       });
     }
 
-    // AI assistant temporarily disabled
-    const assistantMessage = "Sorry, AI assistant is temporarily unavailable. Please check back soon!";
-    console.log('Sending fallback message');
+    // Build conversation history for AI
+    const messages = conversationHistory.map(msg => ({
+      role: msg.role as 'user' | 'assistant',
+      content: msg.content
+    }));
+    messages.push({ role: 'user', content: body });
+
+    // Call Yara AI chat function (non-streaming for WhatsApp)
+    const { data: aiResponse, error: aiError } = await supabase.functions.invoke('yara-ai-chat', {
+      body: { messages, stream: false }
+    });
+
+    if (aiError) {
+      console.error('Yara AI error:', aiError);
+      throw aiError;
+    }
+
+    // Extract AI response from the SSE stream response
+    let assistantMessage = '';
+    if (aiResponse) {
+      // The response is already the complete message from the streaming
+      assistantMessage = aiResponse.message || 'Sorry, I encountered an error processing your request.';
+    }
+
+    console.log('Yara AI response:', assistantMessage.substring(0, 100) + '...');
 
     // Store assistant response
     await supabase.from('whatsapp_conversations').insert({

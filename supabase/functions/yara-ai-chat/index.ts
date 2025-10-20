@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, stream = true } = await req.json();
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     
     if (!openAIApiKey) {
@@ -101,7 +101,7 @@ Guidelines:
           ...messages
         ],
         max_completion_tokens: 500,
-        stream: true
+        stream: stream
       }),
     });
 
@@ -111,12 +111,26 @@ Guidelines:
       throw new Error(`OpenAI API error: ${response.status}`);
     }
 
-    return new Response(response.body, {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/event-stream',
-      },
-    });
+    // If streaming, return the stream
+    if (stream) {
+      return new Response(response.body, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/event-stream',
+        },
+      });
+    }
+
+    // If not streaming, return complete message
+    const data = await response.json();
+    const message = data.choices?.[0]?.message?.content || '';
+    
+    return new Response(
+      JSON.stringify({ message }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
 
   } catch (error) {
     console.error('Error in yara-ai-chat:', error);
