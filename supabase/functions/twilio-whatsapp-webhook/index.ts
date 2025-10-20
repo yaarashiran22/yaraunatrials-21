@@ -121,7 +121,11 @@ Deno.serve(async (req) => {
     }
 
     const assistantMessage = aiResponse?.response || 'Sorry, I encountered an error processing your request.';
+    const imageUrl = aiResponse?.image_url; // Check if AI included an image
     console.log('AI response:', assistantMessage);
+    if (imageUrl) {
+      console.log('📸 Image URL to send:', imageUrl);
+    }
 
     // Store assistant response
     await supabase.from('whatsapp_conversations').insert({
@@ -130,11 +134,25 @@ Deno.serve(async (req) => {
       content: assistantMessage
     });
 
-    // Return TwiML response for Twilio
-    const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+    // Return TwiML response with optional media
+    let twimlResponse: string;
+    
+    if (imageUrl) {
+      // Send message with image
+      twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>
+    <Body>${assistantMessage}</Body>
+    <Media>${imageUrl}</Media>
+  </Message>
+</Response>`;
+    } else {
+      // Send text-only message
+      twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>${assistantMessage}</Message>
 </Response>`;
+    }
 
     console.log('Sending TwiML response');
     

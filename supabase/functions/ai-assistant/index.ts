@@ -53,15 +53,15 @@ serve(async (req) => {
       storiesData,
       businessProfilesData
     ] = await Promise.all([
-      supabase.from('events').select('id, title, description, location, date, time, price, mood, event_type').gte('date', new Date().toISOString().split('T')[0]).order('date', { ascending: true }).limit(8),
+      supabase.from('events').select('id, title, description, location, date, time, price, mood, event_type, image_url').gte('date', new Date().toISOString().split('T')[0]).order('date', { ascending: true }).limit(8),
       supabase.from('communities').select('id, name, tagline, description, category, subcategory, member_count').limit(6),
       supabase.from('posts').select('id, content, location, created_at').limit(5),
       supabase.from('items').select('id, title, description, category, location, price').eq('status', 'active').limit(6),
       supabase.from('neighborhood_ideas').select('id, question, neighborhood, market').limit(4),
       supabase.from('neighbor_questions').select('id, content, market, message_type').limit(4),
-      supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood, coupon_code').eq('is_active', true).limit(8),
+      supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood, coupon_code, image_url').eq('is_active', true).limit(8),
       supabase.from('stories').select('id, text_content, story_type').gt('expires_at', 'now()').limit(3),
-      supabase.from('profiles').select('id, name, bio, location, age, interests, specialties, whatsapp_number').eq('profile_type', 'business').limit(10)
+      supabase.from('profiles').select('id, name, bio, location, age, interests, specialties, whatsapp_number, profile_image_url').eq('profile_type', 'business').limit(10)
     ]);
 
     console.log('📊 Data fetched - Events:', eventsData.data?.length, 'Communities:', communitiesData.data?.length, 'Posts:', postsData.data?.length, 'Items:', itemsData.data?.length, 'Businesses:', businessProfilesData.data?.length);
@@ -155,12 +155,16 @@ User is NOT logged in. To personalize:
 
 🎯 YOUR VIBE:
 ${isWhatsApp ? `
-🚨 WHATSAPP MODE - ULTRA SHORT & PERSONALIZED:
+🚨 WHATSAPP MODE - ULTRA SHORT & PERSONALIZED WITH IMAGES:
 - Max 1-2 sentences ONLY (this is WhatsApp, not an essay)
 - Cut straight to the point - no intros, no fluff
 - ONE specific recommendation that matches THEIR profile exactly
+- 🖼️ CRITICAL: When recommending an event, business, or coupon, USE THE TOOL to send it with an image!
+  - For events: Use the event's image_url from the data
+  - For businesses: Use the business's profile picture (whatsapp_number field indicates it's available)
+  - For coupons: Use the coupon's image_url if available
+- Example tool call: send_recommendation_with_image(message: "Jazz Night at Café Tortoni tonight 9pm, $15. Cool vibe!", image_url: "https://...", recommendation_type: "event")
 - If they ask for more, THEN give more - but default to minimal
-- Example: "Hey ${hasName ? userProfile.name : 'there'}! 'Jazz Night' at Café Tortoni${hasLocation ? ` in ${userProfile.location}` : ''} tonight 9pm, $15${hasAge && userProfile.age < 25 ? ', young crowd' : ''}. ${hasInterests ? `Perfect for ${userProfile.interests[0]} vibes` : 'Cool spot'}." 
 - ALWAYS filter by their neighborhood first - don't suggest things across the city
 - Match their interests - if they love jazz, don't suggest techno clubs
 ` : `
@@ -205,10 +209,10 @@ PRIORITY ORDER FOR RECOMMENDATIONS:
 ALL events listed below are happening TODAY OR IN THE FUTURE. NEVER mention past events. If a user asks about something that already happened, say "that was in the past, but here's what's coming up..."
 
 📅 EVENTS (${realData.currentEvents.length}) - ALL UPCOMING:
-${realData.currentEvents.length > 0 ? realData.currentEvents.map(e => `- "${e.title}" at ${e.location} on ${e.date} ${e.time ? 'at ' + e.time : ''} ${e.price ? '($' + e.price + ')' : ''} - ${e.description?.substring(0, 100)}...`).join('\n') : 'Nothing upcoming rn.'}
+${realData.currentEvents.length > 0 ? realData.currentEvents.map(e => `- "${e.title}" at ${e.location} on ${e.date} ${e.time ? 'at ' + e.time : ''} ${e.price ? '($' + e.price + ')' : ''}${e.image_url ? ` [IMAGE: ${e.image_url}]` : ''} - ${e.description?.substring(0, 100)}...`).join('\n') : 'Nothing upcoming rn.'}
 
 🏢 BUSINESSES (${realData.businessProfiles.length}):
-${realData.businessProfiles.length > 0 ? realData.businessProfiles.map(b => `- "${b.name}"${b.age ? ` (ages ${b.age}+)` : ''} in ${b.location || 'location'} - ${b.bio?.substring(0, 100)}...${b.specialties?.length > 0 ? ' - Vibe: ' + b.specialties.join(', ') : ''}${b.whatsapp_number ? ' - WhatsApp: ' + b.whatsapp_number : ''}`).join('\n') : 'Nothing rn.'}
+${realData.businessProfiles.length > 0 ? realData.businessProfiles.map(b => `- "${b.name}"${b.age ? ` (ages ${b.age}+)` : ''} in ${b.location || 'location'}${b.profile_image_url ? ` [IMAGE: ${b.profile_image_url}]` : ''} - ${b.bio?.substring(0, 100)}...${b.specialties?.length > 0 ? ' - Vibe: ' + b.specialties.join(', ') : ''}${b.whatsapp_number ? ' - WhatsApp: ' + b.whatsapp_number : ''}`).join('\n') : 'Nothing rn.'}
 
 👥 COMMUNITIES (${realData.activeCommunities.length}):
 ${realData.activeCommunities.length > 0 ? realData.activeCommunities.map(c => `- "${c.name}" (${c.member_count} members) - ${c.category} - ${c.tagline || c.description?.substring(0, 80)}`).join('\n') : 'Nothing rn.'}
@@ -223,7 +227,7 @@ ${realData.neighborhoodIdeas.length > 0 ? realData.neighborhoodIdeas.map(n => `-
 ${realData.neighborQuestions.length > 0 ? realData.neighborQuestions.map(q => `- ${q.content?.substring(0, 80)}...`).join('\n') : 'Nothing rn.'}
 
 🎫 DEALS (${realData.localCoupons.length}):
-${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.title}" at ${c.business_name} - ${c.discount_amount}% OFF${c.coupon_code ? ` - Code: ${c.coupon_code}` : ''} in ${c.neighborhood || 'neighborhood'}`).join('\n') : 'Nothing rn.'}
+${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.title}" at ${c.business_name} - ${c.discount_amount}% OFF${c.coupon_code ? ` - Code: ${c.coupon_code}` : ''}${c.image_url ? ` [IMAGE: ${c.image_url}]` : ''} in ${c.neighborhood || 'neighborhood'}`).join('\n') : 'Nothing rn.'}
 
 📍 Location: ${realData.userLocation}
 
@@ -255,19 +259,57 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
 
     console.log('🤖 Calling OpenAI with conversation context...');
 
+    // Define tools for structured recommendations with images
+    const tools = isWhatsApp ? [
+      {
+        type: "function",
+        function: {
+          name: "send_recommendation_with_image",
+          description: "Send a recommendation with an image (event, business, or coupon)",
+          parameters: {
+            type: "object",
+            properties: {
+              message: {
+                type: "string",
+                description: "The text message to send"
+              },
+              image_url: {
+                type: "string",
+                description: "The URL of the image to send (event image, business profile picture, or coupon image)"
+              },
+              recommendation_type: {
+                type: "string",
+                enum: ["event", "business", "coupon"],
+                description: "Type of recommendation"
+              }
+            },
+            required: ["message"]
+          }
+        }
+      }
+    ] : undefined;
+
     // Make OpenAI API call with comprehensive context
+    const requestBody: any = {
+      model: 'gpt-4o-mini',
+      messages: messages,
+      max_tokens: isFirstMessage ? 180 : (isGreeting ? 150 : 100),
+      temperature: 0.9
+    };
+
+    // Add tools for WhatsApp to enable image sending
+    if (tools) {
+      requestBody.tools = tools;
+      requestBody.tool_choice = "auto";
+    }
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: messages,
-        max_tokens: isFirstMessage ? 180 : (isGreeting ? 150 : 100),
-        temperature: 0.9
-      })
+      body: JSON.stringify(requestBody)
     });
 
     console.log('📡 OpenAI response status:', response.status);
@@ -294,7 +336,30 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
       throw new Error('Invalid response format');
     }
     
-    const aiResponse = data.choices[0].message.content;
+    const assistantMessage = data.choices[0].message;
+    
+    // Check if AI used the tool to send an image
+    if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+      const toolCall = assistantMessage.tool_calls[0];
+      if (toolCall.function.name === 'send_recommendation_with_image') {
+        const args = JSON.parse(toolCall.function.arguments);
+        console.log('🖼️ AI wants to send image:', args.image_url);
+        
+        return new Response(
+          JSON.stringify({ 
+            response: args.message,
+            image_url: args.image_url,
+            recommendation_type: args.recommendation_type,
+            success: true 
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+    }
+    
+    const aiResponse = assistantMessage.content;
     console.log('🎉 Success! Returning AI response with comprehensive real data');
 
     return new Response(
