@@ -131,11 +131,16 @@ DO NOT just send the welcome alone. Always add a relevant AI response after it.`
       }
     }
 
-    // Detect gratitude/thanks
+    // Detect gratitude/thanks - MUST be standalone, not part of a question
     const gratitudePatterns = /^(thanks|thank you|thx|ty|appreciate it|cool|awesome|perfect|great|sounds good)[\s!?.]*$/i;
     const isGratitude = gratitudePatterns.test(message.trim());
+    
+    // Check if message contains a question or request (even if it starts with "thanks")
+    const hasQuestionOrRequest = /\b(can|could|would|should|what|where|when|why|how|tell me|show me|find|info|more|about|please)\b/i.test(message);
+    
     let gratitudeContext = '';
-    if (isGratitude) {
+    if (isGratitude && !hasQuestionOrRequest) {
+      // Only treat as pure gratitude if there's NO question/request
       gratitudeContext = '\n\n🙏 IMPORTANT: User just said thanks/expressed gratitude. Respond EXACTLY with: "You\'re welcome- I\'m here if you need anything else 😊" - DO NOT add anything more, DO NOT ask questions, DO NOT make suggestions.';
     }
 
@@ -175,6 +180,10 @@ DO NOT ask for their name or age - focus on location and interests only.
 ${isWhatsApp ? `
 🚨 WHATSAPP MODE - MULTIPLE RECOMMENDATIONS WITH IMAGES:
 - Give 3-4 SPECIFIC recommendations (not just 1) unless fewer options exist
+- 🚨 CRITICAL: ALWAYS provide a TEXT RESPONSE along with recommendations
+  * Even when using tools to send images, include a brief intro text in the "response" field
+  * Example: If sending event recommendations, start with "Here are some cool events:" or "Check these out:"
+  * NEVER leave the response field empty - always have conversational text
 - Each recommendation should be 1-2 sentences max
 - 🖼️ **CRITICAL - YOU MUST USE THE TOOL FOR EVERY RECOMMENDATION**:
   * ALWAYS call send_recommendation_with_image() for EACH event, business, or coupon you recommend
@@ -187,6 +196,7 @@ ${isWhatsApp ? `
 - NEVER just send an image link/URL in text - ALWAYS use the tool to send the actual image
 - ALWAYS filter by their neighborhood first - don't suggest things across the city
 - Match their interests - if they love jazz, don't suggest techno clubs
+- 🚨 IF USER ASKS FOR MORE INFO: Provide detailed information about the recommendations you just sent (from conversation history)
 ` : `
 🎨 WEBSITE CHAT MODE - CONVERSATIONAL BUT CONCISE:
 - Keep it SHORT (max 2-3 sentences per response unless they specifically ask for more details)

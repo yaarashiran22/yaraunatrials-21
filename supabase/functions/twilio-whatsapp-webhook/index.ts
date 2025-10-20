@@ -145,20 +145,24 @@ ${twimlMessages}</Response>`;
     }
 
     // Single message responses (no recommendations)
-    const assistantMessage = aiResponse?.response || 'Sorry, I encountered an error processing your request.';
+    const assistantMessage = aiResponse?.response || 'Hey! I got your message. What can I help you find?';
     console.log('Single message response:', assistantMessage);
+
+    // 🚨 CRITICAL: If we got here and assistantMessage is empty, something went wrong
+    // Ensure we ALWAYS send something back
+    const finalMessage = assistantMessage.trim() || 'Hey! I\'m here. What are you looking for?';
 
     // Store assistant response
     await supabase.from('whatsapp_conversations').insert({
       phone_number: from,
       role: 'assistant',
-      content: assistantMessage
+      content: finalMessage
     });
 
     // Return TwiML response
     const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>${assistantMessage}</Message>
+  <Message>${finalMessage}</Message>
 </Response>`;
 
     console.log('Sending TwiML response');
