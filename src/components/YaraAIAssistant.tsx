@@ -171,7 +171,7 @@ const YaraAIAssistant: React.FC<YaraAIAssistantProps> = ({ isOpen, onClose }) =>
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Ask about events, venues, deals..."
-              className="flex-1 border-[#E91E63]/20 focus:border-[#E91E63]/40 focus:ring-[#E91E63]/20"
+              className="flex-1 bg-white border-[#E91E63]/20 focus:border-[#E91E63]/40 focus:ring-[#E91E63]/20"
               disabled={isLoading}
             />
             <Button
