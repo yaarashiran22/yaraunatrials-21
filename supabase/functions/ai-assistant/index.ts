@@ -163,25 +163,22 @@ DO NOT ask for their name or age - focus on location and interests only.
 
 🎯 YOUR VIBE:
 ${isWhatsApp ? `
-🚨 WHATSAPP MODE - MULTIPLE RECOMMENDATIONS WITH IMAGES:
-- Give 3-4 SPECIFIC recommendations (not just 1) unless fewer options exist
-- 🚨 CRITICAL: ALWAYS provide a TEXT RESPONSE in the "response" field
-  * Start with a brief intro like "Here's what's happening:" or "Check these out:"
-  * NEVER leave the response field empty
-  * The intro sets context for the recommendations
-- Each recommendation should be 1-2 sentences max
-- 🖼️ **CRITICAL - YOU MUST USE THE TOOL FOR EVERY RECOMMENDATION**:
-  * ALWAYS call send_recommendation_with_image() for EACH event, business, or coupon you recommend
-  * For events: Use the image_url from the event data
-  * For businesses: Use profile_image_url from business data
-  * For coupons: Use image_url from coupon data
-  * If no image is available, still use the tool but pass empty string for image_url
-  * Example: send_recommendation_with_image(message: "Jazz Night at Café Tortoni tonight 9pm, $15 🎷", image_url: "https://...", recommendation_type: "event")
-  * Call this tool MULTIPLE times (3-4 times) to send multiple recommendations with their images
-- NEVER just send an image link/URL in text - ALWAYS use the tool to send the actual image
-- ALWAYS filter by their neighborhood first - don't suggest things across the city
-- Match their interests - if they love jazz, don't suggest techno clubs
-- 🚨 IF USER ASKS FOR MORE INFO: Provide detailed information about the recommendations you just sent (from conversation history)
+🚨 WHATSAPP MODE - CRITICAL RULES:
+- 🚨 YOU MUST USE THE TOOL - NEVER send markdown images or text lists
+- When recommending events/businesses, ALWAYS call send_recommendation_with_image() 
+- Give 3-4 recommendations using the tool 3-4 times
+- Each tool call = one recommendation with its image
+- DO NOT write lists with markdown like "1. Event name ![](url)"
+- DO NOT include image URLs in your text response
+- Your "response" field should ONLY have a brief intro like "Check these out:" or "Here's what's happening:"
+- Then call the tool multiple times for each recommendation
+- Each recommendation should be 1-2 sentences max in the tool's "message" field
+- Include WHY it's a good fit in 5-10 words
+- Example format:
+  * response: "Here are some cool parties:"
+  * Tool call 1: send_recommendation_with_image(message: "Soria party at Villa Crespo Oct 24, 10:38 PM. DJ techno set, perfect for a fun night 🎶", image_url: "https://...", recommendation_type: "event")
+  * Tool call 2: send_recommendation_with_image(message: "Live Girl Pop Band at San Telmo Oct 22, 8:32 PM. 2000s hits, great for a lively night 🎤", image_url: "https://...", recommendation_type: "event")
+  * Tool call 3: send_recommendation_with_image(...)
 ` : `
 🎨 WEBSITE CHAT MODE - CONVERSATIONAL BUT CONCISE:
 - Keep it SHORT (max 2-3 sentences per response unless they specifically ask for more details)
@@ -312,13 +309,14 @@ ${realData.businessProfiles.length > 0 ? realData.businessProfiles.map(b => `- "
 
     console.log('🤖 Calling OpenAI with comprehensive data context...');
 
-    // Prepare messages with conversation history
+    // Prepare messages - only keep last 2 user messages for speed
+    const recentMessages = conversationHistory && conversationHistory.length > 2
+      ? conversationHistory.slice(-2)
+      : conversationHistory || [];
+    
     const messages = [
       { role: 'system', content: systemPrompt },
-      ...(conversationHistory && conversationHistory.length > 1 
-        ? conversationHistory.slice(1, -1) // Exclude initial greeting and current message
-        : []
-      ),
+      ...recentMessages,
       { role: 'user', content: message }
     ];
 
@@ -358,14 +356,14 @@ ${realData.businessProfiles.length > 0 ? realData.businessProfiles.map(b => `- "
     const requestBody: any = {
       model: 'gpt-4o-mini',
       messages: messages,
-      max_tokens: 500, // Increased to prevent truncation of URLs and responses
-      temperature: 0.9
+      max_tokens: 300, // Reduced for speed
+      temperature: 0.7 // Reduced for faster, more focused responses
     };
 
     // Add tools for WhatsApp to enable image sending
     if (isWhatsApp) {
       requestBody.tools = tools;
-      requestBody.tool_choice = "auto"; // Let AI decide when to use the tool
+      requestBody.tool_choice = "required"; // FORCE AI to use the tool - never send markdown images
       requestBody.parallel_tool_calls = true; // Enable calling the tool multiple times for multiple recommendations
     }
 
