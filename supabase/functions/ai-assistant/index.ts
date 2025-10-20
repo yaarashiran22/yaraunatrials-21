@@ -91,13 +91,13 @@ serve(async (req) => {
       }
     }] : undefined;
 
-    // Call OpenAI
-    console.log('🤖 Calling OpenAI with GPT-5 Mini...');
+    // Call OpenAI - using 4o-mini for better tool calling reliability
+    console.log('🤖 Calling OpenAI with GPT-4o-mini...');
     const requestBody: any = {
-      model: 'gpt-5-mini-2025-08-07',
+      model: 'gpt-4o-mini',
       messages,
-      max_completion_tokens: 500 // GPT-5 uses max_completion_tokens, not max_tokens
-      // Note: GPT-5 does not support temperature parameter
+      max_tokens: 500,
+      temperature: 0.7
     };
 
     if (isWhatsApp && tools) {
