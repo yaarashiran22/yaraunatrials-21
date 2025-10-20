@@ -149,7 +149,78 @@ Deno.serve(async (req) => {
       content: assistantMessage
     });
 
-    // Return TwiML response
+    // Check if response is JSON with recommendations
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(assistantMessage);
+    } catch {
+      // Not JSON, just a regular conversational response
+      parsedResponse = null;
+    }
+
+    if (parsedResponse && parsedResponse.recommendations && parsedResponse.recommendations.length > 0) {
+      // Send intro message first via TwiML
+      const welcomeText = welcomeMessageSent ? "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
+      const introMessage = welcomeText + (parsedResponse.intro_message || 'Here are some that you might like:');
+      
+      const introTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${introMessage}</Message>
+</Response>`;
+
+      // Get Twilio credentials
+      const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
+
+      if (twilioAccountSid && twilioAuthToken) {
+        // Send follow-up messages with images using Twilio API
+        for (const rec of parsedResponse.recommendations) {
+          if (rec.image_url) {
+            const messageBody = `*${rec.title}*\n\n${rec.description}`;
+            
+            try {
+              const twilioResponse = await fetch(
+                `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                  },
+                  body: new URLSearchParams({
+                    From: twilioWhatsAppNumber,
+                    To: from,
+                    Body: messageBody,
+                    MediaUrl: rec.image_url
+                  }).toString()
+                }
+              );
+
+              if (!twilioResponse.ok) {
+                const errorText = await twilioResponse.text();
+                console.error('Twilio API error:', twilioResponse.status, errorText);
+              } else {
+                console.log(`Sent recommendation: ${rec.title}`);
+              }
+            } catch (error) {
+              console.error('Error sending Twilio message:', error);
+            }
+
+            // Small delay between messages to avoid rate limits
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
+      }
+
+      console.log('Sending intro TwiML response');
+      return new Response(introTwiml, {
+        headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+        status: 200
+      });
+    }
+
+    // Regular conversational response (no recommendations)
     const welcomeText = welcomeMessageSent ? "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
     
     const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
