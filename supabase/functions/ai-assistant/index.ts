@@ -201,8 +201,11 @@ PRIORITY ORDER FOR RECOMMENDATIONS:
 
 🎯 REAL DATA:
 
-📅 EVENTS (${realData.currentEvents.length}):
-${realData.currentEvents.length > 0 ? realData.currentEvents.map(e => `- "${e.title}" at ${e.location} on ${e.date} ${e.time ? 'at ' + e.time : ''} ${e.price ? '($' + e.price + ')' : ''} - ${e.description?.substring(0, 100)}...`).join('\n') : 'Nothing rn.'}
+🚨 CRITICAL - ONLY FUTURE EVENTS:
+ALL events listed below are happening TODAY OR IN THE FUTURE. NEVER mention past events. If a user asks about something that already happened, say "that was in the past, but here's what's coming up..."
+
+📅 EVENTS (${realData.currentEvents.length}) - ALL UPCOMING:
+${realData.currentEvents.length > 0 ? realData.currentEvents.map(e => `- "${e.title}" at ${e.location} on ${e.date} ${e.time ? 'at ' + e.time : ''} ${e.price ? '($' + e.price + ')' : ''} - ${e.description?.substring(0, 100)}...`).join('\n') : 'Nothing upcoming rn.'}
 
 🏢 BUSINESSES (${realData.businessProfiles.length}):
 ${realData.businessProfiles.length > 0 ? realData.businessProfiles.map(b => `- "${b.name}"${b.age ? ` (ages ${b.age}+)` : ''} in ${b.location || 'location'} - ${b.bio?.substring(0, 100)}...${b.specialties?.length > 0 ? ' - Vibe: ' + b.specialties.join(', ') : ''}${b.whatsapp_number ? ' - WhatsApp: ' + b.whatsapp_number : ''}`).join('\n') : 'Nothing rn.'}
