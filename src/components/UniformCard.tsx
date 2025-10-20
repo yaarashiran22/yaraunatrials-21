@@ -175,9 +175,6 @@ const UniformCard = ({
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-white drop-shadow-md group-hover/profile:text-white transition-colors duration-300">by {uploader.name}</span>
-                  {uploader.location && (
-                    <span className="text-[10px] text-white/70 group-hover/profile:text-white/90 transition-colors duration-300">{uploader.location}</span>
-                  )}
                 </div>
               </div>
             )}
