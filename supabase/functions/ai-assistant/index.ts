@@ -258,18 +258,37 @@ DO NOT add anything more.
 
   // User profile personalization
   if (userProfile) {
+    const interests = userProfile.interests?.join(', ') || 'None specified';
+    const location = userProfile.location || 'Unknown';
+    const age = userProfile.age || 'Unknown';
+    const name = userProfile.name || 'Unknown';
+    
     prompt += `👤 USER PROFILE:
-- Name: ${userProfile.name || 'Unknown'}
-- Location: ${userProfile.location || 'Unknown'}
-- Age: ${userProfile.age || 'Unknown'}
-- Interests: ${userProfile.interests?.join(', ') || 'None specified'}
+- Name: ${name}
+- Location: ${location}
+- Age: ${age}
+- Interests: ${interests}
 
 🎯 PERSONALIZATION RULES:
-${userProfile.location ? `- ONLY recommend things in/near ${userProfile.location}` : '- Ask their neighborhood'}
-${userProfile.interests?.length > 0 ? `- Match their interests: ${userProfile.interests.join(', ')}` : '- Ask what they're into'}
-${userProfile.age ? `- Filter by age appropriateness (they're ${userProfile.age})` : ''}
-
 `;
+    
+    if (userProfile.location) {
+      prompt += `- ONLY recommend things in/near ${location}\n`;
+    } else {
+      prompt += `- Ask their neighborhood\n`;
+    }
+    
+    if (userProfile.interests?.length > 0) {
+      prompt += `- Match their interests: ${interests}\n`;
+    } else {
+      prompt += `- Ask what they're into\n`;
+    }
+    
+    if (userProfile.age) {
+      prompt += `- Filter by age appropriateness (they're ${age})\n`;
+    }
+    
+    prompt += '\n';
   } else {
     prompt += `❓ NO PROFILE:
 - Ask: "Which neighborhood? What are you into?"
