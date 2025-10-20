@@ -164,21 +164,23 @@ DO NOT ask for their name or age - focus on location and interests only.
 🎯 YOUR VIBE:
 ${isWhatsApp ? `
 🚨 WHATSAPP MODE - CRITICAL RULES:
-- 🚨 MANDATORY: Your "response" field MUST NEVER be empty - ALWAYS provide a brief intro text
-- Examples of good intros: "Here's what's happening:", "Check these out:", "Found some great spots for you:"
-- When recommending events/businesses, ALWAYS use send_recommendation_with_image() tool
-- Give 3-4 recommendations by calling the tool 3-4 times
-- DO NOT write markdown images or lists - only use the tool for recommendations
-- DO NOT include image URLs in your text response
+- 🚨 MANDATORY: Your "response" field MUST provide a brief intro text (e.g., "Here's what I found:")
+- When recommending events/businesses, MUST use send_recommendation_with_image() tool
+- 🚨 CRITICAL: Call send_recommendation_with_image() MULTIPLE times (3-5 separate calls) - one per recommendation
+- Each call sends ONE separate message with ONE image
+- DO NOT write markdown, lists, or image URLs in your text response
 - Structure:
-  1. FIRST: Always provide intro text in "response" field (REQUIRED - never leave empty)
-  2. THEN: Call send_recommendation_with_image() multiple times (3-4 times)
-- Each tool message should be 1-2 sentences with a 5-10 word personalization note
-- Example format:
-  * response: "Here are some cool parties:" (REQUIRED)
-  * Tool call 1: send_recommendation_with_image(message: "Soria party at Villa Crespo Oct 24, 10:38 PM. DJ techno set, perfect for a fun night 🎶", image_url: "https://...", recommendation_type: "event")
-  * Tool call 2: send_recommendation_with_image(message: "Live Girl Pop Band at San Telmo Oct 22, 8:32 PM. 2000s hits, great for a lively night 🎤", image_url: "https://...", recommendation_type: "event")
-  * Tool call 3: send_recommendation_with_image(...)
+  1. Set "response": "Here's what I found:" (brief intro)
+  2. Call send_recommendation_with_image() for event 1
+  3. Call send_recommendation_with_image() for event 2
+  4. Call send_recommendation_with_image() for event 3
+  5. Etc. (3-5 total calls)
+- Each message: 1-2 sentences + personalization (5-10 words)
+- Example:
+  * response: "Check these out:"
+  * Call 1: send_recommendation_with_image(message: "Soria anniversary party at Villa Crespo on Oct 24, 10:38 PM. DJ techno set 🎶", image_url: "https://...", recommendation_type: "event")
+  * Call 2: send_recommendation_with_image(message: "Live Girl Pop Band at San Telmo on Oct 22, 8:32 PM. 2000s hits 🎤", image_url: "https://...", recommendation_type: "event")
+  * Call 3: send_recommendation_with_image(message: "Jazz open mic at Darsena on Oct 23. Chill vibes 🎷", image_url: "https://...", recommendation_type: "event")
 ` : `
 🎨 WEBSITE CHAT MODE - CONVERSATIONAL BUT CONCISE:
 - Keep it SHORT (max 2-3 sentences per response unless they specifically ask for more details)
@@ -322,27 +324,27 @@ ${realData.businessProfiles.length > 0 ? realData.businessProfiles.map(b => `- "
 
     console.log('🤖 Calling OpenAI with conversation context...');
 
-    // Define tools for structured recommendations with images
+    // Define tools for structured recommendations with images (WhatsApp only)
     const tools = isWhatsApp ? [
       {
         type: "function",
         function: {
           name: "send_recommendation_with_image",
-          description: "Send a single recommendation with an image. Call this function MULTIPLE times (3-4 times) to send multiple recommendations, each with their own image.",
+          description: "Send a single recommendation with an image. Call this function MULTIPLE times (3-5 times) to send multiple recommendations, each as a separate message with their own image.",
           parameters: {
             type: "object",
             properties: {
               message: {
                 type: "string",
-                description: "The text message for this ONE recommendation (1-2 sentences max)"
+                description: "The text message for this ONE recommendation (1-2 sentences max with personalization)"
               },
               image_url: {
                 type: "string",
-                description: "The URL of the image to send with this recommendation (event image, business profile picture, or coupon image). If no image available, use empty string."
+                description: "The URL of the image to send with this recommendation (from events or businesses data)"
               },
               recommendation_type: {
                 type: "string",
-                enum: ["event", "business", "coupon"],
+                enum: ["event", "business"],
                 description: "Type of this recommendation"
               }
             },
