@@ -116,28 +116,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Call the AI assistant function with history and profile
-    const { data: aiResponse, error: aiError } = await supabase.functions.invoke('ai-assistant', {
-      body: { 
-        message: body,
-        userLocation: profile?.location || null,
-        conversationHistory: conversationHistory,
-        userProfile: profile || null,
-        isWhatsApp: true  // Enable ultra-short WhatsApp mode
-      }
-    });
-
-    if (aiError) {
-      console.error('AI assistant error:', aiError);
-      throw aiError;
-    }
-
-    const assistantMessage = aiResponse?.response || 'Sorry, I encountered an error processing your request.';
-    const imageUrl = aiResponse?.image_url; // Check if AI included an image
-    console.log('AI response:', assistantMessage);
-    if (imageUrl) {
-      console.log('📸 Image URL to send:', imageUrl);
-    }
+    // AI assistant temporarily disabled
+    const assistantMessage = "Sorry, AI assistant is temporarily unavailable. Please check back soon!";
+    console.log('Sending fallback message');
 
     // Store assistant response
     await supabase.from('whatsapp_conversations').insert({
@@ -146,26 +127,13 @@ Deno.serve(async (req) => {
       content: assistantMessage
     });
 
-    // Return TwiML response with optional media
-    let twimlResponse: string;
+    // Return TwiML response
     const welcomeText = welcomeMessageSent ? "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
     
-    if (imageUrl) {
-      // Send message with image
-      twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>
-    <Body>${welcomeText}${assistantMessage}</Body>
-    <Media>${imageUrl}</Media>
-  </Message>
-</Response>`;
-    } else {
-      // Send text-only message
-      twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+    const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>${welcomeText}${assistantMessage}</Message>
 </Response>`;
-    }
 
     console.log('Sending TwiML response');
     
