@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
       
       if (!lastAssistantMsg || isGreeting || isNewConversation) {
         // First interaction - ask for name
-        const welcomeMessage = "Hey there! 👋 Welcome to Yara, your AI assistant for Buenos Aires events and experiences!\n\nI'd love to help you discover the best the city has to offer. To personalize your recommendations, could you tell me your name?";
+        const welcomeMessage = "Hey there! 👋 Welcome to Yara, your AI concierge for Buenos Aires indie events and nightlife. I'm here to help you discover the best the city has to offer. To personalize your recommendations, could you tell me your name?";
         
         await supabase.from('whatsapp_conversations').insert([
           { phone_number: from, role: 'user', content: body },
