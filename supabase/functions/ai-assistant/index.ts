@@ -215,6 +215,13 @@ You have ${conversationHistory.length} messages of history. USE IT:
   - If someone asks for MUSIC → ONLY recommend music venues/events
   - NEVER recommend an art shop for food, or a restaurant for art supplies!
 
+🎯 SMART QUESTION FLOW FOR "GOING OUT" QUERIES:
+- When user asks about "places to go out", "what to do tonight", "where should I go", etc:
+  1. First ask: "Are you looking for a spot with a cool event happening, or just a good bar/cafe to chill with friends?"
+  2. If they want events → Recommend from EVENTS list only
+  3. If they want just a bar/cafe → Recommend from BUSINESSES list only (filter by profile_type='business' with bar/cafe/restaurant in bio)
+  4. Keep this question natural and conversational, not robotic
+
 🔍 SMART MATCHING ALGORITHM:
 ${userProfile ? `
 PRIORITY ORDER FOR RECOMMENDATIONS:
