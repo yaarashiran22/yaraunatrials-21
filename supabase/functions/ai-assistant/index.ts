@@ -96,14 +96,14 @@ serve(async (req) => {
     const requestBody: any = {
       model: 'gpt-4o-mini',
       messages,
-      max_tokens: 300,
+      max_tokens: 500, // Increased for tool calls
       temperature: 0.7
     };
 
     if (isWhatsApp && tools) {
       requestBody.tools = tools;
-      requestBody.tool_choice = "auto";
       requestBody.parallel_tool_calls = true;
+      console.log('📱 WhatsApp mode: Tools enabled, parallel calls allowed');
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -141,9 +141,15 @@ serve(async (req) => {
       );
     }
 
+    console.log('🔍 Response analysis:', {
+      hasContent: !!assistantMessage.content,
+      hasToolCalls: !!assistantMessage.tool_calls,
+      toolCallsCount: assistantMessage.tool_calls?.length || 0
+    });
+
     // Handle tool calls (recommendations with images)
     if (assistantMessage.tool_calls?.length > 0) {
-      console.log(`📸 Sending ${assistantMessage.tool_calls.length} recommendations`);
+      console.log(`📸 Processing ${assistantMessage.tool_calls.length} tool calls for recommendations`);
       
       const recommendations = assistantMessage.tool_calls
         .filter(tc => tc.function.name === 'send_recommendation_with_image')
@@ -245,13 +251,22 @@ DO NOT add anything more.
 
   // WhatsApp mode
   if (isWhatsApp) {
-    prompt += `📱 WHATSAPP MODE:
-- When recommending things: Use send_recommendation_with_image() tool
-- Call it 3-5 times (once per recommendation)
-- Set "response" to brief intro like "Check these out:"
-- Each tool call = ONE separate message with ONE image
-- Format each message: "[Event/Place] at [Location] on [Date/Time]. [Brief description] [Personalization]"
-- DO NOT write markdown or image URLs in text
+    prompt += `📱 WHATSAPP MODE - CRITICAL TOOL CALLING INSTRUCTIONS:
+🚨 YOU MUST USE THE send_recommendation_with_image TOOL - DO NOT WRITE IT AS TEXT!
+
+When recommending events/businesses:
+1. Set your "response" text to a brief intro (e.g., "Check these out:")
+2. CALL the send_recommendation_with_image() tool 3-5 times (once per recommendation)
+3. DO NOT write "send_recommendation_with_image(...)" as text in your response
+4. Each tool call sends ONE separate WhatsApp message with ONE image
+
+CORRECT EXAMPLE (what you should do):
+- Text response: "Here are some cool spots:"
+- Tool call 1: { function_name: "send_recommendation_with_image", arguments: { message: "Event 1...", image_url: "https://...", recommendation_type: "event" } }
+- Tool call 2: { function_name: "send_recommendation_with_image", arguments: { message: "Event 2...", image_url: "https://...", recommendation_type: "event" } }
+
+WRONG (do NOT do this):
+- Text response: "Check these out: send_recommendation_with_image(...)"
 
 `;
   }
