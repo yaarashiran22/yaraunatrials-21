@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, stream = true } = await req.json();
+    const { messages, stream = true, userProfile = null } = await req.json();
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     
     if (!openAIApiKey) {
@@ -74,10 +74,26 @@ serve(async (req) => {
       }))
     };
 
+    // Build user context for personalization
+    let userContext = '';
+    if (userProfile) {
+      const parts = [];
+      if (userProfile.name) parts.push(`Name: ${userProfile.name}`);
+      if (userProfile.age) parts.push(`Age: ${userProfile.age}`);
+      if (userProfile.budget_preference) parts.push(`Budget: ${userProfile.budget_preference}`);
+      if (userProfile.favorite_neighborhoods?.length) parts.push(`Neighborhoods: ${userProfile.favorite_neighborhoods.join(', ')}`);
+      if (userProfile.interests?.length) parts.push(`Interests: ${userProfile.interests.join(', ')}`);
+      if (userProfile.recommendation_count !== undefined) parts.push(`Recommendations given: ${userProfile.recommendation_count}`);
+      
+      if (parts.length > 0) {
+        userContext = `\n\nUser Profile:\n${parts.join('\n')}`;
+      }
+    }
+
     const systemPrompt = `You are Yara, a friendly AI assistant for Buenos Aires events and experiences.
 
 Available data:
-${JSON.stringify(contextData, null, 2)}
+${JSON.stringify(contextData, null, 2)}${userContext}
 
 CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 
@@ -88,6 +104,13 @@ Respond with PLAIN TEXT ONLY. Be warm and conversational.
 - Be contextually aware - if they're asking about "these events" or "the recommendations", they're referring to what you previously suggested
 - **IMPORTANT**: If user asks VERY GENERAL questions about things to do in the city (like "what's happening?", "what should I do?", "any events tonight?") WITHOUT any specific preferences, ask them clarifying questions to personalize recommendations
 - Only ask 2-3 questions at a time to keep it conversational
+
+PROGRESSIVE PROFILING (Build profile gradually):
+- After the FIRST recommendation (recommendation_count = 0), ask for their name: "By the way, what should I call you?"
+- After 2-3 recommendations, if missing, ask about age and budget preferences naturally
+- After 4-5 recommendations, ask about favorite neighborhoods and interests
+- Save responses by updating the conversation - the backend will extract and save profile data
+
 Example conversational responses: 
   - "Hey! I'm Yara. What kind of events are you looking for?"
   - "Most of those events are popular with people in their 20s and 30s, though all ages are welcome!"
@@ -99,6 +122,8 @@ SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, et
 DO NOT ask clarifying questions. DO NOT respond with conversational text.
 Respond with ONLY A JSON OBJECT. NO TEXT BEFORE OR AFTER. NO MARKDOWN.
 NO \`\`\`json wrapper. JUST THE RAW JSON OBJECT.
+
+USE USER PROFILE DATA to filter and personalize recommendations when available.
 
 The JSON structure MUST be exactly this:
 {
@@ -122,6 +147,7 @@ RULES FOR RECOMMENDATIONS:
 - NO extra text, NO markdown, NO explanations
 - Return ONLY the JSON object
 - Match the user's request (if they ask for "dance events", filter for dance/music events)
+- Use user profile preferences (budget, neighborhoods, interests) to personalize results
 
 IMPORTANT: If user asks "I'm looking for dance events" or "show me bars" or any specific category - RESPOND WITH JSON, NOT CONVERSATIONAL TEXT.`;
 

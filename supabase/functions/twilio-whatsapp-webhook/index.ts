@@ -57,14 +57,30 @@ Deno.serve(async (req) => {
     const isGreeting = greetingPatterns.test(body.trim());
     const isConversationStarter = conversationStarterPatterns.test(body.trim());
 
-    // Try to find user profile by WhatsApp number
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('name, age, location, interests, bio')
-      .eq('whatsapp_number', from)
+    // Get or create WhatsApp user profile
+    let { data: whatsappUser } = await supabase
+      .from('whatsapp_users')
+      .select('*')
+      .eq('phone_number', from)
       .maybeSingle();
 
-    console.log('User profile:', profile ? `Found profile for ${profile.name}` : 'No profile found');
+    // Create new user if doesn't exist
+    if (!whatsappUser) {
+      console.log('Creating new WhatsApp user for', from);
+      const { data: newUser, error: createError } = await supabase
+        .from('whatsapp_users')
+        .insert({ phone_number: from })
+        .select()
+        .single();
+      
+      if (createError) {
+        console.error('Error creating WhatsApp user:', createError);
+      } else {
+        whatsappUser = newUser;
+      }
+    }
+
+    console.log('WhatsApp user:', whatsappUser ? `Found user ${whatsappUser.name || 'unnamed'}` : 'No user found');
 
     // If it's a greeting/conversation starter AND a new conversation, OR it's a conversation starter regardless of history, send welcome
     const shouldSendWelcome = (isGreeting && isNewConversation) || isConversationStarter;
@@ -123,9 +139,13 @@ Deno.serve(async (req) => {
     }));
     messages.push({ role: 'user', content: body });
 
-    // Call Yara AI chat function (non-streaming for WhatsApp)
+    // Call Yara AI chat function with user profile context
     const { data: aiResponse, error: aiError } = await supabase.functions.invoke('yara-ai-chat', {
-      body: { messages, stream: false }
+      body: { 
+        messages, 
+        stream: false,
+        userProfile: whatsappUser // Pass user profile to AI
+      }
     });
 
     if (aiError) {
@@ -166,6 +186,14 @@ Deno.serve(async (req) => {
     // Handle recommendations with images
     if (parsedResponse && parsedResponse.recommendations && Array.isArray(parsedResponse.recommendations) && parsedResponse.recommendations.length > 0) {
       console.log(`Found ${parsedResponse.recommendations.length} recommendations to send`);
+      
+      // Increment recommendation count for progressive profiling
+      if (whatsappUser) {
+        await supabase
+          .from('whatsapp_users')
+          .update({ recommendation_count: (whatsappUser.recommendation_count || 0) + 1 })
+          .eq('id', whatsappUser.id);
+      }
       
       // Store the assistant message
       await supabase.from('whatsapp_conversations').insert({

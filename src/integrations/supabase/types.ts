@@ -651,6 +651,45 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_users: {
+        Row: {
+          age: number | null
+          budget_preference: string | null
+          created_at: string
+          favorite_neighborhoods: string[] | null
+          id: string
+          interests: string[] | null
+          name: string | null
+          phone_number: string
+          recommendation_count: number
+          updated_at: string
+        }
+        Insert: {
+          age?: number | null
+          budget_preference?: string | null
+          created_at?: string
+          favorite_neighborhoods?: string[] | null
+          id?: string
+          interests?: string[] | null
+          name?: string | null
+          phone_number: string
+          recommendation_count?: number
+          updated_at?: string
+        }
+        Update: {
+          age?: number | null
+          budget_preference?: string | null
+          created_at?: string
+          favorite_neighborhoods?: string[] | null
+          id?: string
+          interests?: string[] | null
+          name?: string | null
+          phone_number?: string
+          recommendation_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
