@@ -51,6 +51,12 @@ Deno.serve(async (req) => {
     const isNewConversation = conversationHistory.length === 0;
     console.log(`Found ${conversationHistory.length} messages in last 7 minutes for ${from}. Is new conversation: ${isNewConversation}`);
 
+    // Check if message is a greeting OR a conversation starter
+    const greetingPatterns = /^(hey|hi|hello|sup|yo|hola|what's up|whats up)[\s!?.]*$/i;
+    const conversationStarterPatterns = /^(i'm looking for|i want|show me|find me|i need|looking for|what's|whats|tell me about|i'm into|im into|help me find)/i;
+    const isGreeting = greetingPatterns.test(body.trim());
+    const isConversationStarter = conversationStarterPatterns.test(body.trim());
+
     // Try to find user profile by WhatsApp number
     const { data: profile } = await supabase
       .from('profiles')
@@ -60,12 +66,55 @@ Deno.serve(async (req) => {
 
     console.log('User profile:', profile ? `Found profile for ${profile.name}` : 'No profile found');
 
-    // Store user message
-    await supabase.from('whatsapp_conversations').insert({
-      phone_number: from,
-      role: 'user',
-      content: body
-    });
+    // If it's a greeting/conversation starter AND a new conversation, OR it's a conversation starter regardless of history, send welcome
+    const shouldSendWelcome = (isGreeting && isNewConversation) || isConversationStarter;
+    
+    let welcomeMessageSent = false;
+    if (shouldSendWelcome) {
+      console.log('Sending welcome message - new conversation or conversation starter detected');
+      
+      const welcomeMessage = "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?";
+      
+      // Store welcome response
+      await supabase.from('whatsapp_conversations').insert({
+        phone_number: from,
+        role: 'assistant',
+        content: welcomeMessage
+      });
+
+      welcomeMessageSent = true;
+      
+      // For conversation starters, continue to AI processing
+      // For greetings only, return welcome and wait for next message
+      if (isGreeting && !isConversationStarter) {
+        // Store user message
+        await supabase.from('whatsapp_conversations').insert({
+          phone_number: from,
+          role: 'user',
+          content: body
+        });
+
+        // Return TwiML response with just welcome
+        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${welcomeMessage}</Message>
+</Response>`;
+
+        return new Response(twimlResponse, {
+          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+          status: 200
+        });
+      }
+    }
+
+    // Store user message (if not already stored)
+    if (!welcomeMessageSent || !isGreeting) {
+      await supabase.from('whatsapp_conversations').insert({
+        phone_number: from,
+        role: 'user',
+        content: body
+      });
+    }
 
     // Call the AI assistant function with history and profile
     const { data: aiResponse, error: aiError } = await supabase.functions.invoke('ai-assistant', {
@@ -76,6 +125,7 @@ Deno.serve(async (req) => {
         userProfile: profile || null,
         isWhatsApp: true  // Enable ultra-short WhatsApp mode
       }
+
     });
 
     if (aiError) {
@@ -83,61 +133,12 @@ Deno.serve(async (req) => {
       throw aiError;
     }
 
-    console.log('AI response received:', JSON.stringify(aiResponse));
-
-    // Check if we have recommendations with images
-    if (aiResponse?.recommendations && Array.isArray(aiResponse.recommendations) && aiResponse.recommendations.length > 0) {
-      console.log(`📸 AI wants to send ${aiResponse.recommendations.length} recommendations with images`);
-      
-      // Build TwiML response with recommendations
-      let twimlMessages = '';
-      
-      // Add text response if there is one
-      if (aiResponse.response && aiResponse.response.trim()) {
-        twimlMessages += `<Message>${aiResponse.response}</Message>\n`;
-        
-        // Store the text response
-        await supabase.from('whatsapp_conversations').insert({
-          phone_number: from,
-          role: 'assistant',
-          content: aiResponse.response
-        });
-      }
-      
-      // Add each recommendation as a separate message with image
-      for (const rec of aiResponse.recommendations) {
-        if (rec.image_url && rec.image_url.trim() !== '') {
-          twimlMessages += `<Message>
-  <Body>${rec.message}</Body>
-  <Media>${rec.image_url}</Media>
-</Message>\n`;
-        } else {
-          twimlMessages += `<Message>${rec.message}</Message>\n`;
-        }
-        
-        // Store each recommendation in conversation history
-        await supabase.from('whatsapp_conversations').insert({
-          phone_number: from,
-          role: 'assistant',
-          content: rec.message
-        });
-      }
-      
-      const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-${twimlMessages}</Response>`;
-
-      console.log('Sending TwiML response with recommendations');
-      
-      return new Response(twimlResponse, {
-        headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
-        status: 200
-      });
-    }
-
-    // Single message responses (no recommendations)
     const assistantMessage = aiResponse?.response || 'Sorry, I encountered an error processing your request.';
-    console.log('Single message response:', assistantMessage);
+    const imageUrl = aiResponse?.image_url; // Check if AI included an image
+    console.log('AI response:', assistantMessage);
+    if (imageUrl) {
+      console.log('📸 Image URL to send:', imageUrl);
+    }
 
     // Store assistant response
     await supabase.from('whatsapp_conversations').insert({
@@ -146,11 +147,26 @@ ${twimlMessages}</Response>`;
       content: assistantMessage
     });
 
-    // Return TwiML response
-    const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+    // Return TwiML response with optional media
+    let twimlResponse: string;
+    const welcomeText = welcomeMessageSent ? "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
+    
+    if (imageUrl) {
+      // Send message with image
+      twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>${assistantMessage}</Message>
+  <Message>
+    <Body>${welcomeText}${assistantMessage}</Body>
+    <Media>${imageUrl}</Media>
+  </Message>
 </Response>`;
+    } else {
+      // Send text-only message
+      twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${welcomeText}${assistantMessage}</Message>
+</Response>`;
+    }
 
     console.log('Sending TwiML response');
     
