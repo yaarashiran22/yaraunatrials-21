@@ -17,7 +17,7 @@ serve(async (req) => {
 
   try {
     const { message, userLocation, conversationHistory, userProfile, isWhatsApp } = await req.json();
-    console.log('AI Assistant v10.0 - Super Intelligent - Processing:', { message, userLocation, historyLength: conversationHistory?.length, hasUserProfile: !!userProfile, isWhatsApp });
+    console.log('AI Assistant v9.0 - Conversational & Context-Aware - Processing:', { message, userLocation, historyLength: conversationHistory?.length, hasUserProfile: !!userProfile, isWhatsApp });
     
     // Get OpenAI API key
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -33,7 +33,7 @@ serve(async (req) => {
       );
     }
     
-    console.log('✅ OpenAI key found! Fetching comprehensive data from TheUnaHub...');
+    console.log('✅ API key found! Fetching comprehensive data from TheUnaHub...');
 
     // Initialize Supabase client
     const supabase = createClient(
@@ -238,34 +238,7 @@ send_recommendation_with_image(
   recommendation_type: "event"
 )
 
-💬 **CONVERSATION INTELLIGENCE - BE SMART ABOUT USER INTENT**:
-
-🚨 **CRITICAL: INTELLIGENT INTENT RECOGNITION** 🚨
-You MUST understand what users want from natural language. DO NOT ask "what are you looking for?" when it's obvious:
-
-**Event Request Keywords** → Send 2-4 events immediately with images:
-- Words: "show", "concert", "party", "event", "tonight", "this week", "weekend", "live", "music", "gig", "happening", "going on", "do", "see"
-- Phrases: "what's on", "what should i do", "things to do", "places to go", "where should i go", "recommendations", "suggest something"
-- Examples: "show me events" → Send events | "what's happening tonight?" → Send events | "what should i do this weekend?" → Send events
-
-**Business/Venue Request Keywords** → Send businesses with WhatsApp:
-- Words: "cafe", "bar", "restaurant", "shop", "place to eat", "place to drink", "venue", "spot"
-- Examples: "good bars?" → Send businesses | "coffee shops nearby?" → Send businesses
-
-**Coupon Request Keywords** → Send deals:
-- Words: "deal", "discount", "coupon", "promo", "offer", "save money"
-- Examples: "any deals?" → Send coupons
-
-🎯 **WHEN USER'S INTENT IS CLEAR - RECOMMEND IMMEDIATELY**:
-- DON'T ask clarifying questions if you can make good recommendations
-- If they say "events", send 2-4 events right away
-- If they say "jazz events", filter by jazz and send 2-4 jazz events
-- Only ask questions if you truly can't help without more info
-
-**Direct Event Requests**: "show me events", "what's happening", "any parties", "events this week", "what should i do"
-→ IMMEDIATELY send 2-4 event recommendations using send_recommendation_with_image() for EACH event
-→ Each recommendation = separate tool call = separate WhatsApp message with image
-→ Include in each: personalized intro + venue size + age range + price + location + time
+💬 **CONVERSATION TYPES - UNDERSTAND CONTEXT**:
 
 **Farewells & Thank Yous**: "goodnight", "bye", "thanks", "thank you"
 → Respond warmly and naturally, close the conversation
@@ -284,28 +257,25 @@ You MUST understand what users want from natural language. DO NOT ask "what are 
 → They're acknowledging, not requesting - respond naturally
 → "Right? It's gonna be good!" / "Let me know if you want more options"
 
-**🚨 "ANYTHING ELSE?" / "ANY OTHER ONES?" / "OTHER EVENTS?" / "MORE?" / "WHAT ELSE?" / "SHOW ME MORE"**: CRITICAL!
-→ User wants MORE similar event recommendations
-→ 🚨 YOU MUST CALL send_recommendation_with_image() MULTIPLE TIMES - ONCE FOR EACH EVENT:
-  1. Understand what they originally wanted (vibe, music type, etc.)
-  2. Check "ALREADY SENT" section - don't repeat those
-  3. Find 2-4 DIFFERENT events matching their preferences and age
-  4. 🚨 CRITICAL: Make SEPARATE send_recommendation_with_image() calls for EACH event (this sends multiple WhatsApp messages)
-  5. Each message includes: personalized intro + venue + age + price + location + time
-→ Example for "show me more jazz events":
-  - Tool call 1: send_recommendation_with_image(message: "Perfect! Here's Jazz Night at Café X...", image_url: "...", type: "event")
-  - Tool call 2: send_recommendation_with_image(message: "Also check out Live Jazz at Bar Y...", image_url: "...", type: "event")  
-  - Tool call 3: send_recommendation_with_image(message: "Great! Jazz Brunch at Z...", image_url: "...", type: "event")
+**🚨 "ANYTHING ELSE?" / "IS THERE ANYTHING ELSE?" / "MORE?" / "WHAT ELSE?"**: CRITICAL!
+→ User wants MORE event recommendations - NOT the same ones
+→ YOU MUST:
+  1. Look at the events you already sent (listed in "ALREADY SENT" section above)
+  2. Find DIFFERENT events from the available events list that match user's age range
+  3. Use send_recommendation_with_image() tool for EACH new event
+  4. Send 2-3 NEW events (different titles, locations) with their images
+  5. Include venue details: venue size, target audience age, price range
+  6. NEVER repeat events from "ALREADY SENT" list
+→ Example: "Art Gallery Opening at Palermo (intimate 30-person space, ages 25-40, $10) 🎨 [IMAGE]"
 
 **New Requests**: "any parties?", "what about coffee shops?", "show me more"
 → They want a new recommendation
-→ Ask clarifying questions ONLY if you truly need more info
+→ Ask clarifying questions if needed (neighborhood, vibe)
 → Then recommend with the image tool
 
 **Small Talk / Questions**: "how are you?", "what can you do?"
 → Answer naturally and helpfully
 → Keep it conversational
-
 
 🎯 **YOUR STYLE**:
 - Max 2-3 sentences for recommendations (this is WhatsApp!)
@@ -470,13 +440,13 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
       }
     ] : undefined;
 
-    // Make OpenAI API call with comprehensive context (using gpt-4o for better intelligence)
+    // Make OpenAI API call with comprehensive context
     const requestBody: any = {
-      model: 'gpt-4o',  // Better model for intelligent understanding
+      model: 'gpt-4o-mini',
       messages: messages,
-      // Increased max_tokens to ensure multiple tool calls are generated fully
-      max_tokens: isWhatsApp ? 1200 : (isFirstMessage ? 200 : (isGreeting ? 150 : 120)),
-      temperature: 0.5  // Lower temperature for better instruction following
+      // Increased max_tokens significantly to prevent truncation of tool call arguments with long URLs
+      max_tokens: isWhatsApp ? 500 : (isFirstMessage ? 180 : (isGreeting ? 150 : 100)),
+      temperature: 0.9
     };
 
     // Add tools for WhatsApp to enable image sending
