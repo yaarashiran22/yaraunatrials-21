@@ -644,6 +644,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_past_events: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       generate_coupon_code: {
         Args: Record<PropertyKey, never>
         Returns: string
