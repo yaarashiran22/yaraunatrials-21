@@ -13,6 +13,17 @@ interface Message {
   content: string;
   role: 'user' | 'assistant';
   timestamp: Date;
+  cards?: Array<{
+    title: string;
+    body: string;
+    image_url?: string;
+    buttons?: Array<{
+      type: 'url' | 'reply';
+      text: string;
+      url?: string;
+      payload?: string;
+    }>;
+  }>;
 }
 
 interface YaraAIChatbotProps {
@@ -77,7 +88,8 @@ const YaraAIChatbot: React.FC<YaraAIChatbotProps> = ({ isOpen, onClose }) => {
           id: (Date.now() + 1).toString(),
           content: data.message,
           role: 'assistant',
-          timestamp: new Date()
+          timestamp: new Date(),
+          cards: data.cards || []
         };
         setMessages(prev => [...prev, assistantMessage]);
       } else {
@@ -136,29 +148,64 @@ const YaraAIChatbot: React.FC<YaraAIChatbotProps> = ({ isOpen, onClose }) => {
           <ScrollArea className="flex-1 pr-4 overflow-y-auto">
             <div className="space-y-4">
               {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex gap-3 ${
-                    message.role === 'user' ? 'justify-end' : 'justify-start'
-                  }`}
-                >
-                  {message.role === 'assistant' && (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center flex-shrink-0 mt-1">
-                      <Sparkles className="w-4 h-4 text-white" />
-                    </div>
-                  )}
+                <div key={message.id} className="space-y-3">
                   <div
-                    className={`max-w-[75%] rounded-2xl p-4 break-words shadow-sm ${
-                      message.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-white/80 backdrop-blur-sm text-gray-800 border border-gray-200'
+                    className={`flex gap-3 ${
+                      message.role === 'user' ? 'justify-end' : 'justify-start'
                     }`}
                   >
-                    <p className="text-sm lg:text-base whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                    {message.role === 'assistant' && (
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center flex-shrink-0 mt-1">
+                        <Sparkles className="w-4 h-4 text-white" />
+                      </div>
+                    )}
+                    <div
+                      className={`max-w-[75%] rounded-2xl p-4 break-words shadow-sm ${
+                        message.role === 'user'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-white/80 backdrop-blur-sm text-gray-800 border border-gray-200'
+                      }`}
+                    >
+                      <p className="text-sm lg:text-base whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                    </div>
+                    {message.role === 'user' && (
+                      <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
+                        <User className="w-4 h-4 text-primary-foreground" />
+                      </div>
+                    )}
                   </div>
-                  {message.role === 'user' && (
-                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-1">
-                      <User className="w-4 h-4 text-primary-foreground" />
+                  
+                  {/* Display cards if present */}
+                  {message.cards && message.cards.length > 0 && (
+                    <div className="ml-11 space-y-2">
+                      {message.cards.map((card, idx) => (
+                        <div key={idx} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                          {card.image_url && (
+                            <img src={card.image_url} alt={card.title} className="w-full h-32 object-cover" />
+                          )}
+                          <div className="p-3">
+                            <h4 className="font-semibold text-sm text-gray-900 mb-1">{card.title}</h4>
+                            <p className="text-xs text-gray-600 leading-relaxed">{card.body}</p>
+                            {card.buttons && card.buttons.length > 0 && (
+                              <div className="flex gap-2 mt-3">
+                                {card.buttons.map((btn, btnIdx) => (
+                                  btn.type === 'url' && btn.url ? (
+                                    <a
+                                      key={btnIdx}
+                                      href={btn.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="px-3 py-1.5 text-xs bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                                    >
+                                      {btn.text}
+                                    </a>
+                                  ) : null
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
