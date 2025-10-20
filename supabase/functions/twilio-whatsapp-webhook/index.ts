@@ -5,6 +5,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Initialize Supabase client OUTSIDE try block so it's available in catch
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -31,11 +36,6 @@ Deno.serve(async (req) => {
         }
       );
     }
-
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Check for recent conversation (last 7 minutes)
     const sevenMinutesAgo = new Date(Date.now() - 7 * 60 * 1000).toISOString();
@@ -102,18 +102,14 @@ Deno.serve(async (req) => {
       // Get Twilio credentials
       const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-      let twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
+      const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
       
       if (!twilioAccountSid || !twilioAuthToken || !twilioWhatsAppNumber) {
         console.error('❌ Twilio credentials missing');
         throw new Error('Twilio credentials not configured');
       }
 
-      // 🚨 CRITICAL FIX: Ensure Twilio number has whatsapp: prefix to match the 'from' format
-      if (!twilioWhatsAppNumber.startsWith('whatsapp:')) {
-        twilioWhatsAppNumber = `whatsapp:${twilioWhatsAppNumber}`;
-        console.log('✅ Added whatsapp: prefix to Twilio number');
-      }
+      console.log(`📞 Using Twilio number: ${twilioWhatsAppNumber}, sending to: ${from}`);
 
       // 🚨 CRITICAL: ALWAYS send intro text - never leave user without a text response
       const introText = aiResponse.response && aiResponse.response.trim() 
