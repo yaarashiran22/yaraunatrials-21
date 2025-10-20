@@ -75,39 +75,6 @@ Deno.serve(async (req) => {
       content: body
     });
 
-    // Send typing indicator to show bot is processing
-    // Note: WhatsApp Business API via Twilio doesn't support native "..." typing bubbles
-    // But we can send an immediate reaction to acknowledge receipt
-    const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-    const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-    const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
-
-    if (twilioAccountSid && twilioAuthToken && twilioWhatsAppNumber) {
-      try {
-        // Send a quick reaction emoji to acknowledge receipt (best we can do with WhatsApp API)
-        await fetch(
-          `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-              From: twilioWhatsAppNumber,
-              To: from,
-              Body: '👀' // Quick acknowledgment
-            }).toString()
-          }
-        );
-        console.log('✅ Sent typing acknowledgment');
-      } catch (error) {
-        console.log('⚠️ Could not send typing indicator:', error);
-        // Continue anyway - not critical
-      }
-    }
-
-
     // Call the AI assistant function with history and profile
     const { data: aiResponse, error: aiError } = await supabase.functions.invoke('ai-assistant', {
       body: { 
