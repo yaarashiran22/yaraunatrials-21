@@ -37,18 +37,6 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Extract phone number without WhatsApp prefix
-    const phoneNumber = from.replace('whatsapp:', '');
-
-    // Try to find user profile by WhatsApp number
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, name, age, location, interests, bio, whatsapp_number')
-      .eq('whatsapp_number', phoneNumber)
-      .maybeSingle();
-
-    console.log('User profile:', profile ? `Found profile for ${profile.name}` : 'No profile found');
-
     // Check for recent conversation (last 30 minutes for better context retention)
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const { data: recentHistory } = await supabase
@@ -69,112 +57,23 @@ Deno.serve(async (req) => {
     const isGreeting = greetingPatterns.test(body.trim());
     const isConversationStarter = conversationStarterPatterns.test(body.trim());
 
-    // Handle NEW USERS (no profile)
-    if (!profile) {
-      // Check if we're in the middle of profile creation
-      const lastAssistantMsg = conversationHistory.filter(m => m.role === 'assistant').pop();
-      const askedForName = lastAssistantMsg?.content.includes('could you tell me your name?');
-      
-      if (!lastAssistantMsg || isGreeting || isNewConversation) {
-        // First interaction - ask for name
-        const welcomeMessage = "Hey there! 👋 Welcome to Yara, your AI concierge for Buenos Aires indie events and nightlife. I'm here to help you discover the best the city has to offer. To personalize your recommendations, could you tell me your name?";
-        
-        await supabase.from('whatsapp_conversations').insert([
-          { phone_number: from, role: 'user', content: body },
-          { phone_number: from, role: 'assistant', content: welcomeMessage }
-        ]);
+    // Try to find user profile by WhatsApp number
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('name, age, location, interests, bio')
+      .eq('whatsapp_number', from)
+      .maybeSingle();
 
-        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${welcomeMessage}</Message>
-</Response>`;
+    console.log('User profile:', profile ? `Found profile for ${profile.name}` : 'No profile found');
 
-        return new Response(twimlResponse, {
-          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
-          status: 200
-        });
-      } 
-      else if (askedForName) {
-        // User provided their name - create profile
-        const userName = body.trim();
-        
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([{
-            whatsapp_number: phoneNumber,
-            name: userName,
-            open_to_connecting: true
-          }]);
-
-        if (profileError) {
-          console.error('Error creating profile:', profileError);
-          const errorMessage = "Sorry, I had trouble setting up your profile. Let's try again - what's your name?";
-          
-          await supabase.from('whatsapp_conversations').insert([
-            { phone_number: from, role: 'user', content: body },
-            { phone_number: from, role: 'assistant', content: errorMessage }
-          ]);
-
-          const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${errorMessage}</Message>
-</Response>`;
-
-          return new Response(twimlResponse, {
-            headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
-            status: 200
-          });
-        }
-
-        console.log(`Profile created successfully for ${userName} (${phoneNumber})`);
-
-        const successMessage = `Nice to meet you, ${userName}! 🎉\n\nYour profile is all set up. Now I can help you discover indie events, nightlife, and local deals in Buenos Aires tailored just for you!\n\nWhat are you looking for today? (e.g., "What's happening tonight?", "Find me a good bar", "Any deals in Palermo?")`;
-        
-        await supabase.from('whatsapp_conversations').insert([
-          { phone_number: from, role: 'user', content: body },
-          { phone_number: from, role: 'assistant', content: successMessage }
-        ]);
-
-        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${successMessage}</Message>
-</Response>`;
-
-        return new Response(twimlResponse, {
-          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
-          status: 200
-        });
-      }
-      else {
-        // We have history but didn't ask for name - shouldn't normally happen
-        // Ask for name to complete profile creation
-        const welcomeMessage = "Hey there! 👋 Welcome to Yara, your AI concierge for Buenos Aires indie events and nightlife. I'm here to help you discover the best the city has to offer. To personalize your recommendations, could you tell me your name?";
-        
-        await supabase.from('whatsapp_conversations').insert([
-          { phone_number: from, role: 'user', content: body },
-          { phone_number: from, role: 'assistant', content: welcomeMessage }
-        ]);
-
-        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${welcomeMessage}</Message>
-</Response>`;
-
-        return new Response(twimlResponse, {
-          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
-          status: 200
-        });
-      }
-    }
-
-    // Handle EXISTING USERS with profile
+    // If it's a greeting/conversation starter AND a new conversation, OR it's a conversation starter regardless of history, send welcome
     const shouldSendWelcome = (isGreeting && isNewConversation) || isConversationStarter;
     
     let welcomeMessageSent = false;
-    if (shouldSendWelcome && profile) {
-      console.log('Sending welcome message - existing user');
+    if (shouldSendWelcome) {
+      console.log('Sending welcome message - new conversation or conversation starter detected');
       
-      const welcomeMessage = `Hey ${profile.name}! 👋 Welcome back to Yara. What are you looking for today?`;
+      const welcomeMessage = "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?";
       
       // Store welcome response
       await supabase.from('whatsapp_conversations').insert({
@@ -185,14 +84,17 @@ Deno.serve(async (req) => {
 
       welcomeMessageSent = true;
       
+      // For conversation starters, continue to AI processing
       // For greetings only, return welcome and wait for next message
       if (isGreeting && !isConversationStarter) {
+        // Store user message
         await supabase.from('whatsapp_conversations').insert({
           phone_number: from,
           role: 'user',
           content: body
         });
 
+        // Return TwiML response with just welcome
         const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>${welcomeMessage}</Message>
@@ -221,21 +123,9 @@ Deno.serve(async (req) => {
     }));
     messages.push({ role: 'user', content: body });
 
-    // Build user context for AI
-    const userContext = profile ? {
-      name: profile.name,
-      age: profile.age,
-      interests: profile.interests,
-      location: profile.location,
-      hasProfile: true,
-      userId: profile.id
-    } : {
-      hasProfile: false
-    };
-
     // Call Yara AI chat function (non-streaming for WhatsApp)
     const { data: aiResponse, error: aiError } = await supabase.functions.invoke('yara-ai-chat', {
-      body: { messages, stream: false, userContext }
+      body: { messages, stream: false }
     });
 
     if (aiError) {
@@ -288,7 +178,7 @@ Deno.serve(async (req) => {
       const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
 
       // Prepare the intro message
-      const welcomeText = welcomeMessageSent ? `Hey ${profile?.name || 'there'}! 👋 Welcome back to Yara.\n\n` : "";
+      const welcomeText = welcomeMessageSent ? "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
       const introMessage = welcomeText + (parsedResponse.intro_message || 'Here are some that you might like:');
       
       // Trigger background function to send recommendations (don't await - fire and forget)
@@ -330,7 +220,7 @@ Deno.serve(async (req) => {
       content: assistantMessage
     });
 
-    const welcomeText = welcomeMessageSent ? `Hey ${profile?.name || 'there'}! 👋 Welcome back to Yara.\n\n` : "";
+    const welcomeText = welcomeMessageSent ? "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
     
     const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
