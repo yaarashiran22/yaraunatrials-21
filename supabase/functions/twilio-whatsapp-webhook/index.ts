@@ -120,33 +120,36 @@ Deno.serve(async (req) => {
         ? aiResponse.response 
         : "Here's what I found for you:";
       
-      try {
-        await fetch(
-          `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-              From: twilioWhatsAppNumber,
-              To: from,
-              Body: introText
-            }).toString()
-          }
-        );
-        console.log('✅ Sent intro text');
-        
-        // Store intro in background
-        supabase.from('whatsapp_conversations').insert({
-          phone_number: from,
-          role: 'assistant',
-          content: introText
-        });
-      } catch (error) {
-        console.error('Error sending intro:', error);
+      const introResponse = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            From: twilioWhatsAppNumber,
+            To: from,
+            Body: introText
+          }).toString()
+        }
+      );
+      
+      if (!introResponse.ok) {
+        const errorText = await introResponse.text();
+        console.error('❌ CRITICAL: Failed to send intro text:', introResponse.status, errorText);
+        throw new Error(`Failed to send intro text: ${introResponse.status}`);
       }
+      
+      console.log('✅ Sent intro text');
+      
+      // Store intro in background
+      supabase.from('whatsapp_conversations').insert({
+        phone_number: from,
+        role: 'assistant',
+        content: introText
+      });
       
       // Send each recommendation with image via Twilio API (proper WhatsApp format)
       for (const rec of aiResponse.recommendations) {
@@ -252,11 +255,21 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error in Twilio webhook:', error);
+    console.error('❌ CRITICAL ERROR in Twilio webhook:', error);
     
-    // Return empty TwiML response on error
+    // Try one final fallback message via TwiML
+    const fallbackMessage = "Sorry, I'm having technical difficulties. Please try again in a moment.";
+    
+    // Store error in background
+    supabase.from('whatsapp_conversations').insert({
+      phone_number: from || 'unknown',
+      role: 'assistant',
+      content: fallbackMessage
+    });
+    
+    // Return TwiML fallback - Twilio will deliver this
     return new Response(
-      '<?xml version="1.0" encoding="UTF-8"?><Response><Message>Sorry, I encountered an error. Please try again later.</Message></Response>',
+      `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${fallbackMessage}</Message></Response>`,
       { 
         headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
         status: 200 
