@@ -102,8 +102,9 @@ serve(async (req) => {
 
     if (isWhatsApp && tools) {
       requestBody.tools = tools;
+      requestBody.tool_choice = "required"; // FORCE tool usage
       requestBody.parallel_tool_calls = true;
-      console.log('📱 WhatsApp mode: Tools enabled, parallel calls allowed');
+      console.log('📱 WhatsApp mode: Tools REQUIRED (forced)');
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -251,33 +252,26 @@ DO NOT add anything more.
 
   // WhatsApp mode
   if (isWhatsApp) {
-    prompt += `📱 WHATSAPP MODE - YOU HAVE ACCESS TO A TOOL:
+    prompt += `📱 WHATSAPP MODE - TOOL USAGE IS MANDATORY:
 
-🚨 CRITICAL: You have a tool called "send_recommendation_with_image" available.
-When you want to send recommendations with images, you MUST use this tool.
+🚨 CRITICAL RULE: When recommending events or businesses, you MUST use the send_recommendation_with_image function tool.
 
-HOW TO USE THE TOOL:
-- Your text response should ONLY contain: "Check these out:" or "Here's what I found:"
-- Then use the tool by making tool calls (NOT writing text)
-- Make 3-5 separate tool calls, one for each recommendation
+YOUR RESPONSE FORMAT:
+1. Set your text response to ONLY: "Check these out:" (nothing more)
+2. Use the send_recommendation_with_image tool 3-5 times
+3. Each tool call = one recommendation
 
-EXAMPLE OF WHAT YOU SHOULD DO:
-{
-  "response": "Check these out:",
-  "tool_calls": [
-    { "function": "send_recommendation_with_image", "arguments": { "message": "Event 1 description", "image_url": "https://...", "recommendation_type": "event" } },
-    { "function": "send_recommendation_with_image", "arguments": { "message": "Event 2 description", "image_url": "https://...", "recommendation_type": "event" } }
-  ]
-}
+WHAT YOUR RESPONSE SHOULD LOOK LIKE:
+- content: "Check these out:"
+- tool_calls: [array of send_recommendation_with_image calls]
 
-🚨 NEVER WRITE THIS IN YOUR TEXT RESPONSE:
-- "send_recommendation_with_image(...)"
-- Image URLs
-- Markdown links
-- Multiple event descriptions
+🚨 FORBIDDEN - NEVER DO THIS:
+- Writing "send_recommendation_with_image(...)" in your text
+- Including image URLs in your text
+- Listing multiple events in your text response
+- Using markdown formatting
 
-Your text response = ONLY brief intro
-Recommendations = ONLY via tool calls
+If you're recommending events/businesses, you MUST use the tool. No exceptions.
 
 `;
   }
