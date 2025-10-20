@@ -502,33 +502,44 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
       console.log('📝 Plain text response:', assistantMessage.content);
     }
     
-    // Check if AI used the tool to send an image
+    // Check if AI used tools to send recommendations (can be multiple)
     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-      const toolCall = assistantMessage.tool_calls[0];
-      if (toolCall.function.name === 'send_recommendation_with_image') {
-        try {
-          // Log raw arguments before parsing
-          console.log('🔍 Raw tool call arguments (first 500 chars):', toolCall.function.arguments.substring(0, 500));
-          
-          const args = JSON.parse(toolCall.function.arguments);
-          console.log('🖼️ AI wants to send image:', args.image_url);
-          
-          return new Response(
-            JSON.stringify({ 
-              response: args.message,
+      console.log('🛠️ AI IS USING MULTIPLE TOOL CALLS - Processing all recommendations');
+      
+      // Collect all recommendations
+      const recommendations = [];
+      
+      for (const toolCall of assistantMessage.tool_calls) {
+        if (toolCall.function.name === 'send_recommendation_with_image') {
+          try {
+            console.log('🔍 Raw tool call arguments (first 500 chars):', toolCall.function.arguments.substring(0, 500));
+            
+            const args = JSON.parse(toolCall.function.arguments);
+            console.log('🖼️ AI wants to send image:', args.image_url);
+            
+            recommendations.push({
+              message: args.message,
               image_url: args.image_url,
-              recommendation_type: args.recommendation_type,
-              success: true 
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            }
-          );
-        } catch (parseError) {
-          console.error('❌ Failed to parse tool call arguments:', parseError);
-          console.error('Full tool call object:', JSON.stringify(toolCall, null, 2));
-          // Fall through to return text-only response instead of crashing
+              recommendation_type: args.recommendation_type
+            });
+          } catch (parseError) {
+            console.error('❌ Failed to parse tool call arguments:', parseError);
+            console.error('Full tool call object:', JSON.stringify(toolCall, null, 2));
+          }
         }
+      }
+      
+      // Return all recommendations as an array
+      if (recommendations.length > 0) {
+        return new Response(
+          JSON.stringify({ 
+            recommendations: recommendations, // Array of multiple recommendations
+            success: true 
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
     }
     

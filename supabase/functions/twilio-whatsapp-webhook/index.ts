@@ -149,8 +149,76 @@ Deno.serve(async (req) => {
       });
     }
 
-    const assistantMessage = aiResponse?.response || 'Sorry, I encountered an error processing your request.';
-    const imageUrl = aiResponse?.image_url; // Check if AI included an image
+    // Check if we got multiple recommendations
+    const recommendations = aiResponse?.recommendations; // Array of recommendations
+    const singleResponse = aiResponse?.response; // Single text response (fallback)
+    
+    if (recommendations && recommendations.length > 0) {
+      console.log(`📸 Sending ${recommendations.length} separate recommendation messages`);
+      
+      // Send each recommendation as a separate message
+      const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
+      
+      if (!twilioAccountSid || !twilioAuthToken || !twilioWhatsAppNumber) {
+        console.error('Missing Twilio credentials');
+      } else {
+        // Send each recommendation as a separate message via Twilio API
+        for (const rec of recommendations) {
+          console.log(`Sending recommendation: ${rec.message.substring(0, 50)}...`);
+          
+          // Store each recommendation in conversation history
+          await supabase.from('whatsapp_conversations').insert({
+            phone_number: from,
+            role: 'assistant',
+            content: rec.message
+          });
+          
+          // Prepare Twilio API request
+          const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
+          const formBody = new URLSearchParams({
+            From: twilioWhatsAppNumber,
+            To: from,
+            Body: rec.message
+          });
+          
+          // Add media if image URL exists
+          if (rec.image_url) {
+            formBody.append('MediaUrl', rec.image_url);
+          }
+          
+          // Send via Twilio API
+          const twilioResponse = await fetch(twilioUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: formBody
+          });
+          
+          if (!twilioResponse.ok) {
+            console.error('Twilio API error:', await twilioResponse.text());
+          } else {
+            console.log('✅ Sent recommendation message via Twilio API');
+          }
+        }
+      }
+      
+      // Return empty TwiML since we sent messages via API
+      return new Response(
+        '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+          status: 200
+        }
+      );
+    }
+    
+    // Fallback to single response (backward compatibility)
+    const assistantMessage = singleResponse || 'Sorry, I encountered an error processing your request.';
+    const imageUrl = aiResponse?.image_url;
     console.log('AI response:', assistantMessage);
     if (imageUrl) {
       console.log('📸 Image URL to send:', imageUrl);
