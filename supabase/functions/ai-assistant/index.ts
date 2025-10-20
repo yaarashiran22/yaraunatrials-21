@@ -66,6 +66,44 @@ serve(async (req) => {
 
     console.log('📊 Data fetched - Events:', eventsData.data?.length, 'Communities:', communitiesData.data?.length, 'Posts:', postsData.data?.length, 'Items:', itemsData.data?.length, 'Businesses:', businessProfilesData.data?.length);
 
+    // Track already-sent recommendations to avoid duplicates
+    const alreadySent = {
+      events: new Set<string>(),
+      businesses: new Set<string>(),
+      coupons: new Set<string>()
+    };
+    
+    if (conversationHistory && conversationHistory.length > 0) {
+      for (const msg of conversationHistory) {
+        // Check if message has tool_calls (from OpenAI API format)
+        if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
+          for (const toolCall of msg.tool_calls) {
+            if (toolCall.function?.name === 'send_recommendation_with_image') {
+              try {
+                const args = JSON.parse(toolCall.function.arguments);
+                // Extract title/name from the message to track what was sent
+                if (args.recommendation_type === 'event') {
+                  alreadySent.events.add(args.message);
+                } else if (args.recommendation_type === 'business') {
+                  alreadySent.businesses.add(args.message);
+                } else if (args.recommendation_type === 'coupon') {
+                  alreadySent.coupons.add(args.message);
+                }
+              } catch (e) {
+                // Ignore parse errors
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    console.log('🔍 Already sent:', {
+      events: Array.from(alreadySent.events),
+      businesses: Array.from(alreadySent.businesses),
+      coupons: Array.from(alreadySent.coupons)
+    });
+
     // Prepare comprehensive context with REAL data
     const realData = {
       currentEvents: eventsData.data || [],
@@ -205,6 +243,12 @@ Example: send_recommendation_with_image(
 → They're acknowledging, not requesting - respond naturally
 → "Right? It's gonna be good!" / "Let me know if you want more options"
 
+**"Anything else?" / "More?" / "What else?"**: 🚨 CRITICAL - NO DUPLICATES!
+→ They want DIFFERENT recommendations - NOT the same ones again
+→ Check what you've already sent and recommend something COMPLETELY DIFFERENT
+→ If you've sent 2 events, send 2 NEW events (different titles, different locations)
+→ NEVER repeat the same event/business/coupon you already sent in this conversation
+
 **New Requests**: "any parties?", "what about coffee shops?", "show me more"
 → They want a new recommendation
 → Ask clarifying questions if needed (neighborhood, vibe)
@@ -247,6 +291,24 @@ You have ${conversationHistory.length} messages of history. USE IT:
 - Notice their preferences from past questions
 - Reference things they seemed interested in
 ` : 'First conversation - get to know them!'}
+
+🚨 CRITICAL - ALREADY SENT (DO NOT REPEAT THESE):
+${alreadySent.events.size > 0 || alreadySent.businesses.size > 0 || alreadySent.coupons.size > 0 ? `
+⚠️ You've already recommended these in this conversation - DO NOT send them again:
+${alreadySent.events.size > 0 ? `
+EVENTS (already sent):
+${Array.from(alreadySent.events).map(e => `- ${e}`).join('\n')}
+` : ''}
+${alreadySent.businesses.size > 0 ? `
+BUSINESSES (already sent):
+${Array.from(alreadySent.businesses).map(b => `- ${b}`).join('\n')}
+` : ''}
+${alreadySent.coupons.size > 0 ? `
+COUPONS (already sent):
+${Array.from(alreadySent.coupons).map(c => `- ${c}`).join('\n')}
+` : ''}
+When user asks for "anything else?" or "more?", recommend DIFFERENT items that are NOT in this list above.
+` : ''}
 
 ⚠️ CRITICAL - REAL DATA ONLY:
 - ONLY mention events/businesses/coupons that actually exist below
