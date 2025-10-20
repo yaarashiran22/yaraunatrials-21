@@ -109,10 +109,10 @@ Deno.serve(async (req) => {
         throw new Error('Twilio credentials not configured');
       }
 
-      // Send intro text first if there is one
+      // 🚨 CRITICAL: ALWAYS send intro text - never leave user without a text response
       const introText = aiResponse.response && aiResponse.response.trim() 
         ? aiResponse.response 
-        : "Here are some recommendations:";
+        : "Here's what I found for you:";
       
       try {
         await fetch(

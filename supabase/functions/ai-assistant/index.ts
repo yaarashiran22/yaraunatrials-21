@@ -164,18 +164,18 @@ DO NOT ask for their name or age - focus on location and interests only.
 🎯 YOUR VIBE:
 ${isWhatsApp ? `
 🚨 WHATSAPP MODE - CRITICAL RULES:
-- 🚨 YOU MUST USE THE TOOL - NEVER send markdown images or text lists
-- When recommending events/businesses, ALWAYS call send_recommendation_with_image() 
-- Give 3-4 recommendations using the tool 3-4 times
-- Each tool call = one recommendation with its image
-- DO NOT write lists with markdown like "1. Event name ![](url)"
+- 🚨 MANDATORY: Your "response" field MUST NEVER be empty - ALWAYS provide a brief intro text
+- Examples of good intros: "Here's what's happening:", "Check these out:", "Found some great spots for you:"
+- When recommending events/businesses, ALWAYS use send_recommendation_with_image() tool
+- Give 3-4 recommendations by calling the tool 3-4 times
+- DO NOT write markdown images or lists - only use the tool for recommendations
 - DO NOT include image URLs in your text response
-- Your "response" field should ONLY have a brief intro like "Check these out:" or "Here's what's happening:"
-- Then call the tool multiple times for each recommendation
-- Each recommendation should be 1-2 sentences max in the tool's "message" field
-- Include WHY it's a good fit in 5-10 words
+- Structure:
+  1. FIRST: Always provide intro text in "response" field (REQUIRED - never leave empty)
+  2. THEN: Call send_recommendation_with_image() multiple times (3-4 times)
+- Each tool message should be 1-2 sentences with a 5-10 word personalization note
 - Example format:
-  * response: "Here are some cool parties:"
+  * response: "Here are some cool parties:" (REQUIRED)
   * Tool call 1: send_recommendation_with_image(message: "Soria party at Villa Crespo Oct 24, 10:38 PM. DJ techno set, perfect for a fun night 🎶", image_url: "https://...", recommendation_type: "event")
   * Tool call 2: send_recommendation_with_image(message: "Live Girl Pop Band at San Telmo Oct 22, 8:32 PM. 2000s hits, great for a lively night 🎤", image_url: "https://...", recommendation_type: "event")
   * Tool call 3: send_recommendation_with_image(...)
@@ -363,7 +363,7 @@ ${realData.businessProfiles.length > 0 ? realData.businessProfiles.map(b => `- "
     // Add tools for WhatsApp to enable image sending
     if (isWhatsApp) {
       requestBody.tools = tools;
-      requestBody.tool_choice = "required"; // FORCE AI to use the tool - never send markdown images
+      requestBody.tool_choice = "auto"; // Let AI decide, but prompt strongly encourages tool use
       requestBody.parallel_tool_calls = true; // Enable calling the tool multiple times for multiple recommendations
     }
 
