@@ -122,6 +122,14 @@ DO NOT paraphrase, DO NOT add anything, DO NOT change the wording. Use EXACTLY t
       }
     }
 
+    // Detect gratitude/thanks
+    const gratitudePatterns = /^(thanks|thank you|thx|ty|appreciate it|cool|awesome|perfect|great|sounds good)[\s!?.]*$/i;
+    const isGratitude = gratitudePatterns.test(message.trim());
+    let gratitudeContext = '';
+    if (isGratitude) {
+      gratitudeContext = '\n\n🙏 IMPORTANT: User just said thanks/expressed gratitude. Respond EXACTLY with: "You\'re welcome- I\'m here if you need anything else 😊" - DO NOT add anything more, DO NOT ask questions, DO NOT make suggestions.';
+    }
+
     // Check if user has meaningful profile data
     const hasName = userProfile?.name;
     const hasLocation = userProfile?.location;
@@ -130,7 +138,7 @@ DO NOT paraphrase, DO NOT add anything, DO NOT change the wording. Use EXACTLY t
     
     // Create detailed system prompt with ALL real data
     const systemPrompt = `You are Yara, TheUnaHub's AI vibe curator. You're chill, direct, and keep it real - like that artsy friend who knows all the best spots but never overhypes.
-
+${gratitudeContext}${greetingContext}${repetitionContext}
 ${userProfile ? `
 🎯 USER PROFILE - PERSONALIZE HEAVILY:
 - Name: ${userProfile.name || 'Not specified'}
