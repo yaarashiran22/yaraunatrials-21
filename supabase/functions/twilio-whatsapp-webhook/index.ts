@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
         content: body
       });
 
-      const welcomeMessage = "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I'm here. What are you looking for?";
+      const welcomeMessage = "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?";
       
       // Store welcome response
       await supabase.from('whatsapp_conversations').insert({
