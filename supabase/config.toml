@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.yara-ai-chat]
 verify_jwt = false
+
+[functions.send-whatsapp-recommendations]
+verify_jwt = false

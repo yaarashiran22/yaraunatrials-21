@@ -174,96 +174,34 @@ Deno.serve(async (req) => {
         content: JSON.stringify(parsedResponse)
       });
 
-      // Get Twilio credentials
-      const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-      const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      // Get Twilio WhatsApp number
       const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
 
-      if (!twilioAccountSid || !twilioAuthToken) {
-        console.error('Missing Twilio credentials');
-        throw new Error('Twilio credentials not configured');
-      }
-
-      // Send intro message via TwiML (this will be the immediate response)
+      // Prepare the intro message
       const welcomeText = welcomeMessageSent ? "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
       const introMessage = welcomeText + (parsedResponse.intro_message || 'Here are some that you might like:');
       
+      // Trigger background function to send recommendations (don't await - fire and forget)
+      console.log('Triggering send-whatsapp-recommendations function...');
+      supabase.functions.invoke('send-whatsapp-recommendations', {
+        body: {
+          recommendations: parsedResponse.recommendations,
+          toNumber: from,
+          fromNumber: twilioWhatsAppNumber
+        }
+      }).then(({ data, error }) => {
+        if (error) {
+          console.error('Error invoking send-whatsapp-recommendations:', error);
+        } else {
+          console.log('Send-whatsapp-recommendations invoked successfully:', data);
+        }
+      });
+
+      // Return intro message immediately via TwiML
       const introTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>${introMessage}</Message>
 </Response>`;
-
-      // Send follow-up messages with images as background task
-      const sendRecommendations = async () => {
-        console.log('Starting to send recommendations...');
-        
-        // Ensure both numbers have whatsapp: prefix
-        const fromNumber = twilioWhatsAppNumber.startsWith('whatsapp:') 
-          ? twilioWhatsAppNumber 
-          : `whatsapp:${twilioWhatsAppNumber}`;
-        const toNumber = from.startsWith('whatsapp:') 
-          ? from 
-          : `whatsapp:${from}`;
-        
-        console.log(`Will send from: ${fromNumber} to: ${toNumber}`);
-        
-        for (let i = 0; i < parsedResponse.recommendations.length; i++) {
-          const rec = parsedResponse.recommendations[i];
-          if (rec.image_url && rec.title && rec.description) {
-            const messageBody = `*${rec.title}*\n\n${rec.description}`;
-            
-            try {
-              console.log(`[${i+1}/${parsedResponse.recommendations.length}] Sending: ${rec.title}`);
-              
-              const twilioResponse = await fetch(
-                `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
-                {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                  },
-                  body: new URLSearchParams({
-                    From: fromNumber,
-                    To: toNumber,
-                    Body: messageBody,
-                    MediaUrl: rec.image_url
-                  }).toString()
-                }
-              );
-
-              if (!twilioResponse.ok) {
-                const errorText = await twilioResponse.text();
-                console.error(`Twilio error for ${rec.title}:`, twilioResponse.status, errorText);
-              } else {
-                const result = await twilioResponse.json();
-                console.log(`✓ Sent ${rec.title}. SID: ${result.sid}`);
-              }
-            } catch (error) {
-              console.error(`Error sending ${rec.title}:`, error);
-            }
-
-            // Delay between messages
-            if (i < parsedResponse.recommendations.length - 1) {
-              console.log('Waiting 1 second before next message...');
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-          } else {
-            console.log(`Skipping recommendation ${i+1}: missing image_url or content`);
-          }
-        }
-        console.log('Finished sending all recommendations');
-      };
-
-      // Use EdgeRuntime.waitUntil to ensure background task completes
-      try {
-        EdgeRuntime.waitUntil(sendRecommendations());
-        console.log('Background task registered');
-      } catch (error) {
-        console.error('Error registering background task:', error);
-        // If EdgeRuntime.waitUntil is not available, just await it
-        await sendRecommendations();
-      }
 
       console.log('Returning intro TwiML response');
       return new Response(introTwiml, {
