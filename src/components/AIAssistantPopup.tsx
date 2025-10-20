@@ -139,7 +139,8 @@ const AIAssistantPopup: React.FC<AIAssistantPopupProps> = ({ isOpen, onClose }) 
             message: inputMessage,
             userLocation: userLocation,
             conversationHistory: conversationHistory,
-            userProfile: userProfile // Send user profile data
+            userProfile: userProfile, // Send user profile data
+            isWhatsApp: false // Website chat gets slightly longer responses
           }
         }),
         timeoutPromise
