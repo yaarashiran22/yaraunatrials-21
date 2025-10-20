@@ -98,11 +98,16 @@ serve(async (req) => {
     if (isTrulyFirstMessage) {
       // Truly first time this phone number has EVER messaged
       console.log('Truly first message ever from this user');
-      greetingContext = `\n\n🚨 MANDATORY FIRST MESSAGE - DO NOT DEVIATE:
-You MUST respond with this EXACT text word-for-word (copy it exactly as written):
-"Hey! Welcome to Yara AI- if you're looking for cool events, hidden deals and bohemian spots in BA- I got you. What vibe are you after?"
+      greetingContext = `\n\n🚨 MANDATORY FIRST MESSAGE FORMAT:
+Start your response with this EXACT welcome message:
+"Hey! Welcome to Yara AI- if you're looking for cool events, hidden deals and bohemian spots in BA- I got you."
 
-DO NOT paraphrase, DO NOT add anything, DO NOT change the wording. Use EXACTLY this text.`;
+Then IMMEDIATELY continue with an AI-generated response based on what the user asked. For example:
+- If they ask about events → Welcome message + recommend 3-4 events
+- If they ask about bars → Welcome message + recommend 3-4 bars
+- If they just say "hi" → Welcome message + "What vibe are you after?"
+
+DO NOT just send the welcome alone. Always add a relevant AI response after it.`;
     } else if (isFirstMessage || shouldResetConversation) {
       // Returning user after timeout or new session
       console.log('Returning user - keep it simple with Hey + AI response');
