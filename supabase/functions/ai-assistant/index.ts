@@ -383,7 +383,7 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
     const requestBody: any = {
       model: 'gpt-4o-mini',
       messages: messages,
-      max_tokens: isFirstMessage ? 180 : (isGreeting ? 150 : 100),
+      max_tokens: 500, // Increased to prevent truncation of URLs and responses
       temperature: 0.9
     };
 

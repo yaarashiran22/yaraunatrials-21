@@ -131,30 +131,84 @@ Deno.serve(async (req) => {
     if (aiResponse?.recommendations && Array.isArray(aiResponse.recommendations) && aiResponse.recommendations.length > 0) {
       console.log(`📸 AI wants to send ${aiResponse.recommendations.length} recommendations with images`);
       
-      // Build TwiML response with recommendations
-      let twimlMessages = '';
+      // Get Twilio credentials to send via API instead of TwiML (better image support)
+      const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
       
-      // Add text response if there is one
+      if (!twilioAccountSid || !twilioAuthToken || !twilioWhatsAppNumber) {
+        console.error('❌ Twilio credentials missing');
+        throw new Error('Twilio credentials not configured');
+      }
+
+      // Send text response first if there is one
       if (aiResponse.response && aiResponse.response.trim()) {
-        twimlMessages += `<Message>${aiResponse.response}</Message>\n`;
-        
-        // Store the text response
-        await supabase.from('whatsapp_conversations').insert({
-          phone_number: from,
-          role: 'assistant',
-          content: aiResponse.response
-        });
+        try {
+          await fetch(
+            `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: new URLSearchParams({
+                From: twilioWhatsAppNumber,
+                To: from,
+                Body: aiResponse.response
+              }).toString()
+            }
+          );
+          console.log('✅ Sent text intro');
+          
+          // Store the text response
+          await supabase.from('whatsapp_conversations').insert({
+            phone_number: from,
+            role: 'assistant',
+            content: aiResponse.response
+          });
+        } catch (error) {
+          console.error('Error sending intro text:', error);
+        }
       }
       
-      // Add each recommendation as a separate message with image
+      // Send each recommendation with image via Twilio API
       for (const rec of aiResponse.recommendations) {
-        if (rec.image_url && rec.image_url.trim() !== '') {
-          twimlMessages += `<Message>
-  <Body>${rec.message}</Body>
-  <Media>${rec.image_url}</Media>
-</Message>\n`;
+        const messageData: any = {
+          From: twilioWhatsAppNumber,
+          To: from,
+          Body: rec.message
+        };
+        
+        // Add image if URL exists and is complete
+        if (rec.image_url && rec.image_url.trim() !== '' && rec.image_url.startsWith('http')) {
+          messageData.MediaUrl = rec.image_url;
+          console.log('📸 Sending with image:', rec.image_url);
         } else {
-          twimlMessages += `<Message>${rec.message}</Message>\n`;
+          console.log('⚠️ No valid image URL, sending text only');
+        }
+        
+        try {
+          const twilioResponse = await fetch(
+            `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: new URLSearchParams(messageData).toString()
+            }
+          );
+          
+          if (!twilioResponse.ok) {
+            const errorText = await twilioResponse.text();
+            console.error('Twilio API error:', twilioResponse.status, errorText);
+          } else {
+            console.log(`✅ Sent recommendation ${rec.image_url ? 'with image' : 'text only'}`);
+          }
+        } catch (error) {
+          console.error('Error sending message via Twilio:', error);
         }
         
         // Store each recommendation in conversation history
@@ -165,16 +219,14 @@ Deno.serve(async (req) => {
         });
       }
       
-      const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-${twimlMessages}</Response>`;
-
-      console.log('Sending TwiML response with recommendations');
-      
-      return new Response(twimlResponse, {
-        headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
-        status: 200
-      });
+      // Return empty TwiML since we've already sent messages via Twilio API
+      return new Response(
+        '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+          status: 200
+        }
+      );
     }
 
     // Single message responses (no recommendations)
