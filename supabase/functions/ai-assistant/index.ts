@@ -368,20 +368,26 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
       const toolCall = assistantMessage.tool_calls[0];
       if (toolCall.function.name === 'send_recommendation_with_image') {
-        const args = JSON.parse(toolCall.function.arguments);
-        console.log('🖼️ AI wants to send image:', args.image_url);
-        
-        return new Response(
-          JSON.stringify({ 
-            response: args.message,
-            image_url: args.image_url,
-            recommendation_type: args.recommendation_type,
-            success: true 
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
+        try {
+          const args = JSON.parse(toolCall.function.arguments);
+          console.log('🖼️ AI wants to send image:', args.image_url);
+          
+          return new Response(
+            JSON.stringify({ 
+              response: args.message,
+              image_url: args.image_url,
+              recommendation_type: args.recommendation_type,
+              success: true 
+            }),
+            {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        } catch (parseError) {
+          console.error('❌ Failed to parse tool call arguments:', parseError);
+          console.error('Tool call arguments:', toolCall.function.arguments);
+          // Fall through to return text-only response
+        }
       }
     }
     
