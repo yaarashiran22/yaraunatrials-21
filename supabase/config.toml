@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.cleanup-past-events]
 verify_jwt = false
+
+[functions.yara-chat]
+verify_jwt = false

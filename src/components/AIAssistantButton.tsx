@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Sparkles } from 'lucide-react';
-import AIAssistantPopup from './AIAssistantPopup';
+import YaraAIChatbot from './YaraAIChatbot';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface AIAssistantButtonProps {
@@ -25,7 +25,7 @@ const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({ variant = 'floati
           </Button>
         </div>
         
-        <AIAssistantPopup
+        <YaraAIChatbot
           isOpen={isPopupOpen}
           onClose={() => setIsPopupOpen(false)}
         />
@@ -43,7 +43,7 @@ const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({ variant = 'floati
         <Sparkles className="w-7 h-7" />
       </Button>
       
-      <AIAssistantPopup
+      <YaraAIChatbot
         isOpen={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
       />
