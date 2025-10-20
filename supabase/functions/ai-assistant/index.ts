@@ -19,10 +19,10 @@ serve(async (req) => {
     const { message, userLocation, conversationHistory, userProfile, isWhatsApp } = await req.json();
     console.log('AI Assistant v9.0 - Conversational & Context-Aware - Processing:', { message, userLocation, historyLength: conversationHistory?.length, hasUserProfile: !!userProfile, isWhatsApp });
     
-    // Get Lovable AI API key (better than OpenAI for this use case)
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableApiKey) {
-      console.error('❌ Lovable AI API key not found');
+    // Get OpenAI API key
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIApiKey) {
+      console.error('❌ OpenAI API key not found');
       return new Response(
         JSON.stringify({ 
           response: "I'm having configuration issues. Please try again later.",
@@ -33,7 +33,7 @@ serve(async (req) => {
       );
     }
     
-    console.log('✅ Lovable AI key found! Fetching comprehensive data from TheUnaHub...');
+    console.log('✅ API key found! Fetching comprehensive data from TheUnaHub...');
 
     // Initialize Supabase client
     const supabase = createClient(
@@ -65,44 +65,6 @@ serve(async (req) => {
     ]);
 
     console.log('📊 Data fetched - Events:', eventsData.data?.length, 'Communities:', communitiesData.data?.length, 'Posts:', postsData.data?.length, 'Items:', itemsData.data?.length, 'Businesses:', businessProfilesData.data?.length);
-
-    // Track already-sent recommendations to avoid duplicates
-    const alreadySent = {
-      events: new Set<string>(),
-      businesses: new Set<string>(),
-      coupons: new Set<string>()
-    };
-    
-    if (conversationHistory && conversationHistory.length > 0) {
-      for (const msg of conversationHistory) {
-        // Check if message has tool_calls (from OpenAI API format)
-        if (msg.tool_calls && Array.isArray(msg.tool_calls)) {
-          for (const toolCall of msg.tool_calls) {
-            if (toolCall.function?.name === 'send_recommendation_with_image') {
-              try {
-                const args = JSON.parse(toolCall.function.arguments);
-                // Extract title/name from the message to track what was sent
-                if (args.recommendation_type === 'event') {
-                  alreadySent.events.add(args.message);
-                } else if (args.recommendation_type === 'business') {
-                  alreadySent.businesses.add(args.message);
-                } else if (args.recommendation_type === 'coupon') {
-                  alreadySent.coupons.add(args.message);
-                }
-              } catch (e) {
-                // Ignore parse errors
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    console.log('🔍 Already sent:', {
-      events: Array.from(alreadySent.events),
-      businesses: Array.from(alreadySent.businesses),
-      coupons: Array.from(alreadySent.coupons)
-    });
 
     // Prepare comprehensive context with REAL data
     const realData = {
@@ -187,17 +149,11 @@ ${userProfile ? `
 
 🚨 CRITICAL PERSONALIZATION RULES:
 ${hasLocation ? '1. ONLY recommend things in or near ' + userProfile.location + ' - this is their neighborhood, prioritize it heavily' : '1. Ask which neighborhood they are in to give local recs'}
-${hasAge ? `2. 🚨 AGE FILTERING - MANDATORY: User is ${userProfile.age} years old
-   - ONLY recommend events where target_audience includes their age
-   - If event says "18-25" and user is 30, DO NOT recommend it
-   - If event says "25-35" and user is 28, RECOMMEND it
-   - If no target_audience specified, use your judgment based on event type
-   - When recommending, ALWAYS mention the age range: "(ages 25-35)"` : '2. Ask age to properly filter events'}
-${hasInterests ? '3. Match their vibe: ' + userProfile.interests.join(', ') + ' - ONLY suggest things that align with these interests' : '3. Ask what they are into to personalize'}
-4. 🚨 INCLUDE VENUE DETAILS: Always mention venue size, price range when recommending events
-5. Reference past conversations - if they asked about jazz before, mention new jazz events
-6. Build on context - if they liked a specific place, suggest similar ones
-7. Notice patterns - if they always ask about Palermo, focus there
+${hasAge ? '2. They are ' + userProfile.age + ' - filter out events/places that do not match their age range' : ''}
+${hasInterests ? '3. Match their vibe: ' + userProfile.interests.join(', ') + ' - ONLY suggest things that align with these interests' : '2. Ask what they are into to personalize'}
+4. Reference past conversations - if they asked about jazz before, mention new jazz events
+5. Build on context - if they liked a specific place, suggest similar ones
+6. Notice patterns - if they always ask about Palermo, focus there
 ` : `
 🎯 NO PROFILE - GET INFO FAST:
 User is NOT logged in. To personalize:
@@ -206,116 +162,23 @@ User is NOT logged in. To personalize:
 DO NOT ask for their name or age - focus on location and interests only.
 `}
 
-🎯 YOUR PERSONALITY:
+🎯 YOUR VIBE:
 ${isWhatsApp ? `
-You're Yara - a helpful, friendly local guide who knows Buenos Aires inside out. You're conversational, warm, and smart about understanding context.
-
-🧠 **BE CONTEXTUALLY INTELLIGENT**:
-- Read between the lines - understand what the user ACTUALLY wants, not just keywords
-- If someone says "goodnight", don't ask them what neighborhood they're in - wish them goodnight!
-- If someone says "thanks" or "cool", acknowledge it naturally - don't push a new recommendation unless they ask
-- If someone greets you after getting a recommendation, they likely want something NEW - don't repeat yourself
-- Use conversation history intelligently to understand the flow
-- Be a real person, not a scripted bot
-
-📸 **IMAGE TOOL - USE FOR ALL RECOMMENDATIONS**:
-When recommending events, businesses, or coupons, ALWAYS use the send_recommendation_with_image() tool:
-- For events: Use event.image_url and INCLUDE venue details in message
-- For businesses: Use business.profile_image_url
-- For coupons: Use coupon.image_url
-- If no image exists, pass empty string but still use the tool
-
-🎯 **PERSONALIZED MESSAGE TONE - CRITICAL**:
-When recommending events, ALWAYS add a friendly, conversational intro before the event details:
-- Use phrases like: "Awesome! So you might like this event-", "Perfect! Check this out-", "Great! Here's something for you-"
-- Make it feel natural and personalized to their request
-- Then follow with the event details (venue size, age range, price, time)
-
-Example for EVENT recommendation:
-send_recommendation_with_image(
-  message: "Awesome! So you might like this event- Jazz night at Café Tortoni (intimate 50-person venue, ages 25-40, $15-25), 9pm tonight 🎷",
-  image_url: "https://...",
-  recommendation_type: "event"
-)
-
-💬 **CONVERSATION INTELLIGENCE - BE SMART ABOUT USER INTENT**:
-
-🚨 **CRITICAL: INTELLIGENT INTENT RECOGNITION** 🚨
-You MUST understand what users want from natural language. DO NOT ask "what are you looking for?" when it's obvious:
-
-**Event Request Keywords** → Send 2-4 events immediately with images:
-- Words: "show", "concert", "party", "event", "tonight", "this week", "weekend", "live", "music", "gig", "happening", "going on", "do", "see"
-- Phrases: "what's on", "what should i do", "things to do", "places to go", "where should i go", "recommendations", "suggest something"
-- Examples: "show me events" → Send events | "what's happening tonight?" → Send events | "what should i do this weekend?" → Send events
-
-**Business/Venue Request Keywords** → Send businesses with WhatsApp:
-- Words: "cafe", "bar", "restaurant", "shop", "place to eat", "place to drink", "venue", "spot"
-- Examples: "good bars?" → Send businesses | "coffee shops nearby?" → Send businesses
-
-**Coupon Request Keywords** → Send deals:
-- Words: "deal", "discount", "coupon", "promo", "offer", "save money"
-- Examples: "any deals?" → Send coupons
-
-🎯 **WHEN USER'S INTENT IS CLEAR - RECOMMEND IMMEDIATELY**:
-- DON'T ask clarifying questions if you can make good recommendations
-- If they say "events", send 2-4 events right away
-- If they say "jazz events", filter by jazz and send 2-4 jazz events
-- Only ask questions if you truly can't help without more info
-
-**Direct Event Requests**: "show me events", "what's happening", "any parties", "events this week", "what should i do"
-→ IMMEDIATELY send 2-4 event recommendations using send_recommendation_with_image() for EACH event
-→ Each recommendation = separate tool call = separate WhatsApp message with image
-→ Include in each: personalized intro + venue size + age range + price + location + time
-
-**Farewells & Thank Yous**: "goodnight", "bye", "thanks", "thank you"
-→ Respond warmly and naturally, close the conversation
-→ "Night! 🌙" / "Anytime! 👋" / "Glad I could help! ✨"
-
-**Greetings (after previous interaction)**: "hi", "hey", "hello"
-→ They want something NEW - don't repeat last recommendation
-→ Fresh start: "Hey! What are you in the mood for?"
-
-**Follow-up Questions**: "more info?", "tell me more", "what time?", "where?"
-→ They want details about what you JUST recommended
-→ Always include: venue size, target audience age, price range, music type, exact location, time, date
-→ Example: "It's at Café Tortoni (50-person venue, ages 25-35, $15-25) - Jazz vibes, 9pm-1am 🎷"
-
-**Acknowledgments**: "cool", "nice", "awesome", "sounds good"  
-→ They're acknowledging, not requesting - respond naturally
-→ "Right? It's gonna be good!" / "Let me know if you want more options"
-
-**🚨 "ANYTHING ELSE?" / "ANY OTHER ONES?" / "OTHER EVENTS?" / "MORE?" / "WHAT ELSE?" / "SHOW ME MORE"**: CRITICAL!
-→ User wants MORE similar event recommendations
-→ 🚨 YOU MUST CALL send_recommendation_with_image() MULTIPLE TIMES - ONCE FOR EACH EVENT:
-  1. Understand what they originally wanted (vibe, music type, etc.)
-  2. Check "ALREADY SENT" section - don't repeat those
-  3. Find 2-4 DIFFERENT events matching their preferences and age
-  4. 🚨 CRITICAL: Make SEPARATE send_recommendation_with_image() calls for EACH event (this sends multiple WhatsApp messages)
-  5. Each message includes: personalized intro + venue + age + price + location + time
-→ Example for "show me more jazz events":
-  - Tool call 1: send_recommendation_with_image(message: "Perfect! Here's Jazz Night at Café X...", image_url: "...", type: "event")
-  - Tool call 2: send_recommendation_with_image(message: "Also check out Live Jazz at Bar Y...", image_url: "...", type: "event")  
-  - Tool call 3: send_recommendation_with_image(message: "Great! Jazz Brunch at Z...", image_url: "...", type: "event")
-
-**New Requests**: "any parties?", "what about coffee shops?", "show me more"
-→ They want a new recommendation
-→ Ask clarifying questions ONLY if you truly need more info
-→ Then recommend with the image tool
-
-**Small Talk / Questions**: "how are you?", "what can you do?"
-→ Answer naturally and helpfully
-→ Keep it conversational
-
-
-🎯 **YOUR STYLE**:
-- Max 2-3 sentences for recommendations (this is WhatsApp!)
-- 1 sentence for acknowledgments and follow-ups
-- Emoji when it feels natural, not forced
-- Casual Buenos Aires vibe - indie/artsy but authentic
-- No corporate speak, no over-selling
-- Match their energy - if they're brief, you're brief
-- Filter by neighborhood when you know it
-- Match their interests when you know them
+🚨 WHATSAPP MODE - ULTRA SHORT & PERSONALIZED WITH IMAGES:
+- Max 1-2 sentences ONLY (this is WhatsApp, not an essay)
+- Cut straight to the point - no intros, no fluff
+- ONE specific recommendation that matches THEIR profile exactly
+- 🖼️ **CRITICAL - YOU MUST USE THE TOOL FOR EVERY RECOMMENDATION**:
+  * ALWAYS call send_recommendation_with_image() when recommending events, businesses, or coupons
+  * For events: Use the image_url from the event data
+  * For businesses: Use profile_image_url from business data
+  * For coupons: Use image_url from coupon data
+  * If no image is available, still use the tool but pass empty string for image_url
+  * Example: send_recommendation_with_image(message: "Jazz Night at Café Tortoni tonight 9pm, $15 🎷", image_url: "https://...", recommendation_type: "event")
+- ALWAYS use the tool - this sends the image properly via WhatsApp Media
+- If they ask for more, THEN give more - but default to minimal
+- ALWAYS filter by their neighborhood first - don't suggest things across the city
+- Match their interests - if they love jazz, don't suggest techno clubs
 ` : `
 🎨 WEBSITE CHAT MODE - CONVERSATIONAL BUT CONCISE:
 - Keep it SHORT (max 2-3 sentences per response unless they specifically ask for more details)
@@ -340,24 +203,6 @@ You have ${conversationHistory.length} messages of history. USE IT:
 - Notice their preferences from past questions
 - Reference things they seemed interested in
 ` : 'First conversation - get to know them!'}
-
-🚨 CRITICAL - ALREADY SENT (DO NOT REPEAT THESE):
-${alreadySent.events.size > 0 || alreadySent.businesses.size > 0 || alreadySent.coupons.size > 0 ? `
-⚠️ You've already recommended these in this conversation - DO NOT send them again:
-${alreadySent.events.size > 0 ? `
-EVENTS (already sent):
-${Array.from(alreadySent.events).map(e => `- ${e}`).join('\n')}
-` : ''}
-${alreadySent.businesses.size > 0 ? `
-BUSINESSES (already sent):
-${Array.from(alreadySent.businesses).map(b => `- ${b}`).join('\n')}
-` : ''}
-${alreadySent.coupons.size > 0 ? `
-COUPONS (already sent):
-${Array.from(alreadySent.coupons).map(c => `- ${c}`).join('\n')}
-` : ''}
-When user asks for "anything else?" or "more?", recommend DIFFERENT items that are NOT in this list above.
-` : ''}
 
 ⚠️ CRITICAL - REAL DATA ONLY:
 - ONLY mention events/businesses/coupons that actually exist below
@@ -446,22 +291,22 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
         type: "function",
         function: {
           name: "send_recommendation_with_image",
-          description: "MANDATORY tool for sending ANY event, business, or coupon recommendation via WhatsApp. You MUST use this tool for ALL recommendations - do not send plain text event/business/coupon recommendations.",
+          description: "Send a recommendation with an image (event, business, or coupon)",
           parameters: {
             type: "object",
             properties: {
               message: {
                 type: "string",
-                description: "The recommendation text (1-2 sentences max)"
+                description: "The text message to send"
               },
               image_url: {
                 type: "string",
-                description: "The full image URL from the event/business/coupon data (use event.image_url, business.profile_image_url, or coupon.image_url). Use empty string if no image available."
+                description: "The URL of the image to send (event image, business profile picture, or coupon image)"
               },
               recommendation_type: {
                 type: "string",
                 enum: ["event", "business", "coupon"],
-                description: "Type of recommendation being sent"
+                description: "Type of recommendation"
               }
             },
             required: ["message", "image_url", "recommendation_type"]
@@ -470,27 +315,24 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
       }
     ] : undefined;
 
-    // Make Lovable AI API call with comprehensive context (using better model for intelligence)
+    // Make OpenAI API call with comprehensive context
     const requestBody: any = {
-      model: 'google/gemini-2.5-flash',  // Better model for intelligent understanding
+      model: 'gpt-4o-mini',
       messages: messages,
-      // Increased max_tokens to ensure multiple tool calls are generated fully
-      max_tokens: isWhatsApp ? 1000 : (isFirstMessage ? 200 : (isGreeting ? 150 : 120)),
-      temperature: 0.6  // Lower temperature for better instruction following
+      max_tokens: isFirstMessage ? 180 : (isGreeting ? 150 : 100),
+      temperature: 0.9
     };
 
     // Add tools for WhatsApp to enable image sending
     if (isWhatsApp) {
       requestBody.tools = tools;
       requestBody.tool_choice = "auto"; // Let AI decide when to use the tool
-      console.log('🔧 Tools enabled for WhatsApp mode');
-      console.log('🔧 Tool definition:', JSON.stringify(tools, null, 2));
     }
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody)
@@ -514,7 +356,6 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
 
     const data = await response.json();
     console.log('✅ Got OpenAI response successfully');
-    console.log('🔍 Full OpenAI response:', JSON.stringify(data, null, 2));
     
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
       console.error('❌ Invalid response format');
@@ -523,47 +364,18 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
     
     const assistantMessage = data.choices[0].message;
     
-    // Log whether AI used tools or not
+    // Check if AI used the tool to send an image
     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-      console.log('🛠️ AI IS USING TOOL CALLS');
-      console.log('🔍 Tool calls:', JSON.stringify(assistantMessage.tool_calls, null, 2));
-    } else {
-      console.log('⚠️ WARNING: AI DID NOT USE TOOL CALLS - This is likely wrong for event recommendations!');
-      console.log('📝 Plain text response:', assistantMessage.content);
-    }
-    
-    // Check if AI used tools to send recommendations (can be multiple)
-    if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-      console.log('🛠️ AI IS USING MULTIPLE TOOL CALLS - Processing all recommendations');
-      
-      // Collect all recommendations
-      const recommendations = [];
-      
-      for (const toolCall of assistantMessage.tool_calls) {
-        if (toolCall.function.name === 'send_recommendation_with_image') {
-          try {
-            console.log('🔍 Raw tool call arguments (first 500 chars):', toolCall.function.arguments.substring(0, 500));
-            
-            const args = JSON.parse(toolCall.function.arguments);
-            console.log('🖼️ AI wants to send image:', args.image_url);
-            
-            recommendations.push({
-              message: args.message,
-              image_url: args.image_url,
-              recommendation_type: args.recommendation_type
-            });
-          } catch (parseError) {
-            console.error('❌ Failed to parse tool call arguments:', parseError);
-            console.error('Full tool call object:', JSON.stringify(toolCall, null, 2));
-          }
-        }
-      }
-      
-      // Return all recommendations as an array
-      if (recommendations.length > 0) {
+      const toolCall = assistantMessage.tool_calls[0];
+      if (toolCall.function.name === 'send_recommendation_with_image') {
+        const args = JSON.parse(toolCall.function.arguments);
+        console.log('🖼️ AI wants to send image:', args.image_url);
+        
         return new Response(
           JSON.stringify({ 
-            recommendations: recommendations, // Array of multiple recommendations
+            response: args.message,
+            image_url: args.image_url,
+            recommendation_type: args.recommendation_type,
             success: true 
           }),
           {

@@ -51,16 +51,6 @@ Deno.serve(async (req) => {
     const isNewConversation = conversationHistory.length === 0;
     console.log(`Found ${conversationHistory.length} messages in last 7 minutes for ${from}. Is new conversation: ${isNewConversation}`);
 
-    // Check if this is the very first time this phone number has texted (ever)
-    const { data: allHistory } = await supabase
-      .from('whatsapp_conversations')
-      .select('id')
-      .eq('phone_number', from)
-      .limit(1);
-
-    const isFirstTimeUser = !allHistory || allHistory.length === 0;
-    console.log(`Is first time user: ${isFirstTimeUser}`);
-
     // Check if message is a greeting OR a conversation starter
     const greetingPatterns = /^(hey|hi|hello|sup|yo|hola|what's up|whats up)[\s!?.]*$/i;
     const conversationStarterPatterns = /^(i'm looking for|i want|show me|find me|i need|looking for|what's|whats|tell me about|i'm into|im into|help me find)/i;
@@ -89,12 +79,7 @@ Deno.serve(async (req) => {
         content: body
       });
 
-      // Different welcome message for first-time users vs returning users
-      const welcomeMessage = isFirstTimeUser 
-        ? "Hey, welcome to Yara AI! If you're looking for indie events, hidden spots and exclusive deals in Buenos Aires- I got you. What vibe are you after?"
-        : "hey- what are you looking for?";
-      
-      console.log(`Sending ${isFirstTimeUser ? 'first-time' : 'returning'} user welcome message`);
+      const welcomeMessage = "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I'm here. What are you looking for?";
       
       // Store welcome response
       await supabase.from('whatsapp_conversations').insert({
@@ -136,74 +121,11 @@ Deno.serve(async (req) => {
 
     if (aiError) {
       console.error('AI assistant error:', aiError);
-      
-      // Return user-friendly error message
-      const errorResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>Sorry, I encountered an error processing your request.</Message>
-</Response>`;
-      
-      return new Response(errorResponse, {
-        headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
-        status: 200
-      });
+      throw aiError;
     }
 
-    // Check if we got multiple recommendations
-    const recommendations = aiResponse?.recommendations; // Array of recommendations
-    const singleResponse = aiResponse?.response; // Single text response (fallback)
-    
-    console.log('🔍 AI Response check:', { 
-      hasRecommendations: !!recommendations, 
-      count: recommendations?.length || 0,
-      hasSingleResponse: !!singleResponse 
-    });
-    
-    if (recommendations && recommendations.length > 0) {
-      console.log(`📸 Building TwiML for ${recommendations.length} recommendations`);
-      
-      // Store all recommendations in conversation history
-      for (const rec of recommendations) {
-        await supabase.from('whatsapp_conversations').insert({
-          phone_number: from,
-          role: 'assistant',
-          content: rec.message
-        });
-      }
-      
-      // Build TwiML with multiple <Message> tags
-      let twimlMessages = '';
-      for (const rec of recommendations) {
-        console.log(`Adding to TwiML: ${rec.message.substring(0, 50)}... | Image: ${rec.image_url ? 'Yes' : 'No'}`);
-        
-        if (rec.image_url) {
-          twimlMessages += `
-  <Message>
-    <Body>${rec.message}</Body>
-    <Media>${rec.image_url}</Media>
-  </Message>`;
-        } else {
-          twimlMessages += `
-  <Message>${rec.message}</Message>`;
-        }
-      }
-      
-      const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>${twimlMessages}
-</Response>`;
-      
-      console.log('✅ Sending TwiML with multiple messages');
-      console.log('TwiML:', twimlResponse);
-      
-      return new Response(twimlResponse, {
-        headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
-        status: 200
-      });
-    }
-    
-    // Fallback to single response (backward compatibility)
-    const assistantMessage = singleResponse || 'Sorry, I encountered an error processing your request.';
-    const imageUrl = aiResponse?.image_url;
+    const assistantMessage = aiResponse?.response || 'Sorry, I encountered an error processing your request.';
+    const imageUrl = aiResponse?.image_url; // Check if AI included an image
     console.log('AI response:', assistantMessage);
     if (imageUrl) {
       console.log('📸 Image URL to send:', imageUrl);
