@@ -132,7 +132,8 @@ serve(async (req) => {
     const assistantMessage = data.choices?.[0]?.message;
 
     if (!assistantMessage) {
-      console.error('❌ Invalid OpenAI response');
+      console.error('❌ Invalid OpenAI response - no message in choices');
+      console.error('Full response:', JSON.stringify(data));
       return new Response(
         JSON.stringify({ 
           response: "Something went wrong. Please try again.",
@@ -144,9 +145,18 @@ serve(async (req) => {
 
     console.log('🔍 Response analysis:', {
       hasContent: !!assistantMessage.content,
+      contentLength: assistantMessage.content?.length || 0,
       hasToolCalls: !!assistantMessage.tool_calls,
-      toolCallsCount: assistantMessage.tool_calls?.length || 0
+      toolCallsCount: assistantMessage.tool_calls?.length || 0,
+      finishReason: data.choices?.[0]?.finish_reason
     });
+
+    // Log if response is empty
+    if (!assistantMessage.content && !assistantMessage.tool_calls) {
+      console.error('❌ EMPTY RESPONSE from OpenAI');
+      console.error('Full assistant message:', JSON.stringify(assistantMessage));
+      console.error('Finish reason:', data.choices?.[0]?.finish_reason);
+    }
 
     // Handle tool calls (recommendations with images)
     if (assistantMessage.tool_calls?.length > 0) {
