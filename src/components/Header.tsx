@@ -36,7 +36,6 @@ const Header = ({
   const { openNewItem } = useNewItem();
   const { openSearch } = useSearch();
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('All');
-  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const neighborhoods = [
     'All',
@@ -73,7 +72,7 @@ const Header = ({
           
           {/* Center - Neighborhood Dropdown */}
           <div className="flex-1 flex justify-center px-4">
-            <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+            <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="outline" 
@@ -90,7 +89,6 @@ const Header = ({
                     key={neighborhood}
                     onClick={() => {
                       setSelectedNeighborhood(neighborhood);
-                      setDropdownOpen(false);
                     }}
                     className="cursor-pointer hover:bg-accent"
                   >
