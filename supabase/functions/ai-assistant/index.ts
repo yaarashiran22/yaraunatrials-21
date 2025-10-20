@@ -17,12 +17,12 @@ serve(async (req) => {
 
   try {
     const { message, userLocation, conversationHistory, userProfile, isWhatsApp } = await req.json();
-    console.log('AI Assistant v9.0 - Conversational & Context-Aware - Processing:', { message, userLocation, historyLength: conversationHistory?.length, hasUserProfile: !!userProfile, isWhatsApp });
+    console.log('AI Assistant v10.0 - Super Intelligent - Processing:', { message, userLocation, historyLength: conversationHistory?.length, hasUserProfile: !!userProfile, isWhatsApp });
     
-    // Get Lovable AI API key (better than OpenAI for this use case)
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableApiKey) {
-      console.error('❌ Lovable AI API key not found');
+    // Get OpenAI API key
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIApiKey) {
+      console.error('❌ OpenAI API key not found');
       return new Response(
         JSON.stringify({ 
           response: "I'm having configuration issues. Please try again later.",
@@ -33,7 +33,7 @@ serve(async (req) => {
       );
     }
     
-    console.log('✅ Lovable AI key found! Fetching comprehensive data from TheUnaHub...');
+    console.log('✅ OpenAI key found! Fetching comprehensive data from TheUnaHub...');
 
     // Initialize Supabase client
     const supabase = createClient(
@@ -470,13 +470,13 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
       }
     ] : undefined;
 
-    // Make Lovable AI API call with comprehensive context (using better model for intelligence)
+    // Make OpenAI API call with comprehensive context (using gpt-4o for better intelligence)
     const requestBody: any = {
-      model: 'google/gemini-2.5-flash',  // Better model for intelligent understanding
+      model: 'gpt-4o',  // Better model for intelligent understanding
       messages: messages,
       // Increased max_tokens to ensure multiple tool calls are generated fully
-      max_tokens: isWhatsApp ? 1000 : (isFirstMessage ? 200 : (isGreeting ? 150 : 120)),
-      temperature: 0.6  // Lower temperature for better instruction following
+      max_tokens: isWhatsApp ? 1200 : (isFirstMessage ? 200 : (isGreeting ? 150 : 120)),
+      temperature: 0.5  // Lower temperature for better instruction following
     };
 
     // Add tools for WhatsApp to enable image sending
@@ -487,10 +487,10 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
       console.log('🔧 Tool definition:', JSON.stringify(tools, null, 2));
     }
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody)
