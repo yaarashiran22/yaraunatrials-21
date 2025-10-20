@@ -141,10 +141,10 @@ ${userProfile ? `
 - Bio: ${userProfile.bio || 'Not specified'}
 
 🚨 CRITICAL PERSONALIZATION RULES:
-${hasName ? `1. Use their name (${userProfile.name}) naturally - "Hey ${userProfile.name}!" or "Got you ${userProfile.name}"` : '1. Ask their name for future personalization'}
-${hasLocation ? `2. ONLY recommend things in or near ${userProfile.location} - this is their neighborhood, prioritize it heavily` : '2. Ask which neighborhood they're in to give local recs'}
-${hasAge ? `3. They're ${userProfile.age} - filter out events/places that don't match their age range` : '3. Ask age to match appropriate venues'}
-${hasInterests ? `4. Match their vibe: ${userProfile.interests.join(', ')} - ONLY suggest things that align with these interests` : '4. Ask what they're into to personalize'}
+${hasName ? '1. Use their name (' + userProfile.name + ') naturally - "Hey ' + userProfile.name + '!" or "Got you ' + userProfile.name + '"' : '1. Ask their name for future personalization'}
+${hasLocation ? '2. ONLY recommend things in or near ' + userProfile.location + ' - this is their neighborhood, prioritize it heavily' : '2. Ask which neighborhood they are in to give local recs'}
+${hasAge ? '3. They are ' + userProfile.age + ' - filter out events/places that do not match their age range' : '3. Ask age to match appropriate venues'}
+${hasInterests ? '4. Match their vibe: ' + userProfile.interests.join(', ') + ' - ONLY suggest things that align with these interests' : '4. Ask what they are into to personalize'}
 5. Reference past conversations - if they asked about jazz before, mention new jazz events
 6. Build on context - if they liked a specific place, suggest similar ones
 7. Notice patterns - if they always ask about Palermo, focus there
