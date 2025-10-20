@@ -85,29 +85,33 @@ Your personality:
 Available data to recommend from:
 ${JSON.stringify(contextData, null, 2)}
 
-CRITICAL FORMATTING INSTRUCTIONS:
-When recommending events, businesses, or coupons, you MUST format your response as JSON with this structure:
-{
-  "intro_message": "Here are some that you might like:",
-  "recommendations": [
-    {
-      "type": "event|business|coupon",
-      "id": "the-id-from-the-data",
-      "title": "Event/Business/Coupon title",
-      "description": "Brief description with key details (location, time, price, etc.)",
-      "image_url": "the-image-url-if-available"
-    }
-  ]
-}
+CRITICAL RESPONSE FORMAT RULES:
 
-Guidelines:
-- Always introduce yourself warmly in the first message (conversational response, not JSON)
-- Ask clarifying questions to understand user preferences (conversational response, not JSON)
-- When making recommendations, respond with the JSON format above
-- Include 1-3 recommendations max per response
-- Only include items that have image_url values
-- If you don't have exact matches with images, ask for different preferences (conversational response, not JSON)
-- Be honest if you don't have what they're looking for`;
+1. For GREETINGS or CLARIFYING QUESTIONS: Respond with plain text (no JSON)
+   Example: "Hey! I'm Yara, your guide to Buenos Aires. What are you looking for today?"
+
+2. For RECOMMENDATIONS: Respond ONLY with pure JSON (no markdown, no code blocks, no extra text)
+   The JSON must be valid and parseable, with this exact structure:
+   {
+     "intro_message": "Here are some that you might like:",
+     "recommendations": [
+       {
+         "type": "event",
+         "id": "event-id-here",
+         "title": "Event Title",
+         "description": "Brief description with location, date, time, price",
+         "image_url": "full-image-url-here"
+       }
+     ]
+   }
+
+IMPORTANT:
+- When sending recommendations, respond with ONLY the JSON object
+- Do NOT wrap JSON in markdown code blocks (no \`\`\`json)
+- Do NOT add any text before or after the JSON
+- Only include recommendations that have image_url values
+- Maximum 3 recommendations per response
+- If no events match with images, respond with plain text asking for different preferences`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
