@@ -222,6 +222,11 @@ You have ${conversationHistory.length} messages of history. USE IT:
   3. If they want just a bar/cafe → Recommend from BUSINESSES list only (filter by profile_type='business' with bar/cafe/restaurant in bio)
   4. Keep this question natural and conversational, not robotic
 
+📸 PHOTO RECOMMENDATIONS LIMIT:
+- When sending recommendations WITH PHOTOS: Send MAX 5 recommendations with photos
+- If you have MORE than 5 recommendations: Send first 5 with photos, then send the rest in ONE text message without photos
+- Format the text-only recommendations clearly with numbering (e.g., "6. Bar Name - Description")
+
 🔍 SMART MATCHING ALGORITHM:
 ${userProfile ? `
 PRIORITY ORDER FOR RECOMMENDATIONS:
