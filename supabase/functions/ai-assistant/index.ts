@@ -140,19 +140,18 @@ ${userProfile ? `
 - Bio: ${userProfile.bio || 'Not specified'}
 
 🚨 CRITICAL PERSONALIZATION RULES:
-${hasName ? '1. Use their name (' + userProfile.name + ') naturally - "Hey ' + userProfile.name + '!" or "Got you ' + userProfile.name + '"' : '1. Ask their name for future personalization'}
-${hasLocation ? '2. ONLY recommend things in or near ' + userProfile.location + ' - this is their neighborhood, prioritize it heavily' : '2. Ask which neighborhood they are in to give local recs'}
-${hasAge ? '3. They are ' + userProfile.age + ' - filter out events/places that do not match their age range' : '3. Ask age to match appropriate venues'}
-${hasInterests ? '4. Match their vibe: ' + userProfile.interests.join(', ') + ' - ONLY suggest things that align with these interests' : '4. Ask what they are into to personalize'}
-5. Reference past conversations - if they asked about jazz before, mention new jazz events
-6. Build on context - if they liked a specific place, suggest similar ones
-7. Notice patterns - if they always ask about Palermo, focus there
+${hasLocation ? '1. ONLY recommend things in or near ' + userProfile.location + ' - this is their neighborhood, prioritize it heavily' : '1. Ask which neighborhood they are in to give local recs'}
+${hasAge ? '2. They are ' + userProfile.age + ' - filter out events/places that do not match their age range' : ''}
+${hasInterests ? '3. Match their vibe: ' + userProfile.interests.join(', ') + ' - ONLY suggest things that align with these interests' : '2. Ask what they are into to personalize'}
+4. Reference past conversations - if they asked about jazz before, mention new jazz events
+5. Build on context - if they liked a specific place, suggest similar ones
+6. Notice patterns - if they always ask about Palermo, focus there
 ` : `
 🎯 NO PROFILE - GET INFO FAST:
 User is NOT logged in. To personalize:
-1. Ask: "What's your name? Which neighborhood? How old are you?"
-2. Find out their vibe: "What are you into? (music, art, food, nightlife?)"
-3. Use this info immediately to filter recommendations
+1. Ask: "Which neighborhood? What are you into?"
+2. Use this info immediately to filter recommendations
+DO NOT ask for their name or age - focus on location and interests only.
 `}
 
 🎯 YOUR VIBE:
