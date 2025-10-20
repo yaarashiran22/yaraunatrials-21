@@ -53,7 +53,7 @@ serve(async (req) => {
       storiesData,
       businessProfilesData
     ] = await Promise.all([
-      supabase.from('events').select('id, title, description, location, date, time, price, mood, event_type, image_url').gte('date', new Date().toISOString().split('T')[0]).order('date', { ascending: true }).limit(8),
+      supabase.from('events').select('id, title, description, location, date, time, price, mood, event_type, image_url, target_audience, music_type, venue_size, price_range').gte('date', new Date().toISOString().split('T')[0]).order('date', { ascending: true }).limit(8),
       supabase.from('communities').select('id, name, tagline, description, category, subcategory, member_count').limit(6),
       supabase.from('posts').select('id, content, location, created_at').limit(5),
       supabase.from('items').select('id, title, description, category, location, price').eq('status', 'active').limit(6),
@@ -198,9 +198,12 @@ ${userProfile ? `
 PRIORITY ORDER FOR RECOMMENDATIONS:
 1. ${hasLocation ? `Must be in ${userProfile.location} (or walking distance)` : 'Ask neighborhood first'}
 2. ${hasInterests && userProfile.interests.length > 0 ? `Must match at least one interest: ${userProfile.interests.join(', ')}` : 'Ask interests to filter'}
-3. ${hasAge ? `Must be age-appropriate for ${userProfile.age}` : 'Ask age to avoid mismatches'}
-4. Check conversation history - don't repeat, build on what they liked
-5. If they asked for specifics (e.g., "jazz"), ONLY show jazz - don't show other stuff
+3. ${hasAge ? `Filter events by target_audience - user is ${userProfile.age}, so recommend events that match their age group` : 'Ask age to avoid mismatches'}
+4. Match music preferences if user mentioned specific genres
+5. Match venue size to user preferences (intimate for smaller groups, big for parties)
+6. Match price_range to user budget (cheap/moderate/expensive)
+7. Check conversation history - don't repeat, build on what they liked
+8. If they asked for specifics (e.g., "jazz"), ONLY show events with that music_type
 ` : `Ask: "What neighborhood? Age? Interests?" then match based on that`}
 
 🎯 REAL DATA:
@@ -209,7 +212,7 @@ PRIORITY ORDER FOR RECOMMENDATIONS:
 ALL events listed below are happening TODAY OR IN THE FUTURE. NEVER mention past events. If a user asks about something that already happened, say "that was in the past, but here's what's coming up..."
 
 📅 EVENTS (${realData.currentEvents.length}) - ALL UPCOMING:
-${realData.currentEvents.length > 0 ? realData.currentEvents.map(e => `- "${e.title}" at ${e.location} on ${e.date} ${e.time ? 'at ' + e.time : ''} ${e.price ? '($' + e.price + ')' : ''}${e.image_url ? ` [IMAGE: ${e.image_url}]` : ''} - ${e.description?.substring(0, 100)}...`).join('\n') : 'Nothing upcoming rn.'}
+${realData.currentEvents.length > 0 ? realData.currentEvents.map(e => `- "${e.title}" at ${e.location} on ${e.date} ${e.time ? 'at ' + e.time : ''}${e.target_audience ? ` (Ages: ${e.target_audience})` : ''}${e.music_type ? ` | Music: ${e.music_type}` : ''}${e.venue_size ? ` | Venue: ${e.venue_size}` : ''}${e.price_range ? ` | Price: ${e.price_range}` : e.price ? ` ($${e.price})` : ''}${e.image_url ? ` [IMAGE: ${e.image_url}]` : ''} - ${e.description?.substring(0, 100)}...`).join('\n') : 'Nothing upcoming rn.'}
 
 🏢 BUSINESSES (${realData.businessProfiles.length}):
 ${realData.businessProfiles.length > 0 ? realData.businessProfiles.map(b => `- "${b.name}"${b.age ? ` (ages ${b.age}+)` : ''} in ${b.location || 'location'}${b.profile_image_url ? ` [IMAGE: ${b.profile_image_url}]` : ''} - ${b.bio?.substring(0, 100)}...${b.specialties?.length > 0 ? ' - Vibe: ' + b.specialties.join(', ') : ''}${b.whatsapp_number ? ' - WhatsApp: ' + b.whatsapp_number : ''}`).join('\n') : 'Nothing rn.'}

@@ -144,11 +144,15 @@ export type Database = {
           location: string | null
           market: string | null
           mood: string | null
+          music_type: string | null
           price: string | null
+          price_range: string | null
+          target_audience: string | null
           time: string | null
           title: string
           updated_at: string | null
           user_id: string | null
+          venue_size: string | null
           video_url: string | null
         }
         Insert: {
@@ -162,11 +166,15 @@ export type Database = {
           location?: string | null
           market?: string | null
           mood?: string | null
+          music_type?: string | null
           price?: string | null
+          price_range?: string | null
+          target_audience?: string | null
           time?: string | null
           title: string
           updated_at?: string | null
           user_id?: string | null
+          venue_size?: string | null
           video_url?: string | null
         }
         Update: {
@@ -180,11 +188,15 @@ export type Database = {
           location?: string | null
           market?: string | null
           mood?: string | null
+          music_type?: string | null
           price?: string | null
+          price_range?: string | null
+          target_audience?: string | null
           time?: string | null
           title?: string
           updated_at?: string | null
           user_id?: string | null
+          venue_size?: string | null
           video_url?: string | null
         }
         Relationships: []

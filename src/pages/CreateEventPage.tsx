@@ -25,6 +25,10 @@ const CreateEventPage = () => {
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
   const [price, setPrice] = useState("");
+  const [targetAudience, setTargetAudience] = useState("");
+  const [musicType, setMusicType] = useState("");
+  const [venueSize, setVenueSize] = useState("");
+  const [priceRange, setPriceRange] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -178,6 +182,58 @@ const CreateEventPage = () => {
               placeholder="חינם / 50 ₪"
               className="w-full h-12 text-right bg-card border-2 border-border rounded-full"
             />
+          </div>
+
+          {/* Target Audience Field */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground block text-right">קהל יעד (גילאים)</label>
+            <Input 
+              value={targetAudience}
+              onChange={(e) => setTargetAudience(e.target.value)}
+              placeholder="לדוגמה: 18-25, 25-35, כל הגילאים"
+              className="w-full h-12 text-right bg-card border-2 border-border rounded-full"
+            />
+          </div>
+
+          {/* Music Type Field */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground block text-right">סוג מוזיקה</label>
+            <Input 
+              value={musicType}
+              onChange={(e) => setMusicType(e.target.value)}
+              placeholder="לדוגמה: ג'אז, טכנו, רוק אינדי"
+              className="w-full h-12 text-right bg-card border-2 border-border rounded-full"
+            />
+          </div>
+
+          {/* Venue Size Field */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground block text-right">גודל המקום</label>
+            <select
+              value={venueSize}
+              onChange={(e) => setVenueSize(e.target.value)}
+              className="w-full h-12 text-right bg-card border-2 border-border rounded-full px-4"
+            >
+              <option value="">בחר גודל מקום</option>
+              <option value="intimate">אינטימי (עד 50 איש)</option>
+              <option value="moderate">בינוני (עד 100 איש)</option>
+              <option value="big">גדול (100+ איש)</option>
+            </select>
+          </div>
+
+          {/* Price Range Field */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground block text-right">טווח מחירים</label>
+            <select
+              value={priceRange}
+              onChange={(e) => setPriceRange(e.target.value)}
+              className="w-full h-12 text-right bg-card border-2 border-border rounded-full px-4"
+            >
+              <option value="">בחר טווח מחירים</option>
+              <option value="cheap">זול</option>
+              <option value="moderate">בינוני</option>
+              <option value="expensive">יקר</option>
+            </select>
           </div>
 
           {/* Image Upload Field */}
