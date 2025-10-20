@@ -133,33 +133,57 @@ Deno.serve(async (req) => {
       throw aiError;
     }
 
-    // Extract AI response from the SSE stream response
+    // Extract AI response
     let assistantMessage = '';
     if (aiResponse) {
-      // The response is already the complete message from the streaming
       assistantMessage = aiResponse.message || 'Sorry, I encountered an error processing your request.';
     }
 
-    console.log('Yara AI response:', assistantMessage.substring(0, 100) + '...');
+    console.log('Yara AI raw response:', assistantMessage);
 
-    // Store assistant response
-    await supabase.from('whatsapp_conversations').insert({
-      phone_number: from,
-      role: 'assistant',
-      content: assistantMessage
-    });
+    // Try to parse as JSON (clean up any markdown code blocks first)
+    let cleanedMessage = assistantMessage.trim();
+    
+    // Remove markdown code blocks if present
+    if (cleanedMessage.startsWith('```json')) {
+      cleanedMessage = cleanedMessage.replace(/```json\n?/g, '').replace(/```\n?$/g, '').trim();
+    } else if (cleanedMessage.startsWith('```')) {
+      cleanedMessage = cleanedMessage.replace(/```\n?/g, '').trim();
+    }
 
-    // Check if response is JSON with recommendations
     let parsedResponse;
     try {
-      parsedResponse = JSON.parse(assistantMessage);
-    } catch {
+      parsedResponse = JSON.parse(cleanedMessage);
+      console.log('Successfully parsed JSON response:', JSON.stringify(parsedResponse));
+    } catch (e) {
       // Not JSON, just a regular conversational response
+      console.log('Response is not JSON, treating as conversational text');
       parsedResponse = null;
     }
 
-    if (parsedResponse && parsedResponse.recommendations && parsedResponse.recommendations.length > 0) {
-      // Send intro message first via TwiML
+
+    // Handle recommendations with images
+    if (parsedResponse && parsedResponse.recommendations && Array.isArray(parsedResponse.recommendations) && parsedResponse.recommendations.length > 0) {
+      console.log(`Found ${parsedResponse.recommendations.length} recommendations to send`);
+      
+      // Store the assistant message
+      await supabase.from('whatsapp_conversations').insert({
+        phone_number: from,
+        role: 'assistant',
+        content: JSON.stringify(parsedResponse)
+      });
+
+      // Get Twilio credentials
+      const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
+
+      if (!twilioAccountSid || !twilioAuthToken) {
+        console.error('Missing Twilio credentials');
+        throw new Error('Twilio credentials not configured');
+      }
+
+      // Send intro message via TwiML (this will be the immediate response)
       const welcomeText = welcomeMessageSent ? "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
       const introMessage = welcomeText + (parsedResponse.intro_message || 'Here are some that you might like:');
       
@@ -168,18 +192,15 @@ Deno.serve(async (req) => {
   <Message>${introMessage}</Message>
 </Response>`;
 
-      // Get Twilio credentials
-      const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-      const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-      const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
-
-      if (twilioAccountSid && twilioAuthToken) {
-        // Send follow-up messages with images using Twilio API
+      // Send follow-up messages with images asynchronously (don't await - let them send in background)
+      const sendRecommendations = async () => {
         for (const rec of parsedResponse.recommendations) {
-          if (rec.image_url) {
+          if (rec.image_url && rec.title && rec.description) {
             const messageBody = `*${rec.title}*\n\n${rec.description}`;
             
             try {
+              console.log(`Sending recommendation: ${rec.title}`);
+              
               const twilioResponse = await fetch(
                 `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
                 {
@@ -201,19 +222,22 @@ Deno.serve(async (req) => {
                 const errorText = await twilioResponse.text();
                 console.error('Twilio API error:', twilioResponse.status, errorText);
               } else {
-                console.log(`Sent recommendation: ${rec.title}`);
+                console.log(`Successfully sent: ${rec.title}`);
               }
             } catch (error) {
               console.error('Error sending Twilio message:', error);
             }
 
-            // Small delay between messages to avoid rate limits
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Delay between messages to avoid rate limits
+            await new Promise(resolve => setTimeout(resolve, 800));
           }
         }
-      }
+      };
 
-      console.log('Sending intro TwiML response');
+      // Start sending recommendations in background
+      sendRecommendations().catch(err => console.error('Error sending recommendations:', err));
+
+      console.log('Returning intro TwiML response');
       return new Response(introTwiml, {
         headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
         status: 200
@@ -221,6 +245,15 @@ Deno.serve(async (req) => {
     }
 
     // Regular conversational response (no recommendations)
+    console.log('Sending conversational response');
+    
+    // Store the assistant message
+    await supabase.from('whatsapp_conversations').insert({
+      phone_number: from,
+      role: 'assistant',
+      content: assistantMessage
+    });
+
     const welcomeText = welcomeMessageSent ? "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
     
     const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
