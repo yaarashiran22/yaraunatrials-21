@@ -75,6 +75,39 @@ Deno.serve(async (req) => {
       content: body
     });
 
+    // Send typing indicator to show bot is processing
+    // Note: WhatsApp Business API via Twilio doesn't support native "..." typing bubbles
+    // But we can send an immediate reaction to acknowledge receipt
+    const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+    const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+    const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
+
+    if (twilioAccountSid && twilioAuthToken && twilioWhatsAppNumber) {
+      try {
+        // Send a quick reaction emoji to acknowledge receipt (best we can do with WhatsApp API)
+        await fetch(
+          `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              From: twilioWhatsAppNumber,
+              To: from,
+              Body: '👀' // Quick acknowledgment
+            }).toString()
+          }
+        );
+        console.log('✅ Sent typing acknowledgment');
+      } catch (error) {
+        console.log('⚠️ Could not send typing indicator:', error);
+        // Continue anyway - not critical
+      }
+    }
+
+
     // Call the AI assistant function with history and profile
     const { data: aiResponse, error: aiError } = await supabase.functions.invoke('ai-assistant', {
       body: { 
@@ -145,24 +178,39 @@ ${twimlMessages}</Response>`;
     }
 
     // Single message responses (no recommendations)
-    const assistantMessage = aiResponse?.response || 'Hey! I got your message. What can I help you find?';
-    console.log('Single message response:', assistantMessage);
+    // 🚨 CRITICAL: AI must ALWAYS generate real content, never empty
+    if (!aiResponse?.response || !aiResponse.response.trim()) {
+      console.error('❌ AI returned empty response - this should never happen');
+      console.error('AI Response:', JSON.stringify(aiResponse));
+      
+      // Log for debugging but still try to recover
+      const errorMessage = 'Sorry, I had a hiccup. Can you rephrase that?';
+      await supabase.from('whatsapp_conversations').insert({
+        phone_number: from,
+        role: 'assistant',
+        content: errorMessage
+      });
+      
+      return new Response(
+        `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${errorMessage}</Message></Response>`,
+        { headers: { ...corsHeaders, 'Content-Type': 'text/xml' }, status: 200 }
+      );
+    }
 
-    // 🚨 CRITICAL: If we got here and assistantMessage is empty, something went wrong
-    // Ensure we ALWAYS send something back
-    const finalMessage = assistantMessage.trim() || 'Hey! I\'m here. What are you looking for?';
+    const assistantMessage = aiResponse.response;
+    console.log('Single message response:', assistantMessage);
 
     // Store assistant response
     await supabase.from('whatsapp_conversations').insert({
       phone_number: from,
       role: 'assistant',
-      content: finalMessage
+      content: assistantMessage
     });
 
     // Return TwiML response
     const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>${finalMessage}</Message>
+  <Message>${assistantMessage}</Message>
 </Response>`;
 
     console.log('Sending TwiML response');
