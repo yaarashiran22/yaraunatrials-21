@@ -37,18 +37,23 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get conversation history for this phone number (last 20 messages, last 24 hours)
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: history } = await supabase
+    // Check for recent conversation (last 2 hours)
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const { data: recentHistory } = await supabase
       .from('whatsapp_conversations')
-      .select('role, content')
+      .select('role, content, created_at')
       .eq('phone_number', from)
-      .gte('created_at', twentyFourHoursAgo)
+      .gte('created_at', twoHoursAgo)
       .order('created_at', { ascending: true })
       .limit(20);
 
-    const conversationHistory = history || [];
-    console.log(`Found ${conversationHistory.length} previous messages for ${from}`);
+    const conversationHistory = recentHistory || [];
+    const isNewConversation = conversationHistory.length === 0;
+    console.log(`Found ${conversationHistory.length} messages in last 2 hours for ${from}. Is new conversation: ${isNewConversation}`);
+
+    // Check if message is a greeting
+    const greetingPatterns = /^(hey|hi|hello|sup|yo|hola|what's up|whats up)[\s!?.]*$/i;
+    const isGreeting = greetingPatterns.test(body.trim());
 
     // Try to find user profile by WhatsApp number
     const { data: profile } = await supabase
@@ -58,6 +63,38 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     console.log('User profile:', profile ? `Found profile for ${profile.name}` : 'No profile found');
+
+    // If it's a new conversation or just a greeting after inactivity, send welcome message
+    if (isNewConversation || (isGreeting && conversationHistory.length === 0)) {
+      console.log('Sending welcome message for new conversation');
+      
+      // Store user message
+      await supabase.from('whatsapp_conversations').insert({
+        phone_number: from,
+        role: 'user',
+        content: body
+      });
+
+      const welcomeMessage = "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I'm here. What are you looking for?";
+      
+      // Store welcome response
+      await supabase.from('whatsapp_conversations').insert({
+        phone_number: from,
+        role: 'assistant',
+        content: welcomeMessage
+      });
+
+      // Return TwiML response
+      const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${welcomeMessage}</Message>
+</Response>`;
+
+      return new Response(twimlResponse, {
+        headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+        status: 200
+      });
+    }
 
     // Store user message
     await supabase.from('whatsapp_conversations').insert({
@@ -75,6 +112,7 @@ Deno.serve(async (req) => {
         userProfile: profile || null,
         isWhatsApp: true  // Enable ultra-short WhatsApp mode
       }
+
     });
 
     if (aiError) {
