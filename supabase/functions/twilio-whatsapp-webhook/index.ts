@@ -193,14 +193,16 @@ Deno.serve(async (req) => {
   <Message>${introMessage}</Message>
 </Response>`;
 
-      // Send follow-up messages with images asynchronously (don't await - let them send in background)
+      // Send follow-up messages with images as background task
       const sendRecommendations = async () => {
-        for (const rec of parsedResponse.recommendations) {
+        console.log('Starting to send recommendations...');
+        for (let i = 0; i < parsedResponse.recommendations.length; i++) {
+          const rec = parsedResponse.recommendations[i];
           if (rec.image_url && rec.title && rec.description) {
             const messageBody = `*${rec.title}*\n\n${rec.description}`;
             
             try {
-              console.log(`Sending recommendation: ${rec.title}`);
+              console.log(`[${i+1}/${parsedResponse.recommendations.length}] Sending: ${rec.title}`);
               
               const twilioResponse = await fetch(
                 `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
@@ -221,22 +223,36 @@ Deno.serve(async (req) => {
 
               if (!twilioResponse.ok) {
                 const errorText = await twilioResponse.text();
-                console.error('Twilio API error:', twilioResponse.status, errorText);
+                console.error(`Twilio error for ${rec.title}:`, twilioResponse.status, errorText);
               } else {
-                console.log(`Successfully sent: ${rec.title}`);
+                const result = await twilioResponse.json();
+                console.log(`✓ Sent ${rec.title}. SID: ${result.sid}`);
               }
             } catch (error) {
-              console.error('Error sending Twilio message:', error);
+              console.error(`Error sending ${rec.title}:`, error);
             }
 
-            // Delay between messages to avoid rate limits
-            await new Promise(resolve => setTimeout(resolve, 800));
+            // Delay between messages
+            if (i < parsedResponse.recommendations.length - 1) {
+              console.log('Waiting 1 second before next message...');
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          } else {
+            console.log(`Skipping recommendation ${i+1}: missing image_url or content`);
           }
         }
+        console.log('Finished sending all recommendations');
       };
 
-      // Start sending recommendations in background
-      sendRecommendations().catch(err => console.error('Error sending recommendations:', err));
+      // Use EdgeRuntime.waitUntil to ensure background task completes
+      try {
+        EdgeRuntime.waitUntil(sendRecommendations());
+        console.log('Background task registered');
+      } catch (error) {
+        console.error('Error registering background task:', error);
+        // If EdgeRuntime.waitUntil is not available, just await it
+        await sendRecommendations();
+      }
 
       console.log('Returning intro TwiML response');
       return new Response(introTwiml, {
