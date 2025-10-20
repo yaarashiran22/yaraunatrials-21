@@ -22,6 +22,38 @@ async function handleUserQuery(userMessage: string, userPhone: string) {
       return "I'm having configuration issues. Please try again later.";
     }
 
+    // Check if we should reset the conversation (if last message was more than 2 hours ago)
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const { data: recentMessages } = await supabase
+      .from('whatsapp_conversations')
+      .select('created_at')
+      .eq('phone_number', userPhone)
+      .gt('created_at', twoHoursAgo)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const isNewConversation = !recentMessages || recentMessages.length === 0;
+    const isGreeting = userMessage.toLowerCase().trim() === 'hey';
+    
+    // If it's a new conversation or just "hey" after 2h+ silence, start fresh
+    if ((isNewConversation || isGreeting) && isGreeting) {
+      await supabase.from('whatsapp_conversations').insert({
+        phone_number: userPhone,
+        role: 'user',
+        content: userMessage
+      });
+      
+      const welcomeMessage = "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I'm here. What are you looking for?";
+      
+      await supabase.from('whatsapp_conversations').insert({
+        phone_number: userPhone,
+        role: 'assistant',
+        content: welcomeMessage
+      });
+      
+      return welcomeMessage;
+    }
+
     // Fetch comprehensive data from ALL relevant tables in parallel (same as AI assistant)
     const [
       eventsData,
@@ -62,7 +94,7 @@ async function handleUserQuery(userMessage: string, userPhone: string) {
     };
 
     // Create detailed system prompt (same style as AI assistant)
-    const systemPrompt = `You are Yara, TheUnaHub's vibe curator via WhatsApp. Keep it real, direct, and chill - like texting your artsy friend who knows the scene.
+    const systemPrompt = `You are Yara ai's assistant via WhatsApp. Keep it real, direct, and chill - like texting your artsy friend who knows Buenos Aires' indie scene.
 
 🎯 REAL DATA:
 
@@ -88,16 +120,16 @@ ${realData.neighborQuestions.map(q => `- ${q.content?.substring(0, 80)}...`).joi
 ${realData.localCoupons.map(c => `- "${c.title}" at ${c.business_name} - ${c.discount_amount}% OFF${c.coupon_code ? ` - Code: ${c.coupon_code}` : ''}`).join('\n')}
 
 🤖 WHATSAPP VIBE:
-1. SUPER SHORT responses (1-2 sentences)
-2. Be direct - straight to the point
-3. Use casual WhatsApp language (tbh, ngl, def, lowkey, fr)
-4. ONLY mention real stuff from data above
-5. When users ask about places to go out/things to do: recommend BOTH events AND businesses that match their vibe
-6. When sharing business info, mention their WhatsApp number if available
-7. When sharing coupon codes, just drop the code naturally
-8. If nothing matches: "nothing rn"
-9. Sound indie/bohemian but authentic
-10. Use WhatsApp formatting (*bold*, _italic_) sparingly`;
+1. BE SUPER DIRECT - max 1-2 sentences, no fluff
+2. Cut to the chase - give specific recommendations immediately
+3. Use casual language but stay focused
+4. ONLY recommend real things from the data above
+5. For places to go: suggest BOTH events AND businesses that fit
+6. Include WhatsApp numbers when sharing businesses
+7. Drop coupon codes naturally when relevant
+8. If nothing matches: "nothing rn that fits"
+9. Sound authentic and indie, but keep it brief
+10. Minimal formatting - just the facts`;
 
     console.log('🤖 Calling OpenAI with comprehensive data context...');
 
@@ -114,8 +146,8 @@ ${realData.localCoupons.map(c => `- "${c.title}" at ${c.business_name} - ${c.dis
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage }
         ],
-        max_tokens: 80,
-        temperature: 0.9
+        max_tokens: 60,
+        temperature: 0.7
       })
     });
 
@@ -174,7 +206,21 @@ serve(async (req) => {
     // Process the user's message and get AI response
     const responseMessage = await handleUserQuery(messageText, userPhone)
     
-    // Log the interaction to database
+    // Log the conversation
+    await supabase.from('whatsapp_conversations').insert([
+      {
+        phone_number: userPhone,
+        role: 'user',
+        content: messageText
+      },
+      {
+        phone_number: userPhone,
+        role: 'assistant',
+        content: responseMessage
+      }
+    ])
+    
+    // Also log to user_messages for backwards compatibility
     const { error: logError } = await supabase
       .from('user_messages')
       .insert({
