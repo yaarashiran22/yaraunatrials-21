@@ -29,7 +29,6 @@ import CouponsPage from "./pages/CouponsPage";
 import RegisterPage from "./pages/RegisterPage";
 import SettingsPage from "./pages/SettingsPage";
 import CreatePostPage from "./pages/CreatePostPage";
-import CreateEventPage from "./pages/CreateEventPage";
 import EditProfilePage from "./pages/EditProfilePage";
 import EditItemPage from "./pages/EditItemPage";
 import FavoritesPage from "./pages/FavoritesPage";
@@ -87,7 +86,6 @@ const AppContent = () => {
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/favorites" element={<FavoritesPage />} />
               <Route path="/create-post" element={<CreatePostPage />} />
-              <Route path="/create-event" element={<CreateEventPage />} />
             <Route path="/meetups" element={<CouponsPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
@@ -142,7 +140,6 @@ const AppContent = () => {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/create-post" element={<CreatePostPage />} />
-            <Route path="/create-event" element={<CreateEventPage />} />
             <Route path="/meetups" element={<CouponsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
