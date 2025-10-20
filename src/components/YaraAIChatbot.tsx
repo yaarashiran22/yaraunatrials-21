@@ -83,6 +83,8 @@ const YaraAIChatbot: React.FC<YaraAIChatbotProps> = ({ isOpen, onClose }) => {
         throw error;
       }
 
+      console.log('Yara AI Response:', data);
+
       if (data?.message) {
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
@@ -91,6 +93,7 @@ const YaraAIChatbot: React.FC<YaraAIChatbotProps> = ({ isOpen, onClose }) => {
           timestamp: new Date(),
           cards: data.cards || []
         };
+        console.log('Adding assistant message with cards:', assistantMessage.cards?.length || 0);
         setMessages(prev => [...prev, assistantMessage]);
       } else {
         throw new Error('No response from AI');
