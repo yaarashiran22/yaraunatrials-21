@@ -73,6 +73,7 @@ Deno.serve(async (req) => {
     if (!profile) {
       // Check if we're in the middle of profile creation
       const lastAssistantMsg = conversationHistory.filter(m => m.role === 'assistant').pop();
+      const askedForName = lastAssistantMsg?.content.includes('could you tell me your name?');
       
       if (!lastAssistantMsg || isGreeting || isNewConversation) {
         // First interaction - ask for name
@@ -93,7 +94,7 @@ Deno.serve(async (req) => {
           status: 200
         });
       } 
-      else if (lastAssistantMsg.content.includes('could you tell me your name?')) {
+      else if (askedForName) {
         // User provided their name - create profile
         const userName = body.trim();
         
@@ -125,7 +126,9 @@ Deno.serve(async (req) => {
           });
         }
 
-        const successMessage = `Nice to meet you, ${userName}! 🎉\n\nYour profile is all set up. Now I can help you discover events, businesses, and deals in Buenos Aires tailored just for you!\n\nWhat are you looking for today? (e.g., "What's happening tonight?", "Find me a good restaurant", "Any deals in Palermo?")`;
+        console.log(`Profile created successfully for ${userName} (${phoneNumber})`);
+
+        const successMessage = `Nice to meet you, ${userName}! 🎉\n\nYour profile is all set up. Now I can help you discover indie events, nightlife, and local deals in Buenos Aires tailored just for you!\n\nWhat are you looking for today? (e.g., "What's happening tonight?", "Find me a good bar", "Any deals in Palermo?")`;
         
         await supabase.from('whatsapp_conversations').insert([
           { phone_number: from, role: 'user', content: body },
@@ -135,6 +138,26 @@ Deno.serve(async (req) => {
         const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>${successMessage}</Message>
+</Response>`;
+
+        return new Response(twimlResponse, {
+          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+          status: 200
+        });
+      }
+      else {
+        // We have history but didn't ask for name - shouldn't normally happen
+        // Ask for name to complete profile creation
+        const welcomeMessage = "Hey there! 👋 Welcome to Yara, your AI concierge for Buenos Aires indie events and nightlife. I'm here to help you discover the best the city has to offer. To personalize your recommendations, could you tell me your name?";
+        
+        await supabase.from('whatsapp_conversations').insert([
+          { phone_number: from, role: 'user', content: body },
+          { phone_number: from, role: 'assistant', content: welcomeMessage }
+        ]);
+
+        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${welcomeMessage}</Message>
 </Response>`;
 
         return new Response(twimlResponse, {
