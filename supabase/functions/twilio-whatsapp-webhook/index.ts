@@ -69,16 +69,10 @@ Deno.serve(async (req) => {
     // If it's a greeting/conversation starter AND a new conversation, OR it's a conversation starter regardless of history, send welcome
     const shouldSendWelcome = (isGreeting && isNewConversation) || isConversationStarter;
     
+    let welcomeMessageSent = false;
     if (shouldSendWelcome) {
       console.log('Sending welcome message - new conversation or conversation starter detected');
       
-      // Store user message
-      await supabase.from('whatsapp_conversations').insert({
-        phone_number: from,
-        role: 'user',
-        content: body
-      });
-
       const welcomeMessage = "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?";
       
       // Store welcome response
@@ -88,24 +82,39 @@ Deno.serve(async (req) => {
         content: welcomeMessage
       });
 
-      // Return TwiML response
-      const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+      welcomeMessageSent = true;
+      
+      // For conversation starters, continue to AI processing
+      // For greetings only, return welcome and wait for next message
+      if (isGreeting && !isConversationStarter) {
+        // Store user message
+        await supabase.from('whatsapp_conversations').insert({
+          phone_number: from,
+          role: 'user',
+          content: body
+        });
+
+        // Return TwiML response with just welcome
+        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>${welcomeMessage}</Message>
 </Response>`;
 
-      return new Response(twimlResponse, {
-        headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
-        status: 200
-      });
+        return new Response(twimlResponse, {
+          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+          status: 200
+        });
+      }
     }
 
-    // Store user message
-    await supabase.from('whatsapp_conversations').insert({
-      phone_number: from,
-      role: 'user',
-      content: body
-    });
+    // Store user message (if not already stored)
+    if (!welcomeMessageSent || !isGreeting) {
+      await supabase.from('whatsapp_conversations').insert({
+        phone_number: from,
+        role: 'user',
+        content: body
+      });
+    }
 
     // Call the AI assistant function with history and profile
     const { data: aiResponse, error: aiError } = await supabase.functions.invoke('ai-assistant', {
@@ -140,13 +149,14 @@ Deno.serve(async (req) => {
 
     // Return TwiML response with optional media
     let twimlResponse: string;
+    const welcomeText = welcomeMessageSent ? "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
     
     if (imageUrl) {
       // Send message with image
       twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>
-    <Body>${assistantMessage}</Body>
+    <Body>${welcomeText}${assistantMessage}</Body>
     <Media>${imageUrl}</Media>
   </Message>
 </Response>`;
@@ -154,7 +164,7 @@ Deno.serve(async (req) => {
       // Send text-only message
       twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>${assistantMessage}</Message>
+  <Message>${welcomeText}${assistantMessage}</Message>
 </Response>`;
     }
 
