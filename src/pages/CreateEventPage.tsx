@@ -64,29 +64,40 @@ const CreateEventPage = () => {
 
     setIsSubmitting(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast({
-      title: "האירוע נוצר בהצלחה!",
-      description: "האירוע שלך נוסף לעמוד האירועים",
-    });
-    
-    // Generate Instagram story after creating event
-    const eventData = {
-      title: eventName,
-      description,
-      date,
-      time,
-      location,
-      price,
-      image_url: selectedImage
-    };
-    
-    
-    
-    setIsSubmitting(false);
-    navigate('/events');
+    try {
+      const { error } = await supabase.from('events').insert({
+        user_id: user?.id,
+        title: eventName,
+        description,
+        date,
+        time,
+        location,
+        price,
+        target_audience: targetAudience,
+        music_type: musicType,
+        venue_size: venueSize,
+        price_range: priceRange,
+        image_url: selectedImage
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "האירוע נוצר בהצלחה!",
+        description: "האירוע שלך נוסף לעמוד האירועים",
+      });
+      
+      navigate('/events');
+    } catch (error) {
+      console.error('Error creating event:', error);
+      toast({
+        title: "שגיאה",
+        description: "אירעה שגיאה ביצירת האירוע",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
