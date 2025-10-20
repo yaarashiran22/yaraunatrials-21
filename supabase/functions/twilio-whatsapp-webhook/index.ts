@@ -153,67 +153,52 @@ Deno.serve(async (req) => {
     const recommendations = aiResponse?.recommendations; // Array of recommendations
     const singleResponse = aiResponse?.response; // Single text response (fallback)
     
+    console.log('🔍 AI Response check:', { 
+      hasRecommendations: !!recommendations, 
+      count: recommendations?.length || 0,
+      hasSingleResponse: !!singleResponse 
+    });
+    
     if (recommendations && recommendations.length > 0) {
-      console.log(`📸 Sending ${recommendations.length} separate recommendation messages`);
+      console.log(`📸 Building TwiML for ${recommendations.length} recommendations`);
       
-      // Send each recommendation as a separate message
-      const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-      const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-      const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
+      // Store all recommendations in conversation history
+      for (const rec of recommendations) {
+        await supabase.from('whatsapp_conversations').insert({
+          phone_number: from,
+          role: 'assistant',
+          content: rec.message
+        });
+      }
       
-      if (!twilioAccountSid || !twilioAuthToken || !twilioWhatsAppNumber) {
-        console.error('Missing Twilio credentials');
-      } else {
-        // Send each recommendation as a separate message via Twilio API
-        for (const rec of recommendations) {
-          console.log(`Sending recommendation: ${rec.message.substring(0, 50)}...`);
-          
-          // Store each recommendation in conversation history
-          await supabase.from('whatsapp_conversations').insert({
-            phone_number: from,
-            role: 'assistant',
-            content: rec.message
-          });
-          
-          // Prepare Twilio API request
-          const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
-          const formBody = new URLSearchParams({
-            From: twilioWhatsAppNumber,
-            To: from,
-            Body: rec.message
-          });
-          
-          // Add media if image URL exists
-          if (rec.image_url) {
-            formBody.append('MediaUrl', rec.image_url);
-          }
-          
-          // Send via Twilio API
-          const twilioResponse = await fetch(twilioUrl, {
-            method: 'POST',
-            headers: {
-              'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
-              'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: formBody
-          });
-          
-          if (!twilioResponse.ok) {
-            console.error('Twilio API error:', await twilioResponse.text());
-          } else {
-            console.log('✅ Sent recommendation message via Twilio API');
-          }
+      // Build TwiML with multiple <Message> tags
+      let twimlMessages = '';
+      for (const rec of recommendations) {
+        console.log(`Adding to TwiML: ${rec.message.substring(0, 50)}... | Image: ${rec.image_url ? 'Yes' : 'No'}`);
+        
+        if (rec.image_url) {
+          twimlMessages += `
+  <Message>
+    <Body>${rec.message}</Body>
+    <Media>${rec.image_url}</Media>
+  </Message>`;
+        } else {
+          twimlMessages += `
+  <Message>${rec.message}</Message>`;
         }
       }
       
-      // Return empty TwiML since we sent messages via API
-      return new Response(
-        '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
-          status: 200
-        }
-      );
+      const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>${twimlMessages}
+</Response>`;
+      
+      console.log('✅ Sending TwiML with multiple messages');
+      console.log('TwiML:', twimlResponse);
+      
+      return new Response(twimlResponse, {
+        headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+        status: 200
+      });
     }
     
     // Fallback to single response (backward compatibility)
