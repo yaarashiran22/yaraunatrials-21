@@ -43,23 +43,17 @@ serve(async (req) => {
 
     // Fetch only essential data in parallel (optimized for speed)
     // Only fetch events and businesses - most common queries
-    const [
-      eventsData,
-      businessProfilesData,
-      couponsData
-    ] = await Promise.all([
-      supabase.from('events').select('id, title, description, location, date, time, price, mood, event_type, image_url, target_audience, music_type, venue_size, price_range').gte('date', new Date().toISOString().split('T')[0]).order('date', { ascending: true }).limit(6), // Reduced from 8 to 6
-      supabase.from('profiles').select('id, name, bio, location, age, interests, specialties, whatsapp_number, profile_image_url').eq('profile_type', 'business').limit(6), // Reduced from 10 to 6
-      supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood, coupon_code, image_url').eq('is_active', true).limit(5) // Reduced from 8 to 5
+    const [eventsData, businessProfilesData] = await Promise.all([
+      supabase.from('events').select('id, title, description, location, date, time, image_url').gte('date', new Date().toISOString().split('T')[0]).order('date', { ascending: true }).limit(5), // Reduced to 5, removed unused fields
+      supabase.from('profiles').select('id, name, bio, location, profile_image_url').eq('profile_type', 'business').limit(5) // Reduced to 5, removed unused fields
     ]);
 
-    console.log('📊 Data fetched - Events:', eventsData.data?.length, 'Businesses:', businessProfilesData.data?.length, 'Coupons:', couponsData.data?.length);
+    console.log('📊 Data fetched - Events:', eventsData.data?.length, 'Businesses:', businessProfilesData.data?.length);
 
     // Prepare streamlined context with essential data only
     const realData = {
       currentEvents: eventsData.data || [],
       businessProfiles: businessProfilesData.data || [],
-      localCoupons: couponsData.data || [],
       userLocation: userLocation || 'Not specified'
     };
 
@@ -279,13 +273,10 @@ PRIORITY ORDER FOR RECOMMENDATIONS:
 ALL events listed below are happening TODAY OR IN THE FUTURE. NEVER mention past events. If a user asks about something that already happened, say "that was in the past, but here's what's coming up..."
 
 📅 EVENTS (${realData.currentEvents.length}) - ALL UPCOMING:
-${realData.currentEvents.length > 0 ? realData.currentEvents.map(e => `- "${e.title}" at ${e.location} on ${e.date} ${e.time ? 'at ' + e.time : ''}${e.target_audience ? ` (Ages: ${e.target_audience})` : ''}${e.music_type ? ` | Music: ${e.music_type}` : ''}${e.venue_size ? ` | Venue: ${e.venue_size}` : ''}${e.price_range ? ` | Price: ${e.price_range}` : e.price ? ` ($${e.price})` : ''}${e.image_url ? ` [IMAGE: ${e.image_url}]` : ''} - ${e.description?.substring(0, 100)}...`).join('\n') : 'Nothing upcoming rn.'}
+${realData.currentEvents.length > 0 ? realData.currentEvents.map(e => `- "${e.title}" at ${e.location} on ${e.date} ${e.time ? 'at ' + e.time : ''}${e.image_url ? ` [IMAGE: ${e.image_url}]` : ''} - ${e.description?.substring(0, 80)}...`).join('\n') : 'Nothing upcoming rn.'}
 
 🏢 BUSINESSES (${realData.businessProfiles.length}):
-${realData.businessProfiles.length > 0 ? realData.businessProfiles.map(b => `- "${b.name}"${b.age ? ` (ages ${b.age}+)` : ''} in ${b.location || 'location'}${b.profile_image_url ? ` [IMAGE: ${b.profile_image_url}]` : ''} - ${b.bio?.substring(0, 100)}...${b.specialties?.length > 0 ? ' - Vibe: ' + b.specialties.join(', ') : ''}${b.whatsapp_number ? ' - WhatsApp: ' + b.whatsapp_number : ''}`).join('\n') : 'Nothing rn.'}
-
-🎫 DEALS (${realData.localCoupons.length}):
-${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.title}" at ${c.business_name} - ${c.discount_amount}% OFF${c.coupon_code ? ` - Code: ${c.coupon_code}` : ''}${c.image_url ? ` [IMAGE: ${c.image_url}]` : ''} in ${c.neighborhood || 'neighborhood'}`).join('\n') : 'Nothing rn.'}
+${realData.businessProfiles.length > 0 ? realData.businessProfiles.map(b => `- "${b.name}" in ${b.location || 'location'}${b.profile_image_url ? ` [IMAGE: ${b.profile_image_url}]` : ''} - ${b.bio?.substring(0, 80)}...`).join('\n') : 'Nothing rn.'}
 
 📍 Location: ${realData.userLocation}
 
