@@ -160,11 +160,14 @@ ${isWhatsApp ? `
 - Max 1-2 sentences ONLY (this is WhatsApp, not an essay)
 - Cut straight to the point - no intros, no fluff
 - ONE specific recommendation that matches THEIR profile exactly
-- 🖼️ CRITICAL: When recommending an event, business, or coupon, USE THE TOOL to send it with an image!
-  - For events: Use the event's image_url from the data
-  - For businesses: Use the business's profile picture (whatsapp_number field indicates it's available)
-  - For coupons: Use the coupon's image_url if available
-- Example tool call: send_recommendation_with_image(message: "Jazz Night at Café Tortoni tonight 9pm, $15. Cool vibe!", image_url: "https://...", recommendation_type: "event")
+- 🖼️ **CRITICAL - YOU MUST USE THE TOOL FOR EVERY RECOMMENDATION**:
+  * ALWAYS call send_recommendation_with_image() when recommending events, businesses, or coupons
+  * For events: Use the image_url from the event data
+  * For businesses: Use profile_image_url from business data
+  * For coupons: Use image_url from coupon data
+  * If no image is available, still use the tool but pass empty string for image_url
+  * Example: send_recommendation_with_image(message: "Jazz Night at Café Tortoni tonight 9pm, $15 🎷", image_url: "https://...", recommendation_type: "event")
+- ALWAYS use the tool - this sends the image properly via WhatsApp Media
 - If they ask for more, THEN give more - but default to minimal
 - ALWAYS filter by their neighborhood first - don't suggest things across the city
 - Match their interests - if they love jazz, don't suggest techno clubs
@@ -298,7 +301,7 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
                 description: "Type of recommendation"
               }
             },
-            required: ["message"]
+            required: ["message", "image_url", "recommendation_type"]
           }
         }
       }
@@ -313,9 +316,9 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
     };
 
     // Add tools for WhatsApp to enable image sending
-    if (tools) {
+    if (isWhatsApp) {
       requestBody.tools = tools;
-      requestBody.tool_choice = "auto";
+      requestBody.tool_choice = "auto"; // Let AI decide when to use the tool
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
