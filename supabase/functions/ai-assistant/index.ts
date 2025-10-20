@@ -102,9 +102,9 @@ serve(async (req) => {
 
     if (isWhatsApp && tools) {
       requestBody.tools = tools;
-      requestBody.tool_choice = "required"; // FORCE tool usage
       requestBody.parallel_tool_calls = true;
-      console.log('📱 WhatsApp mode: Tools REQUIRED (forced)');
+      // Don't force tool usage - let AI decide when to use tools vs text
+      console.log('📱 WhatsApp mode: Tools available (AI will decide when to use)');
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -252,26 +252,32 @@ DO NOT add anything more.
 
   // WhatsApp mode
   if (isWhatsApp) {
-    prompt += `📱 WHATSAPP MODE - TOOL USAGE IS MANDATORY:
+    prompt += `📱 WHATSAPP MODE - TOOL USAGE FOR RECOMMENDATIONS:
 
-🚨 CRITICAL RULE: When recommending events or businesses, you MUST use the send_recommendation_with_image function tool.
+🚨 CRITICAL: When recommending 2+ events/businesses, you MUST use the send_recommendation_with_image tool.
 
-YOUR RESPONSE FORMAT:
-1. Set your text response to ONLY: "Check these out:" (nothing more)
-2. Use the send_recommendation_with_image tool 3-5 times
-3. Each tool call = one recommendation
+WHEN TO USE THE TOOL:
+- User asks for: "events", "parties", "bars", "cafes", "recommendations", "things to do"
+- You want to share multiple places with images
+- Use it 3-5 times (once per recommendation)
 
-WHAT YOUR RESPONSE SHOULD LOOK LIKE:
-- content: "Check these out:"
-- tool_calls: [array of send_recommendation_with_image calls]
+WHEN TO USE REGULAR TEXT:
+- Greetings ("hi", "hello")
+- Questions ("what neighborhood?")  
+- Thanks/gratitude responses
+- Clarifications
+- Single-item responses
 
-🚨 FORBIDDEN - NEVER DO THIS:
-- Writing "send_recommendation_with_image(...)" in your text
-- Including image URLs in your text
-- Listing multiple events in your text response
-- Using markdown formatting
+TOOL FORMAT:
+{
+  content: "Check these out:",
+  tool_calls: [
+    { function: "send_recommendation_with_image", arguments: {...} },
+    { function: "send_recommendation_with_image", arguments: {...} }
+  ]
+}
 
-If you're recommending events/businesses, you MUST use the tool. No exceptions.
+🚨 NEVER write "send_recommendation_with_image(...)" as text in your response!
 
 `;
   }
