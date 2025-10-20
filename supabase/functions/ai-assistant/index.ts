@@ -85,17 +85,19 @@ serve(async (req) => {
     const isGreeting = greetingPatterns.test(message.trim());
     const isFirstMessage = !conversationHistory || conversationHistory.length <= 1;
     
-    // Check for conversation reset (2+ hours of inactivity for WhatsApp)
+    // Check for conversation reset (7 minutes of inactivity)
     let shouldResetConversation = false;
-    if (isWhatsApp && conversationHistory && conversationHistory.length > 0) {
-      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    if (conversationHistory && conversationHistory.length > 0) {
+      const sevenMinutesAgo = new Date(Date.now() - 7 * 60 * 1000);
       const lastMessageTime = new Date(conversationHistory[conversationHistory.length - 1].created_at || 0);
-      shouldResetConversation = lastMessageTime < twoHoursAgo;
+      shouldResetConversation = lastMessageTime < sevenMinutesAgo;
+      console.log('Conversation timeout check:', { lastMessageTime, sevenMinutesAgo, shouldReset: shouldResetConversation });
     }
     
     let greetingContext = '';
-    if (isFirstMessage || (isWhatsApp && shouldResetConversation && isGreeting)) {
-      // Always introduce on first message with this exact message
+    if (isFirstMessage || shouldResetConversation) {
+      console.log('Starting fresh conversation - first message or timeout exceeded');
+      // Always introduce on first message or after timeout with this exact message
       greetingContext = `\n\n🚨 MANDATORY FIRST MESSAGE - DO NOT DEVIATE:
 You MUST respond with this EXACT text word-for-word (copy it exactly as written):
 "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I'm here. What are you looking for?"

@@ -37,19 +37,19 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Check for recent conversation (last 2 hours)
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    // Check for recent conversation (last 7 minutes)
+    const sevenMinutesAgo = new Date(Date.now() - 7 * 60 * 1000).toISOString();
     const { data: recentHistory } = await supabase
       .from('whatsapp_conversations')
       .select('role, content, created_at')
       .eq('phone_number', from)
-      .gte('created_at', twoHoursAgo)
+      .gte('created_at', sevenMinutesAgo)
       .order('created_at', { ascending: true })
       .limit(20);
 
     const conversationHistory = recentHistory || [];
     const isNewConversation = conversationHistory.length === 0;
-    console.log(`Found ${conversationHistory.length} messages in last 2 hours for ${from}. Is new conversation: ${isNewConversation}`);
+    console.log(`Found ${conversationHistory.length} messages in last 7 minutes for ${from}. Is new conversation: ${isNewConversation}`);
 
     // Check if message is a greeting
     const greetingPatterns = /^(hey|hi|hello|sup|yo|hola|what's up|whats up)[\s!?.]*$/i;
@@ -64,9 +64,9 @@ Deno.serve(async (req) => {
 
     console.log('User profile:', profile ? `Found profile for ${profile.name}` : 'No profile found');
 
-    // If it's a greeting AND a new conversation (no messages in last 2 hours), send welcome
+    // If it's a greeting AND a new conversation (no messages in last 7 minutes), send welcome
     if (isGreeting && isNewConversation) {
-      console.log('Sending welcome message for new conversation with greeting');
+      console.log('Sending welcome message for new conversation with greeting - timeout exceeded or first message');
       
       // Store user message
       await supabase.from('whatsapp_conversations').insert({
