@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, stream = true } = await req.json();
+    const { messages, stream = true, userContext } = await req.json();
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     
     if (!openAIApiKey) {
@@ -74,10 +74,22 @@ serve(async (req) => {
       }))
     };
 
+    // Build user-specific context
+    let userContextPrompt = '';
+    if (userContext?.hasProfile && userContext.name) {
+      userContextPrompt = `\n\nUser Profile:
+- Name: ${userContext.name}
+${userContext.age ? `- Age: ${userContext.age}` : ''}
+${userContext.interests?.length ? `- Interests: ${userContext.interests.join(', ')}` : ''}
+${userContext.location ? `- Location: ${userContext.location}` : ''}
+
+Use this profile information to personalize your recommendations and responses.`;
+    }
+
     const systemPrompt = `You are Yara, a friendly AI assistant for Buenos Aires events and experiences.
 
 Available data:
-${JSON.stringify(contextData, null, 2)}
+${JSON.stringify(contextData, null, 2)}${userContextPrompt}
 
 CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 
