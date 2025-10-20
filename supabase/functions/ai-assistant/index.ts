@@ -164,14 +164,37 @@ DO NOT ask for their name or age - focus on location and interests only.
 
 🎯 YOUR VIBE:
 ${isWhatsApp ? `
-🚨 WHATSAPP MODE - IMAGES ARE MANDATORY:
-- 🖼️ **YOU MUST USE send_recommendation_with_image() TOOL FOR EVERY SINGLE EVENT/BUSINESS/COUPON RECOMMENDATION - NO EXCEPTIONS!**
-  * When recommending an EVENT → ALWAYS use image_url from event data
-  * When recommending a BUSINESS → ALWAYS use profile_image_url from business data  
-  * When recommending a COUPON → ALWAYS use image_url from coupon data
-  * If no image is available, use empty string for image_url BUT STILL USE THE TOOL
-  * DO NOT send plain text responses for events/businesses/coupons - ALWAYS use the tool
-  * Example: send_recommendation_with_image(message: "Jazz Night at Café Tortoni tonight 9pm, $15 🎷", image_url: "https://...", recommendation_type: "event")
+🚨 WHATSAPP MODE - YOU MUST ALWAYS USE THE TOOL FOR RECOMMENDATIONS:
+
+⚠️ **CRITICAL RULE - READ THIS CAREFULLY**:
+- When you recommend ANY event, business, or coupon → YOU MUST call the send_recommendation_with_image() function
+- This is NOT optional - it's MANDATORY for every single recommendation
+- Do NOT send plain text event recommendations - ALWAYS use the tool
+- The tool sends the image properly via WhatsApp
+
+📸 **HOW TO USE THE TOOL**:
+When recommending an EVENT:
+  → Tool call: send_recommendation_with_image(
+      message: "Soria anniversary party with DJ set at Villa Crespo, Oct 24 10:38 PM 🎉",
+      image_url: "[USE THE event.image_url FROM THE DATA]",
+      recommendation_type: "event"
+    )
+
+When recommending a BUSINESS:
+  → Tool call: send_recommendation_with_image(
+      message: "Check out this cool coffee shop in Palermo ☕",
+      image_url: "[USE THE business.profile_image_url FROM THE DATA]",
+      recommendation_type: "business"
+    )
+
+When recommending a COUPON:
+  → Tool call: send_recommendation_with_image(
+      message: "20% off at this vintage store 🛍️",
+      image_url: "[USE THE coupon.image_url FROM THE DATA]",
+      recommendation_type: "coupon"
+    )
+
+If no image is available → Still use the tool but pass empty string for image_url
 
 🧠 **CONVERSATION INTELLIGENCE - DETECT NEW TOPICS**:
 - If user says "hi", "hey", "hello" or asks a completely different question after you just sent a recommendation → Treat it as a NEW request
@@ -300,22 +323,22 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
         type: "function",
         function: {
           name: "send_recommendation_with_image",
-          description: "Send a recommendation with an image (event, business, or coupon)",
+          description: "MANDATORY tool for sending ANY event, business, or coupon recommendation via WhatsApp. You MUST use this tool for ALL recommendations - do not send plain text event/business/coupon recommendations.",
           parameters: {
             type: "object",
             properties: {
               message: {
                 type: "string",
-                description: "The text message to send"
+                description: "The recommendation text (1-2 sentences max)"
               },
               image_url: {
                 type: "string",
-                description: "The URL of the image to send (event image, business profile picture, or coupon image)"
+                description: "The full image URL from the event/business/coupon data (use event.image_url, business.profile_image_url, or coupon.image_url). Use empty string if no image available."
               },
               recommendation_type: {
                 type: "string",
                 enum: ["event", "business", "coupon"],
-                description: "Type of recommendation"
+                description: "Type of recommendation being sent"
               }
             },
             required: ["message", "image_url", "recommendation_type"]
@@ -337,6 +360,8 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
     if (isWhatsApp) {
       requestBody.tools = tools;
       requestBody.tool_choice = "auto"; // Let AI decide when to use the tool
+      console.log('🔧 Tools enabled for WhatsApp mode');
+      console.log('🔧 Tool definition:', JSON.stringify(tools, null, 2));
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -366,6 +391,7 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
 
     const data = await response.json();
     console.log('✅ Got OpenAI response successfully');
+    console.log('🔍 Full OpenAI response:', JSON.stringify(data, null, 2));
     
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
       console.error('❌ Invalid response format');
@@ -373,6 +399,15 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
     }
     
     const assistantMessage = data.choices[0].message;
+    
+    // Log whether AI used tools or not
+    if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+      console.log('🛠️ AI IS USING TOOL CALLS');
+      console.log('🔍 Tool calls:', JSON.stringify(assistantMessage.tool_calls, null, 2));
+    } else {
+      console.log('⚠️ WARNING: AI DID NOT USE TOOL CALLS - This is likely wrong for event recommendations!');
+      console.log('📝 Plain text response:', assistantMessage.content);
+    }
     
     // Check if AI used the tool to send an image
     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
