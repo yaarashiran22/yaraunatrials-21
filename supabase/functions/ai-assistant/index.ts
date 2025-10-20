@@ -19,10 +19,10 @@ serve(async (req) => {
     const { message, userLocation, conversationHistory, userProfile, isWhatsApp } = await req.json();
     console.log('AI Assistant v9.0 - Conversational & Context-Aware - Processing:', { message, userLocation, historyLength: conversationHistory?.length, hasUserProfile: !!userProfile, isWhatsApp });
     
-    // Get OpenAI API key
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      console.error('❌ OpenAI API key not found');
+    // Get Lovable AI API key (better than OpenAI for this use case)
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (!lovableApiKey) {
+      console.error('❌ Lovable AI API key not found');
       return new Response(
         JSON.stringify({ 
           response: "I'm having configuration issues. Please try again later.",
@@ -33,7 +33,7 @@ serve(async (req) => {
       );
     }
     
-    console.log('✅ API key found! Fetching comprehensive data from TheUnaHub...');
+    console.log('✅ Lovable AI key found! Fetching comprehensive data from TheUnaHub...');
 
     // Initialize Supabase client
     const supabase = createClient(
@@ -238,20 +238,34 @@ send_recommendation_with_image(
   recommendation_type: "event"
 )
 
-💬 **CONVERSATION INTELLIGENCE - BE SMART ABOUT CONTEXT**:
+💬 **CONVERSATION INTELLIGENCE - BE SMART ABOUT USER INTENT**:
 
-🚨 **CRITICAL: UNDERSTAND WHAT USERS REALLY WANT**
-- If they mention: "show", "concert", "party", "event", "tonight", "this week", "live music", "gig", "happening" → They want EVENT recommendations
-- If they mention: "cafe", "bar", "restaurant", "shop", "place to eat/drink" → They want BUSINESS recommendations  
-- If they mention: "deal", "discount", "coupon", "promo" → They want COUPON recommendations
-- DON'T ask "what are you looking for?" when it's OBVIOUS from their message what they want
-- Be intelligent - use context from conversation to understand their intent
+🚨 **CRITICAL: INTELLIGENT INTENT RECOGNITION** 🚨
+You MUST understand what users want from natural language. DO NOT ask "what are you looking for?" when it's obvious:
 
-**Direct Event Requests**: "show me events", "what's happening", "any parties", "events this week"
-→ They want event recommendations RIGHT NOW
-→ DON'T ask clarifying questions unless you really need to narrow it down
-→ Use send_recommendation_with_image() to send 2-3 events immediately with images
-→ Include venue details in each: venue size, age range, price, location, time
+**Event Request Keywords** → Send 2-4 events immediately with images:
+- Words: "show", "concert", "party", "event", "tonight", "this week", "weekend", "live", "music", "gig", "happening", "going on", "do", "see"
+- Phrases: "what's on", "what should i do", "things to do", "places to go", "where should i go", "recommendations", "suggest something"
+- Examples: "show me events" → Send events | "what's happening tonight?" → Send events | "what should i do this weekend?" → Send events
+
+**Business/Venue Request Keywords** → Send businesses with WhatsApp:
+- Words: "cafe", "bar", "restaurant", "shop", "place to eat", "place to drink", "venue", "spot"
+- Examples: "good bars?" → Send businesses | "coffee shops nearby?" → Send businesses
+
+**Coupon Request Keywords** → Send deals:
+- Words: "deal", "discount", "coupon", "promo", "offer", "save money"
+- Examples: "any deals?" → Send coupons
+
+🎯 **WHEN USER'S INTENT IS CLEAR - RECOMMEND IMMEDIATELY**:
+- DON'T ask clarifying questions if you can make good recommendations
+- If they say "events", send 2-4 events right away
+- If they say "jazz events", filter by jazz and send 2-4 jazz events
+- Only ask questions if you truly can't help without more info
+
+**Direct Event Requests**: "show me events", "what's happening", "any parties", "events this week", "what should i do"
+→ IMMEDIATELY send 2-4 event recommendations using send_recommendation_with_image() for EACH event
+→ Each recommendation = separate tool call = separate WhatsApp message with image
+→ Include in each: personalized intro + venue size + age range + price + location + time
 
 **Farewells & Thank Yous**: "goodnight", "bye", "thanks", "thank you"
 → Respond warmly and naturally, close the conversation
@@ -270,17 +284,18 @@ send_recommendation_with_image(
 → They're acknowledging, not requesting - respond naturally
 → "Right? It's gonna be good!" / "Let me know if you want more options"
 
-**🚨 "ANYTHING ELSE?" / "ANY OTHER ONES?" / "OTHER EVENTS?" / "MORE?" / "WHAT ELSE?"**: CRITICAL!
-→ User wants MORE similar event recommendations based on what they were originally looking for
-→ YOU MUST SEND MULTIPLE SEPARATE RECOMMENDATIONS:
-  1. Understand their ORIGINAL request - what vibe/music/location were they looking for?
-  2. Look at events you already sent (in "ALREADY SENT" section above)
-  3. Find 2-4 DIFFERENT events that match their ORIGINAL preferences AND their age range
-  4. 🚨 CALL send_recommendation_with_image() SEPARATELY FOR EACH EVENT (this sends them as separate WhatsApp messages with images)
-  5. Include in each message: personalized intro + venue size + target audience age + price range + location + time
-  6. NEVER repeat events from "ALREADY SENT" list
-→ Example: If they asked for "jazz events", send 3 different jazz events - each as a separate tool call
-→ CRITICAL: Each recommendation = ONE separate send_recommendation_with_image() call
+**🚨 "ANYTHING ELSE?" / "ANY OTHER ONES?" / "OTHER EVENTS?" / "MORE?" / "WHAT ELSE?" / "SHOW ME MORE"**: CRITICAL!
+→ User wants MORE similar event recommendations
+→ 🚨 YOU MUST CALL send_recommendation_with_image() MULTIPLE TIMES - ONCE FOR EACH EVENT:
+  1. Understand what they originally wanted (vibe, music type, etc.)
+  2. Check "ALREADY SENT" section - don't repeat those
+  3. Find 2-4 DIFFERENT events matching their preferences and age
+  4. 🚨 CRITICAL: Make SEPARATE send_recommendation_with_image() calls for EACH event (this sends multiple WhatsApp messages)
+  5. Each message includes: personalized intro + venue + age + price + location + time
+→ Example for "show me more jazz events":
+  - Tool call 1: send_recommendation_with_image(message: "Perfect! Here's Jazz Night at Café X...", image_url: "...", type: "event")
+  - Tool call 2: send_recommendation_with_image(message: "Also check out Live Jazz at Bar Y...", image_url: "...", type: "event")  
+  - Tool call 3: send_recommendation_with_image(message: "Great! Jazz Brunch at Z...", image_url: "...", type: "event")
 
 **New Requests**: "any parties?", "what about coffee shops?", "show me more"
 → They want a new recommendation
@@ -455,13 +470,13 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
       }
     ] : undefined;
 
-    // Make OpenAI API call with comprehensive context
+    // Make Lovable AI API call with comprehensive context (using better model for intelligence)
     const requestBody: any = {
-      model: 'gpt-4o-mini',
+      model: 'google/gemini-2.5-flash',  // Better model for intelligent understanding
       messages: messages,
-      // Increased max_tokens significantly to prevent truncation of tool call arguments with long URLs
-      max_tokens: isWhatsApp ? 600 : (isFirstMessage ? 180 : (isGreeting ? 150 : 100)),
-      temperature: 0.7  // Lower temperature for better instruction following and less randomness
+      // Increased max_tokens to ensure multiple tool calls are generated fully
+      max_tokens: isWhatsApp ? 1000 : (isFirstMessage ? 200 : (isGreeting ? 150 : 120)),
+      temperature: 0.6  // Lower temperature for better instruction following
     };
 
     // Add tools for WhatsApp to enable image sending
@@ -472,10 +487,10 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
       console.log('🔧 Tool definition:', JSON.stringify(tools, null, 2));
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody)
