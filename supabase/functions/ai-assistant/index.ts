@@ -92,9 +92,6 @@ serve(async (req) => {
       const lastMessageTime = new Date(conversationHistory[conversationHistory.length - 1].created_at || 0);
       shouldResetConversation = lastMessageTime < twoHoursAgo;
     }
-
-    const isFirstMessage = !conversationHistory || conversationHistory.length <= 1;
-    const isGreeting = greetingPatterns.test(message.trim());
     
     let greetingContext = '';
     if (isFirstMessage || (isWhatsApp && shouldResetConversation && isGreeting)) {
