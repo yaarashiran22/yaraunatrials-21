@@ -34,6 +34,10 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedMood, setSelectedMood] = useState<string>("");
   const [isOpenDate, setIsOpenDate] = useState(false);
+  const [targetAudience, setTargetAudience] = useState("");
+  const [musicType, setMusicType] = useState("");
+  const [venueSize, setVenueSize] = useState("");
+  const [priceRange, setPriceRange] = useState("");
 
   // Mood filters from home page
   const moodFilters = [
@@ -180,7 +184,11 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
           external_link: externalLink.trim() || null,
           event_type: eventType,
           mood: selectedMood || null,
-          market: 'argentina' // Argentina market only
+          market: 'argentina', // Argentina market only
+          target_audience: targetAudience.trim() || null,
+          music_type: musicType.trim() || null,
+          venue_size: venueSize || null,
+          price_range: priceRange || null
         });
 
       if (error) throw error;
@@ -204,6 +212,10 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
       setFileType(null);
       setSelectedMood("");
       setIsOpenDate(false);
+      setTargetAudience("");
+      setMusicType("");
+      setVenueSize("");
+      setPriceRange("");
 
       // Call callback to refresh data
       if (onEventCreated) {
@@ -363,6 +375,58 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
               placeholder="https://example.com"
               className="w-full h-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
             />
+          </div>
+
+          {/* Target Audience Field */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground block text-left">Target Audience (Age Group)</label>
+            <Input 
+              value={targetAudience}
+              onChange={(e) => setTargetAudience(e.target.value)}
+              placeholder="e.g., 18-25, 25-35, All ages"
+              className="w-full h-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
+            />
+          </div>
+
+          {/* Music Type Field */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground block text-left">Type of Music</label>
+            <Input 
+              value={musicType}
+              onChange={(e) => setMusicType(e.target.value)}
+              placeholder="e.g., Jazz, Techno, Indie Rock"
+              className="w-full h-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
+            />
+          </div>
+
+          {/* Venue Size Field */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground block text-left">Venue Size</label>
+            <Select value={venueSize} onValueChange={setVenueSize}>
+              <SelectTrigger className="w-full h-12 text-left bg-background border-2 border-border rounded-full">
+                <SelectValue placeholder="Choose venue size" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border shadow-lg z-50">
+                <SelectItem value="intimate" className="text-left cursor-pointer hover:bg-muted">Intimate (up to 50 people)</SelectItem>
+                <SelectItem value="moderate" className="text-left cursor-pointer hover:bg-muted">Moderate (up to 100 people)</SelectItem>
+                <SelectItem value="big" className="text-left cursor-pointer hover:bg-muted">Big (100+ people)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Price Range Field */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground block text-left">Price Range</label>
+            <Select value={priceRange} onValueChange={setPriceRange}>
+              <SelectTrigger className="w-full h-12 text-left bg-background border-2 border-border rounded-full">
+                <SelectValue placeholder="Choose price range" />
+              </SelectTrigger>
+              <SelectContent className="bg-background border shadow-lg z-50">
+                <SelectItem value="cheap" className="text-left cursor-pointer hover:bg-muted">Cheap</SelectItem>
+                <SelectItem value="moderate" className="text-left cursor-pointer hover:bg-muted">Moderate</SelectItem>
+                <SelectItem value="expensive" className="text-left cursor-pointer hover:bg-muted">Expensive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* What Mood Section */}
