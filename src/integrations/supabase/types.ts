@@ -651,6 +651,33 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_user_interactions: {
+        Row: {
+          created_at: string | null
+          id: string
+          interaction_type: string
+          item_id: string
+          item_type: string
+          phone_number: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          interaction_type: string
+          item_id: string
+          item_type: string
+          phone_number: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          interaction_type?: string
+          item_id?: string
+          item_type?: string
+          phone_number?: string
+        }
+        Relationships: []
+      }
       whatsapp_users: {
         Row: {
           age: number | null

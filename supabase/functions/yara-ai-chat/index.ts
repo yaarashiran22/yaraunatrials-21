@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, stream = true, userProfile = null } = await req.json();
+    const { messages, stream = true, userProfile = null, phoneNumber = null } = await req.json();
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     
     if (!openAIApiKey) {
@@ -24,6 +24,19 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Fetch user's interaction history for behavioral learning
+    let interactionHistory: any[] = [];
+    if (phoneNumber) {
+      const { data: interactions } = await supabase
+        .from('whatsapp_user_interactions')
+        .select('item_type, item_id, interaction_type, created_at')
+        .eq('phone_number', phoneNumber)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      interactionHistory = interactions || [];
+    }
 
     // Fetch relevant data from database with image URLs
     const [eventsResult, itemsResult, couponsResult] = await Promise.all([
@@ -87,6 +100,23 @@ serve(async (req) => {
       
       if (parts.length > 0) {
         userContext = `\n\nUser Profile:\n${parts.join('\n')}`;
+      }
+    }
+
+    // Add behavioral history for smarter recommendations
+    if (interactionHistory.length > 0) {
+      const engagedEvents = interactionHistory.filter(i => i.item_type === 'event' && i.interaction_type !== 'recommended');
+      const engagedBusinesses = interactionHistory.filter(i => i.item_type === 'business' && i.interaction_type !== 'recommended');
+      
+      if (engagedEvents.length > 0 || engagedBusinesses.length > 0) {
+        userContext += '\n\nBehavioral History (what they actually engaged with):';
+        if (engagedEvents.length > 0) {
+          userContext += `\n- Asked about ${engagedEvents.length} events (IDs: ${engagedEvents.map(e => e.item_id).join(', ')})`;
+        }
+        if (engagedBusinesses.length > 0) {
+          userContext += `\n- Showed interest in ${engagedBusinesses.length} businesses/items`;
+        }
+        userContext += '\n- PRIORITIZE recommendations similar to these based on mood, location, category, and vibe';
       }
     }
 
@@ -183,6 +213,26 @@ IMPORTANT: If user asks "I'm looking for dance events" or "show me bars" or any 
     const message = data.choices?.[0]?.message?.content || '';
     
     console.log('AI response:', message);
+    
+    // Track recommendations in background (don't await)
+    if (phoneNumber && message.includes('"recommendations"')) {
+      try {
+        const parsed = JSON.parse(message);
+        if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
+          const interactions = parsed.recommendations.map((rec: any) => ({
+            phone_number: phoneNumber,
+            item_type: rec.type,
+            item_id: rec.id,
+            interaction_type: 'recommended'
+          }));
+          
+          // Log recommendations asynchronously
+          supabase.from('whatsapp_user_interactions').insert(interactions).then();
+        }
+      } catch (e) {
+        console.log('Could not parse recommendations for tracking:', e);
+      }
+    }
     
     return new Response(
       JSON.stringify({ message }),

@@ -144,7 +144,8 @@ Deno.serve(async (req) => {
       body: { 
         messages, 
         stream: false,
-        userProfile: whatsappUser // Pass user profile to AI
+        userProfile: whatsappUser, // Pass user profile to AI
+        phoneNumber: from // Pass phone number for tracking
       }
     });
 
