@@ -238,7 +238,20 @@ send_recommendation_with_image(
   recommendation_type: "event"
 )
 
-💬 **CONVERSATION TYPES - UNDERSTAND CONTEXT**:
+💬 **CONVERSATION INTELLIGENCE - BE SMART ABOUT CONTEXT**:
+
+🚨 **CRITICAL: UNDERSTAND WHAT USERS REALLY WANT**
+- If they mention: "show", "concert", "party", "event", "tonight", "this week", "live music", "gig", "happening" → They want EVENT recommendations
+- If they mention: "cafe", "bar", "restaurant", "shop", "place to eat/drink" → They want BUSINESS recommendations  
+- If they mention: "deal", "discount", "coupon", "promo" → They want COUPON recommendations
+- DON'T ask "what are you looking for?" when it's OBVIOUS from their message what they want
+- Be intelligent - use context from conversation to understand their intent
+
+**Direct Event Requests**: "show me events", "what's happening", "any parties", "events this week"
+→ They want event recommendations RIGHT NOW
+→ DON'T ask clarifying questions unless you really need to narrow it down
+→ Use send_recommendation_with_image() to send 2-3 events immediately with images
+→ Include venue details in each: venue size, age range, price, location, time
 
 **Farewells & Thank Yous**: "goodnight", "bye", "thanks", "thank you"
 → Respond warmly and naturally, close the conversation
@@ -271,12 +284,13 @@ send_recommendation_with_image(
 
 **New Requests**: "any parties?", "what about coffee shops?", "show me more"
 → They want a new recommendation
-→ Ask clarifying questions if needed (neighborhood, vibe)
+→ Ask clarifying questions ONLY if you truly need more info
 → Then recommend with the image tool
 
 **Small Talk / Questions**: "how are you?", "what can you do?"
 → Answer naturally and helpfully
 → Keep it conversational
+
 
 🎯 **YOUR STYLE**:
 - Max 2-3 sentences for recommendations (this is WhatsApp!)
@@ -446,8 +460,8 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
       model: 'gpt-4o-mini',
       messages: messages,
       // Increased max_tokens significantly to prevent truncation of tool call arguments with long URLs
-      max_tokens: isWhatsApp ? 500 : (isFirstMessage ? 180 : (isGreeting ? 150 : 100)),
-      temperature: 0.9
+      max_tokens: isWhatsApp ? 600 : (isFirstMessage ? 180 : (isGreeting ? 150 : 100)),
+      temperature: 0.7  // Lower temperature for better instruction following and less randomness
     };
 
     // Add tools for WhatsApp to enable image sending
