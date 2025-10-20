@@ -102,11 +102,17 @@ Deno.serve(async (req) => {
       // Get Twilio credentials
       const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-      const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
+      let twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
       
       if (!twilioAccountSid || !twilioAuthToken || !twilioWhatsAppNumber) {
         console.error('❌ Twilio credentials missing');
         throw new Error('Twilio credentials not configured');
+      }
+
+      // 🚨 CRITICAL FIX: Ensure Twilio number has whatsapp: prefix to match the 'from' format
+      if (!twilioWhatsAppNumber.startsWith('whatsapp:')) {
+        twilioWhatsAppNumber = `whatsapp:${twilioWhatsAppNumber}`;
+        console.log('✅ Added whatsapp: prefix to Twilio number');
       }
 
       // 🚨 CRITICAL: ALWAYS send intro text - never leave user without a text response
@@ -157,6 +163,7 @@ Deno.serve(async (req) => {
         }
         
         try {
+          console.log(`📤 Sending message - From: ${twilioWhatsAppNumber}, To: ${from}`);
           const response = await fetch(
             `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
             {
@@ -171,12 +178,13 @@ Deno.serve(async (req) => {
           
           if (!response.ok) {
             const errorText = await response.text();
-            console.error('Twilio error:', response.status, errorText);
+            console.error('❌ Twilio API error:', response.status, errorText);
+            console.error('Failed params:', { From: twilioWhatsAppNumber, To: from });
           } else {
             console.log(`✅ Sent recommendation ${rec.image_url ? 'with image' : 'text only'}`);
           }
         } catch (error) {
-          console.error('Error sending recommendation:', error);
+          console.error('❌ Error sending recommendation:', error);
         }
         
         // Store in background
@@ -200,11 +208,14 @@ Deno.serve(async (req) => {
     // Single message responses (no recommendations)
     // 🚨 CRITICAL: AI must ALWAYS generate real content, never empty
     if (!aiResponse?.response || !aiResponse.response.trim()) {
-      console.error('❌ AI returned empty response - this should never happen');
-      console.error('AI Response:', JSON.stringify(aiResponse));
+      console.error('❌ CRITICAL: AI returned empty response');
+      console.error('Full AI Response:', JSON.stringify(aiResponse));
+      console.error('User message was:', body);
       
-      // Log for debugging but still try to recover
-      const errorMessage = 'Sorry, I had a hiccup. Can you rephrase that?';
+      // Strong fallback - never leave user hanging
+      const errorMessage = "Hey! I'm here to help. What neighborhood are you in and what are you looking for?";
+      
+      // Store fallback message
       await supabase.from('whatsapp_conversations').insert({
         phone_number: from,
         role: 'assistant',
