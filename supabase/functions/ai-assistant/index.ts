@@ -41,42 +41,25 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Fetch comprehensive data from ALL relevant tables in parallel
+    // Fetch only essential data in parallel (optimized for speed)
+    // Only fetch events and businesses - most common queries
     const [
       eventsData,
-      communitiesData, 
-      postsData,
-      itemsData,
-      neighborIdeasData,
-      neighborQuestionsData,
-      couponsData,
-      storiesData,
-      businessProfilesData
+      businessProfilesData,
+      couponsData
     ] = await Promise.all([
-      supabase.from('events').select('id, title, description, location, date, time, price, mood, event_type, image_url, target_audience, music_type, venue_size, price_range').gte('date', new Date().toISOString().split('T')[0]).order('date', { ascending: true }).limit(8),
-      supabase.from('communities').select('id, name, tagline, description, category, subcategory, member_count').limit(6),
-      supabase.from('posts').select('id, content, location, created_at').limit(5),
-      supabase.from('items').select('id, title, description, category, location, price').eq('status', 'active').limit(6),
-      supabase.from('neighborhood_ideas').select('id, question, neighborhood, market').limit(4),
-      supabase.from('neighbor_questions').select('id, content, market, message_type').limit(4),
-      supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood, coupon_code, image_url').eq('is_active', true).limit(8),
-      supabase.from('stories').select('id, text_content, story_type').gt('expires_at', 'now()').limit(3),
-      supabase.from('profiles').select('id, name, bio, location, age, interests, specialties, whatsapp_number, profile_image_url').eq('profile_type', 'business').limit(10)
+      supabase.from('events').select('id, title, description, location, date, time, price, mood, event_type, image_url, target_audience, music_type, venue_size, price_range').gte('date', new Date().toISOString().split('T')[0]).order('date', { ascending: true }).limit(6), // Reduced from 8 to 6
+      supabase.from('profiles').select('id, name, bio, location, age, interests, specialties, whatsapp_number, profile_image_url').eq('profile_type', 'business').limit(6), // Reduced from 10 to 6
+      supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood, coupon_code, image_url').eq('is_active', true).limit(5) // Reduced from 8 to 5
     ]);
 
-    console.log('📊 Data fetched - Events:', eventsData.data?.length, 'Communities:', communitiesData.data?.length, 'Posts:', postsData.data?.length, 'Items:', itemsData.data?.length, 'Businesses:', businessProfilesData.data?.length);
+    console.log('📊 Data fetched - Events:', eventsData.data?.length, 'Businesses:', businessProfilesData.data?.length, 'Coupons:', couponsData.data?.length);
 
-    // Prepare comprehensive context with REAL data
+    // Prepare streamlined context with essential data only
     const realData = {
       currentEvents: eventsData.data || [],
-      activeCommunities: communitiesData.data || [],
-      recentPosts: postsData.data || [],
-      marketplaceItems: itemsData.data || [],
-      neighborhoodIdeas: neighborIdeasData.data || [],
-      neighborQuestions: neighborQuestionsData.data || [],
-      localCoupons: couponsData.data || [],
-      activeStories: storiesData.data || [],
       businessProfiles: businessProfilesData.data || [],
+      localCoupons: couponsData.data || [],
       userLocation: userLocation || 'Not specified'
     };
 
@@ -293,18 +276,6 @@ ${realData.currentEvents.length > 0 ? realData.currentEvents.map(e => `- "${e.ti
 
 🏢 BUSINESSES (${realData.businessProfiles.length}):
 ${realData.businessProfiles.length > 0 ? realData.businessProfiles.map(b => `- "${b.name}"${b.age ? ` (ages ${b.age}+)` : ''} in ${b.location || 'location'}${b.profile_image_url ? ` [IMAGE: ${b.profile_image_url}]` : ''} - ${b.bio?.substring(0, 100)}...${b.specialties?.length > 0 ? ' - Vibe: ' + b.specialties.join(', ') : ''}${b.whatsapp_number ? ' - WhatsApp: ' + b.whatsapp_number : ''}`).join('\n') : 'Nothing rn.'}
-
-👥 COMMUNITIES (${realData.activeCommunities.length}):
-${realData.activeCommunities.length > 0 ? realData.activeCommunities.map(c => `- "${c.name}" (${c.member_count} members) - ${c.category} - ${c.tagline || c.description?.substring(0, 80)}`).join('\n') : 'Nothing rn.'}
-
-🏪 MARKETPLACE (${realData.marketplaceItems.length}):
-${realData.marketplaceItems.length > 0 ? realData.marketplaceItems.map(i => `- "${i.title}" in ${i.category} at ${i.location} for $${i.price} - ${i.description?.substring(0, 60)}...`).join('\n') : 'Nothing rn.'}
-
-💡 IDEAS (${realData.neighborhoodIdeas.length}):
-${realData.neighborhoodIdeas.length > 0 ? realData.neighborhoodIdeas.map(n => `- "${n.question}" in ${n.neighborhood}`).join('\n') : 'Nothing rn.'}
-
-❓ QUESTIONS (${realData.neighborQuestions.length}):
-${realData.neighborQuestions.length > 0 ? realData.neighborQuestions.map(q => `- ${q.content?.substring(0, 80)}...`).join('\n') : 'Nothing rn.'}
 
 🎫 DEALS (${realData.localCoupons.length}):
 ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.title}" at ${c.business_name} - ${c.discount_amount}% OFF${c.coupon_code ? ` - Code: ${c.coupon_code}` : ''}${c.image_url ? ` [IMAGE: ${c.image_url}]` : ''} in ${c.neighborhood || 'neighborhood'}`).join('\n') : 'Nothing rn.'}

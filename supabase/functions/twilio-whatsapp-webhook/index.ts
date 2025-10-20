@@ -68,12 +68,13 @@ Deno.serve(async (req) => {
 
     console.log('User profile:', profile ? `Found profile for ${profile.name}` : 'No profile found');
 
-    // Store user message
-    await supabase.from('whatsapp_conversations').insert({
+    // Store user message in background (non-blocking)
+    const storeUserMessage = supabase.from('whatsapp_conversations').insert({
       phone_number: from,
       role: 'user',
       content: body
     });
+    // Don't await - let it happen in background
 
     // Call the AI assistant function with history and profile
     const { data: aiResponse, error: aiError } = await supabase.functions.invoke('ai-assistant', {
@@ -98,7 +99,7 @@ Deno.serve(async (req) => {
     if (aiResponse?.recommendations && Array.isArray(aiResponse.recommendations) && aiResponse.recommendations.length > 0) {
       console.log(`📸 AI wants to send ${aiResponse.recommendations.length} recommendations with images`);
       
-      // Get Twilio credentials to send via API instead of TwiML (better image support)
+      // Get Twilio credentials
       const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
       const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
@@ -108,10 +109,13 @@ Deno.serve(async (req) => {
         throw new Error('Twilio credentials not configured');
       }
 
+      // Prepare all message sends (parallel execution)
+      const messageSends = [];
+
       // Send text response first if there is one
       if (aiResponse.response && aiResponse.response.trim()) {
-        try {
-          await fetch(
+        messageSends.push(
+          fetch(
             `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
             {
               method: 'POST',
@@ -125,21 +129,19 @@ Deno.serve(async (req) => {
                 Body: aiResponse.response
               }).toString()
             }
-          );
-          console.log('✅ Sent text intro');
-          
-          // Store the text response
-          await supabase.from('whatsapp_conversations').insert({
-            phone_number: from,
-            role: 'assistant',
-            content: aiResponse.response
-          });
-        } catch (error) {
-          console.error('Error sending intro text:', error);
-        }
+          ).then(() => {
+            console.log('✅ Sent text intro');
+            // Store in background
+            supabase.from('whatsapp_conversations').insert({
+              phone_number: from,
+              role: 'assistant',
+              content: aiResponse.response
+            });
+          }).catch(err => console.error('Error sending intro:', err))
+        );
       }
       
-      // Send each recommendation with image via Twilio API
+      // Send all recommendations in parallel
       for (const rec of aiResponse.recommendations) {
         const messageData: any = {
           From: twilioWhatsAppNumber,
@@ -150,13 +152,10 @@ Deno.serve(async (req) => {
         // Add image if URL exists and is complete
         if (rec.image_url && rec.image_url.trim() !== '' && rec.image_url.startsWith('http')) {
           messageData.MediaUrl = rec.image_url;
-          console.log('📸 Sending with image:', rec.image_url);
-        } else {
-          console.log('⚠️ No valid image URL, sending text only');
         }
         
-        try {
-          const twilioResponse = await fetch(
+        messageSends.push(
+          fetch(
             `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
             {
               method: 'POST',
@@ -166,27 +165,29 @@ Deno.serve(async (req) => {
               },
               body: new URLSearchParams(messageData).toString()
             }
-          );
-          
-          if (!twilioResponse.ok) {
-            const errorText = await twilioResponse.text();
-            console.error('Twilio API error:', twilioResponse.status, errorText);
-          } else {
+          ).then(response => {
+            if (!response.ok) {
+              return response.text().then(errorText => {
+                console.error('Twilio API error:', response.status, errorText);
+              });
+            }
             console.log(`✅ Sent recommendation ${rec.image_url ? 'with image' : 'text only'}`);
-          }
-        } catch (error) {
-          console.error('Error sending message via Twilio:', error);
-        }
-        
-        // Store each recommendation in conversation history
-        await supabase.from('whatsapp_conversations').insert({
-          phone_number: from,
-          role: 'assistant',
-          content: rec.message
-        });
+            // Store in background
+            supabase.from('whatsapp_conversations').insert({
+              phone_number: from,
+              role: 'assistant',
+              content: rec.message
+            });
+          }).catch(err => console.error('Error sending recommendation:', err))
+        );
       }
       
-      // Return empty TwiML since we've already sent messages via Twilio API
+      // Send all messages in parallel and return immediately
+      Promise.all(messageSends).then(() => {
+        console.log('✅ All messages sent');
+      });
+      
+      // Return empty TwiML immediately (don't wait for messages to send)
       return new Response(
         '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
         {
