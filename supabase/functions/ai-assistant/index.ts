@@ -285,13 +285,50 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
 
     console.log('🤖 Calling OpenAI with conversation context...');
 
-    // Make OpenAI API call with comprehensive context - DISABLE TOOLS FOR NOW DUE TO TRUNCATION BUG
+    // Define tools for structured recommendations with images
+    const tools = isWhatsApp ? [
+      {
+        type: "function",
+        function: {
+          name: "send_recommendation_with_image",
+          description: "Send a recommendation with an image (event, business, or coupon)",
+          parameters: {
+            type: "object",
+            properties: {
+              message: {
+                type: "string",
+                description: "The text message to send"
+              },
+              image_url: {
+                type: "string",
+                description: "The URL of the image to send (event image, business profile picture, or coupon image)"
+              },
+              recommendation_type: {
+                type: "string",
+                enum: ["event", "business", "coupon"],
+                description: "Type of recommendation"
+              }
+            },
+            required: ["message", "image_url", "recommendation_type"]
+          }
+        }
+      }
+    ] : undefined;
+
+    // Make OpenAI API call with comprehensive context
     const requestBody: any = {
       model: 'gpt-4o-mini',
       messages: messages,
-      max_tokens: isFirstMessage ? 180 : (isGreeting ? 150 : 100),
+      // Increased max_tokens significantly to prevent truncation of tool call arguments with long URLs
+      max_tokens: isWhatsApp ? 500 : (isFirstMessage ? 180 : (isGreeting ? 150 : 100)),
       temperature: 0.9
     };
+
+    // Add tools for WhatsApp to enable image sending
+    if (isWhatsApp) {
+      requestBody.tools = tools;
+      requestBody.tool_choice = "auto"; // Let AI decide when to use the tool
+    }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
