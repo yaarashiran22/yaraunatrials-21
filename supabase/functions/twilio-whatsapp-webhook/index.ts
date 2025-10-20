@@ -125,7 +125,6 @@ Deno.serve(async (req) => {
         userProfile: profile || null,
         isWhatsApp: true  // Enable ultra-short WhatsApp mode
       }
-
     });
 
     if (aiError) {
@@ -133,12 +132,119 @@ Deno.serve(async (req) => {
       throw aiError;
     }
 
-    const assistantMessage = aiResponse?.response || 'Sorry, I encountered an error processing your request.';
-    const imageUrl = aiResponse?.image_url; // Check if AI included an image
-    console.log('AI response:', assistantMessage);
-    if (imageUrl) {
-      console.log('📸 Image URL to send:', imageUrl);
+    console.log('AI response received:', JSON.stringify(aiResponse));
+
+    // Check if we have multiple recommendations with images
+    if (aiResponse?.recommendations && Array.isArray(aiResponse.recommendations)) {
+      console.log(`📸 Sending ${aiResponse.recommendations.length} recommendations with images via Twilio`);
+      
+      // Send each recommendation as a separate message with its image
+      const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
+      
+      if (!twilioAccountSid || !twilioAuthToken || !twilioWhatsAppNumber) {
+        console.error('❌ Twilio credentials missing');
+        throw new Error('Twilio credentials not configured');
+      }
+
+      // Send up to 5 recommendations with images
+      const recsWithImages = aiResponse.recommendations.slice(0, 5);
+      const recsWithoutImages = aiResponse.recommendations.slice(5);
+      
+      // Send recommendations with images via Twilio API
+      for (const rec of recsWithImages) {
+        const messageData: any = {
+          From: twilioWhatsAppNumber,
+          To: from,
+          Body: rec.message
+        };
+        
+        // Only add MediaUrl if image_url exists and is not empty
+        if (rec.image_url && rec.image_url.trim() !== '') {
+          messageData.MediaUrl = rec.image_url;
+        }
+        
+        try {
+          const twilioResponse = await fetch(
+            `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: new URLSearchParams(messageData).toString()
+            }
+          );
+          
+          if (!twilioResponse.ok) {
+            const errorText = await twilioResponse.text();
+            console.error('Twilio API error:', twilioResponse.status, errorText);
+          } else {
+            console.log(`✅ Sent recommendation with ${rec.image_url ? 'image' : 'text only'}`);
+          }
+        } catch (error) {
+          console.error('Error sending message via Twilio:', error);
+        }
+        
+        // Store each recommendation in conversation history
+        await supabase.from('whatsapp_conversations').insert({
+          phone_number: from,
+          role: 'assistant',
+          content: rec.message
+        });
+      }
+      
+      // If there are more than 5 recommendations, send the rest as one text message
+      if (recsWithoutImages.length > 0) {
+        const textOnlyMessage = recsWithoutImages
+          .map((rec, idx) => `${idx + 6}. ${rec.message}`)
+          .join('\n\n');
+        
+        const messageData = {
+          From: twilioWhatsAppNumber,
+          To: from,
+          Body: textOnlyMessage
+        };
+        
+        try {
+          await fetch(
+            `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: new URLSearchParams(messageData).toString()
+            }
+          );
+          console.log(`✅ Sent ${recsWithoutImages.length} text-only recommendations`);
+        } catch (error) {
+          console.error('Error sending text-only recommendations:', error);
+        }
+        
+        await supabase.from('whatsapp_conversations').insert({
+          phone_number: from,
+          role: 'assistant',
+          content: textOnlyMessage
+        });
+      }
+      
+      // Return empty TwiML since we've already sent messages via Twilio API
+      return new Response(
+        '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+          status: 200
+        }
+      );
     }
+
+    // Fallback for single message responses (no tool calls)
+    const assistantMessage = aiResponse?.response || 'Sorry, I encountered an error processing your request.';
+    console.log('Single message response:', assistantMessage);
 
     // Store assistant response
     await supabase.from('whatsapp_conversations').insert({
@@ -147,26 +253,11 @@ Deno.serve(async (req) => {
       content: assistantMessage
     });
 
-    // Return TwiML response with optional media
-    let twimlResponse: string;
-    const welcomeText = welcomeMessageSent ? "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
-    
-    if (imageUrl) {
-      // Send message with image
-      twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+    // Return TwiML response (text only for fallback)
+    const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>
-    <Body>${welcomeText}${assistantMessage}</Body>
-    <Media>${imageUrl}</Media>
-  </Message>
+  <Message>${welcomeMessageSent ? "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : ""}${assistantMessage}</Message>
 </Response>`;
-    } else {
-      // Send text-only message
-      twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${welcomeText}${assistantMessage}</Message>
-</Response>`;
-    }
 
     console.log('Sending TwiML response');
     

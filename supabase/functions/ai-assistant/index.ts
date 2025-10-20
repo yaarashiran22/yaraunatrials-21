@@ -164,19 +164,18 @@ DO NOT ask for their name or age - focus on location and interests only.
 
 🎯 YOUR VIBE:
 ${isWhatsApp ? `
-🚨 WHATSAPP MODE - ULTRA SHORT & PERSONALIZED WITH IMAGES:
-- Max 1-2 sentences ONLY (this is WhatsApp, not an essay)
-- Cut straight to the point - no intros, no fluff
-- ONE specific recommendation that matches THEIR profile exactly
+🚨 WHATSAPP MODE - MULTIPLE RECOMMENDATIONS WITH IMAGES:
+- Give 3-4 SPECIFIC recommendations (not just 1) unless fewer options exist
+- Each recommendation should be 1-2 sentences max
 - 🖼️ **CRITICAL - YOU MUST USE THE TOOL FOR EVERY RECOMMENDATION**:
-  * ALWAYS call send_recommendation_with_image() when recommending events, businesses, or coupons
+  * ALWAYS call send_recommendation_with_image() for EACH event, business, or coupon you recommend
   * For events: Use the image_url from the event data
   * For businesses: Use profile_image_url from business data
   * For coupons: Use image_url from coupon data
   * If no image is available, still use the tool but pass empty string for image_url
   * Example: send_recommendation_with_image(message: "Jazz Night at Café Tortoni tonight 9pm, $15 🎷", image_url: "https://...", recommendation_type: "event")
-- ALWAYS use the tool - this sends the image properly via WhatsApp Media
-- If they ask for more, THEN give more - but default to minimal
+  * Call this tool MULTIPLE times (3-4 times) to send multiple recommendations with their images
+- NEVER just send an image link/URL in text - ALWAYS use the tool to send the actual image
 - ALWAYS filter by their neighborhood first - don't suggest things across the city
 - Match their interests - if they love jazz, don't suggest techno clubs
 ` : `
@@ -324,22 +323,22 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
         type: "function",
         function: {
           name: "send_recommendation_with_image",
-          description: "Send a recommendation with an image (event, business, or coupon)",
+          description: "Send a single recommendation with an image. Call this function MULTIPLE times (3-4 times) to send multiple recommendations, each with their own image.",
           parameters: {
             type: "object",
             properties: {
               message: {
                 type: "string",
-                description: "The text message to send"
+                description: "The text message for this ONE recommendation (1-2 sentences max)"
               },
               image_url: {
                 type: "string",
-                description: "The URL of the image to send (event image, business profile picture, or coupon image)"
+                description: "The URL of the image to send with this recommendation (event image, business profile picture, or coupon image). If no image available, use empty string."
               },
               recommendation_type: {
                 type: "string",
                 enum: ["event", "business", "coupon"],
-                description: "Type of recommendation"
+                description: "Type of this recommendation"
               }
             },
             required: ["message", "image_url", "recommendation_type"]
@@ -360,6 +359,7 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
     if (isWhatsApp) {
       requestBody.tools = tools;
       requestBody.tool_choice = "auto"; // Let AI decide when to use the tool
+      requestBody.parallel_tool_calls = true; // Enable calling the tool multiple times for multiple recommendations
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -397,25 +397,32 @@ ${realData.localCoupons.length > 0 ? realData.localCoupons.map(c => `- "${c.titl
     
     const assistantMessage = data.choices[0].message;
     
-    // Check if AI used the tool to send an image
+    // Check if AI used the tool to send images (can be multiple calls)
     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
-      const toolCall = assistantMessage.tool_calls[0];
-      if (toolCall.function.name === 'send_recommendation_with_image') {
-        const args = JSON.parse(toolCall.function.arguments);
-        console.log('🖼️ AI wants to send image:', args.image_url);
-        
-        return new Response(
-          JSON.stringify({ 
-            response: args.message,
-            image_url: args.image_url,
-            recommendation_type: args.recommendation_type,
-            success: true 
-          }),
-          {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
+      console.log(`🖼️ AI wants to send ${assistantMessage.tool_calls.length} recommendations with images`);
+      
+      // Collect all recommendations with images
+      const recommendations = assistantMessage.tool_calls
+        .filter(tc => tc.function.name === 'send_recommendation_with_image')
+        .map(tc => {
+          const args = JSON.parse(tc.function.arguments);
+          return {
+            message: args.message,
+            image_url: args.image_url || '',
+            recommendation_type: args.recommendation_type
+          };
+        });
+      
+      return new Response(
+        JSON.stringify({ 
+          response: assistantMessage.content || '',
+          recommendations: recommendations, // Array of multiple recommendations
+          success: true 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
     
     const aiResponse = assistantMessage.content;
