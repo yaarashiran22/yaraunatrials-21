@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
     if (shouldSendWelcome) {
       console.log('Sending welcome message - new conversation or conversation starter detected');
       
-      const welcomeMessage = "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?";
+      const welcomeMessage = "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?";
       
       // Store welcome response
       await supabase.from('whatsapp_conversations').insert({
@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
       const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
 
       // Prepare the intro message
-      const welcomeText = welcomeMessageSent ? "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
+      const welcomeText = welcomeMessageSent ? "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
       const introMessage = welcomeText + (parsedResponse.intro_message || 'Here are some that you might like:');
       
       // Trigger background function to send recommendations (don't await - fire and forget)
@@ -220,7 +220,7 @@ Deno.serve(async (req) => {
       content: assistantMessage
     });
 
-    const welcomeText = welcomeMessageSent ? "Hey welcome to yara ai - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
+    const welcomeText = welcomeMessageSent ? "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
     
     const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
