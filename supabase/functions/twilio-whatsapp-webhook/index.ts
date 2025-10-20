@@ -141,23 +141,24 @@ Deno.serve(async (req) => {
 
     console.log('Yara AI raw response:', assistantMessage);
 
-    // Try to parse as JSON (clean up any markdown code blocks first)
+    // Try to parse as JSON - extract JSON from text if needed
     let cleanedMessage = assistantMessage.trim();
     
-    // Remove markdown code blocks if present
-    if (cleanedMessage.startsWith('```json')) {
-      cleanedMessage = cleanedMessage.replace(/```json\n?/g, '').replace(/```\n?$/g, '').trim();
-    } else if (cleanedMessage.startsWith('```')) {
-      cleanedMessage = cleanedMessage.replace(/```\n?/g, '').trim();
+    // Try to extract JSON from the response
+    // Look for a JSON object starting with { and ending with }
+    const jsonMatch = cleanedMessage.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleanedMessage = jsonMatch[0];
+      console.log('Extracted JSON from response:', cleanedMessage.substring(0, 200) + '...');
     }
 
     let parsedResponse;
     try {
       parsedResponse = JSON.parse(cleanedMessage);
-      console.log('Successfully parsed JSON response:', JSON.stringify(parsedResponse));
+      console.log('Successfully parsed JSON response with', parsedResponse.recommendations?.length || 0, 'recommendations');
     } catch (e) {
       // Not JSON, just a regular conversational response
-      console.log('Response is not JSON, treating as conversational text');
+      console.log('Response is not valid JSON, treating as conversational text');
       parsedResponse = null;
     }
 
