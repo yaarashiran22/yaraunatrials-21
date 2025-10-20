@@ -37,19 +37,19 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Check for recent conversation (last 7 minutes)
-    const sevenMinutesAgo = new Date(Date.now() - 7 * 60 * 1000).toISOString();
+    // Check for recent conversation (last 30 minutes for better context retention)
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const { data: recentHistory } = await supabase
       .from('whatsapp_conversations')
       .select('role, content, created_at')
       .eq('phone_number', from)
-      .gte('created_at', sevenMinutesAgo)
+      .gte('created_at', thirtyMinutesAgo)
       .order('created_at', { ascending: true })
-      .limit(20);
+      .limit(30);
 
     const conversationHistory = recentHistory || [];
     const isNewConversation = conversationHistory.length === 0;
-    console.log(`Found ${conversationHistory.length} messages in last 7 minutes for ${from}. Is new conversation: ${isNewConversation}`);
+    console.log(`Found ${conversationHistory.length} messages in last 30 minutes for ${from}. Is new conversation: ${isNewConversation}`);
 
     // Check if message is a greeting OR a conversation starter
     const greetingPatterns = /^(hey|hi|hello|sup|yo|hola|what's up|whats up)[\s!?.]*$/i;
