@@ -112,20 +112,20 @@ const YaraAIAssistant: React.FC<YaraAIAssistantProps> = ({ isOpen, onClose }) =>
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <Card className="w-full max-w-2xl h-[600px] flex flex-col bg-gradient-to-br from-background to-muted/20 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+      <Card className="w-full max-w-2xl h-[600px] flex flex-col bg-gradient-to-br from-background via-background to-[#E91E63]/5 shadow-2xl border-[#E91E63]/20">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/10 to-accent/10">
+        <div className="flex items-center justify-between p-4 border-b border-[#E91E63]/20 bg-gradient-to-r from-[#E91E63]/10 via-[#9C27B0]/10 to-[#E91E63]/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#E91E63] to-[#9C27B0] flex items-center justify-center shadow-lg">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="font-semibold text-lg">Yara AI</h2>
+              <h2 className="font-semibold text-lg bg-gradient-to-r from-[#E91E63] to-[#9C27B0] bg-clip-text text-transparent">Yara AI</h2>
               <p className="text-xs text-muted-foreground">Your Buenos Aires Guide</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button variant="ghost" size="icon" onClick={onClose} className="hover:bg-[#E91E63]/10">
             <X className="w-5 h-5" />
           </Button>
         </div>
@@ -141,8 +141,8 @@ const YaraAIAssistant: React.FC<YaraAIAssistantProps> = ({ isOpen, onClose }) =>
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
                     msg.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted/80'
+                      ? 'bg-gradient-to-r from-[#E91E63] to-[#9C27B0] text-white shadow-md'
+                      : 'bg-muted/80 border border-[#E91E63]/10'
                   }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
@@ -151,11 +151,11 @@ const YaraAIAssistant: React.FC<YaraAIAssistantProps> = ({ isOpen, onClose }) =>
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-muted/80 rounded-2xl px-4 py-2.5">
+                <div className="bg-muted/80 border border-[#E91E63]/10 rounded-2xl px-4 py-2.5">
                   <div className="flex gap-1">
-                    <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+                    <div className="w-2 h-2 rounded-full bg-[#E91E63] animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-2 h-2 rounded-full bg-[#9C27B0] animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-2 h-2 rounded-full bg-[#E91E63] animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
                 </div>
               </div>
@@ -164,20 +164,20 @@ const YaraAIAssistant: React.FC<YaraAIAssistantProps> = ({ isOpen, onClose }) =>
         </ScrollArea>
 
         {/* Input */}
-        <div className="p-4 border-t bg-muted/20">
+        <div className="p-4 border-t border-[#E91E63]/20 bg-gradient-to-r from-[#E91E63]/5 to-[#9C27B0]/5">
           <div className="flex gap-2">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Ask about events, venues, deals..."
-              className="flex-1"
+              className="flex-1 border-[#E91E63]/20 focus:border-[#E91E63]/40 focus:ring-[#E91E63]/20"
               disabled={isLoading}
             />
             <Button
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
-              className="bg-gradient-to-r from-primary to-accent"
+              className="bg-gradient-to-r from-[#E91E63] to-[#9C27B0] hover:from-[#D81B60] hover:to-[#8E24AA] text-white shadow-lg"
             >
               <Send className="w-4 h-4" />
             </Button>
