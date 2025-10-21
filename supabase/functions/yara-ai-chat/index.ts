@@ -303,20 +303,29 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                 messages: [
                   {
                     role: 'system',
-                    content: `You MUST return ONLY a valid JSON array. NO conversational text. NO explanations. NO "I couldn't find" messages.
+                    content: `You MUST return ONLY a valid JSON array. NO conversational text. NO explanations.
 
 Today's date: ${new Date().toISOString().split('T')[0]} (YEAR: ${new Date().getFullYear()}, MONTH: ${new Date().getMonth() + 1}, DAY: ${new Date().getDate()})
 
 CRITICAL RULES:
-1. If you can't find events, return: []
-2. DO NOT return venues without specific dates
-3. DO NOT return past events (anything before ${new Date().toISOString().split('T')[0]})
-4. Match user's exact date and location request
-5. Return ONLY valid JSON - start with [ and end with ]
+1. ALWAYS try to find 2-3 recommendations - be creative and flexible with matching
+2. If no EXACT matches exist, recommend SIMILAR/RELATED events (e.g., "afrobeats" → afro-style, african music, world music, reggaeton with afro vibes)
+3. Only return [] if there are absolutely NO relevant events at all in Buenos Aires
+4. DO NOT return venues without specific dates
+5. DO NOT return past events (anything before ${new Date().toISOString().split('T')[0]})
+6. Match user's date/location requests, but be flexible with genre/vibe
+7. Return ONLY valid JSON - start with [ and end with ]
+
+FLEXIBILITY EXAMPLES:
+- "afrobeats" → african music, world music, reggaeton, dancehall, tropical vibes
+- "jazz" → live music, acoustic, blues, soul
+- "techno" → electronic, house, underground, dance
+- "indie" → alternative, rock, live bands, underground venues
 
 Date calculations:
 - "tonight"/"today"/"esta noche"/"hoy" = ${new Date().toISOString().split('T')[0]}
 - "tomorrow"/"mañana" = calculate next day from ${new Date().toISOString().split('T')[0]}
+- "this month" = any date in current month ${new Date().getMonth() + 1}/${new Date().getFullYear()}
 - Specific neighborhood = ONLY events in that exact neighborhood
 
 JSON format (write descriptions casual, like texting a friend):
@@ -324,7 +333,7 @@ JSON format (write descriptions casual, like texting a friend):
   {
     "title": "Event Name",
     "description": "Location: [venue]. Date: [YYYY-MM-DD]. Time: [time]. 1-2 casual sentences about why it's cool.",
-    "why_recommended": "Direct 1-2 sentences on why this fits their vibe.",
+    "why_recommended": "Direct 1-2 sentences on why this matches their vibe (mention if it's related/similar to their request).",
     "source": "URL"
   }
 ]
@@ -333,7 +342,7 @@ RESPOND WITH ONLY JSON. NO OTHER TEXT.`
                   },
                   {
                     role: 'user',
-                    content: `Find 2-3 specific live events in Buenos Aires for: ${lastUserMessage}. Return ONLY JSON array, no other text.`
+                    content: `Find 2-3 specific events in Buenos Aires for: ${lastUserMessage}. If exact matches don't exist, find similar/related events. Return ONLY JSON array, no other text.`
                   }
                 ],
                 temperature: 0.2,
