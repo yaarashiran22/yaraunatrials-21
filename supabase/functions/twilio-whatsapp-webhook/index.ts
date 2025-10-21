@@ -257,7 +257,7 @@ Deno.serve(async (req) => {
 
       // Prepare the intro message - send this first before recommendations
       const welcomeText = welcomeMessageSent ? "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
-      const introMessage = welcomeText + "Yes! Sending you the best recommendations in just a moment! ✨";
+      const introMessage = welcomeText + "Yes! Sending you the recommendations in just a minute! 🎯";
       
       // Send intro via TwiML immediately
       console.log('Sending intro message via TwiML...');
