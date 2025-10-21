@@ -288,7 +288,7 @@ Return ONLY a JSON array with this exact structure (no markdown, no extra text):
                   }
                 ],
                 temperature: 0.2,
-                max_tokens: 300
+                max_tokens: 400
               }),
             });
 
