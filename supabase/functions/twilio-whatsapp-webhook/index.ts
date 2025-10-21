@@ -158,52 +158,7 @@ Deno.serve(async (req) => {
     const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|esta noche|hoy|mañana|fin de semana|dance|music|live|party|art|food)\b/i;
     const isRecommendationRequest = recommendationKeywords.test(body);
 
-    // If it's a recommendation request, send immediate acknowledgment
-    if (isRecommendationRequest) {
-      console.log('Detected recommendation request, sending acknowledgment...');
-      
-      const acknowledgmentMessage = "Looking for some great recommendations for you... just a moment! ⏳";
-      
-      // Send acknowledgment via Twilio API
-      const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-      const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-      const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
-      
-      if (twilioAccountSid && twilioAuthToken) {
-        try {
-          const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
-          const twilioAuth = btoa(`${twilioAccountSid}:${twilioAuthToken}`);
-          
-          const twilioResponse = await fetch(twilioUrl, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Basic ${twilioAuth}`,
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-              From: twilioWhatsAppNumber,
-              To: from,
-              Body: acknowledgmentMessage
-            })
-          });
-          
-          if (twilioResponse.ok) {
-            console.log('Acknowledgment message sent successfully');
-            
-            // Store acknowledgment in conversation history
-            await supabase.from('whatsapp_conversations').insert({
-              phone_number: from,
-              role: 'assistant',
-              content: acknowledgmentMessage
-            });
-          } else {
-            console.error('Failed to send acknowledgment:', await twilioResponse.text());
-          }
-        } catch (e) {
-          console.error('Error sending acknowledgment:', e);
-        }
-      }
-    }
+    // Note: We'll send intro message later with recommendations instead of acknowledgment
 
     // Build conversation history for AI
     const messages = conversationHistory.map(msg => ({
@@ -300,25 +255,31 @@ Deno.serve(async (req) => {
       // Get Twilio WhatsApp number
       const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
 
-      // Prepare the intro message
+      // Prepare the intro message - send this first before recommendations
       const welcomeText = welcomeMessageSent ? "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
-      const introMessage = welcomeText + (parsedResponse.intro_message || 'Here are some that you might like:');
+      const introMessage = welcomeText + "Looking for some great recommendations for you... just a moment! ⏳";
       
-      // Trigger background function to send recommendations (don't await - fire and forget)
+      // Send intro via TwiML immediately
+      console.log('Sending intro message via TwiML...');
+      
+      // Trigger background function to send recommendations after a brief delay (don't await - fire and forget)
       console.log('Triggering send-whatsapp-recommendations function...');
-      supabase.functions.invoke('send-whatsapp-recommendations', {
-        body: {
-          recommendations: parsedResponse.recommendations,
-          toNumber: from,
-          fromNumber: twilioWhatsAppNumber
-        }
-      }).then(({ data, error }) => {
-        if (error) {
-          console.error('Error invoking send-whatsapp-recommendations:', error);
-        } else {
-          console.log('Send-whatsapp-recommendations invoked successfully:', data);
-        }
-      });
+      setTimeout(() => {
+        supabase.functions.invoke('send-whatsapp-recommendations', {
+          body: {
+            recommendations: parsedResponse.recommendations,
+            toNumber: from,
+            fromNumber: twilioWhatsAppNumber,
+            introText: parsedResponse.intro_message || 'Here are some recommendations for you:'
+          }
+        }).then(({ data, error }) => {
+          if (error) {
+            console.error('Error invoking send-whatsapp-recommendations:', error);
+          } else {
+            console.log('Send-whatsapp-recommendations invoked successfully:', data);
+          }
+        });
+      }, 1000); // 1 second delay to ensure intro arrives first
 
       // Return intro message immediately via TwiML
       const introTwiml = `<?xml version="1.0" encoding="UTF-8"?>

@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { recommendations, toNumber, fromNumber } = await req.json();
+    const { recommendations, toNumber, fromNumber, introText } = await req.json();
     
     console.log(`Sending ${recommendations.length} recommendations to ${toNumber}`);
     
@@ -30,6 +30,40 @@ Deno.serve(async (req) => {
 
     const results = [];
     
+    // Send intro text first if provided
+    if (introText) {
+      try {
+        console.log('Sending intro text:', introText);
+        
+        const introResponse = await fetch(
+          `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              From: cleanFrom,
+              To: cleanTo,
+              Body: introText
+            }).toString()
+          }
+        );
+        
+        if (introResponse.ok) {
+          console.log('✅ Intro text sent successfully');
+          // Wait a moment before sending recommendations
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        } else {
+          console.error('❌ Failed to send intro text:', await introResponse.text());
+        }
+      } catch (error) {
+        console.error('❌ Error sending intro text:', error);
+      }
+    }
+    
+    // Now send recommendations
     for (let i = 0; i < recommendations.length; i++) {
       const rec = recommendations[i];
       
