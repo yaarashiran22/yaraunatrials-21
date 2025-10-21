@@ -217,7 +217,15 @@ IMPORTANT: If user asks "I'm looking for dance events" or "show me bars" or any 
     // Check if this is a recommendations response and enhance with Perplexity
     if (message.includes('"recommendations"')) {
       try {
-        const parsed = JSON.parse(message);
+        // Extract JSON from the message (handle cases where AI adds text before JSON)
+        let jsonStr = message;
+        const jsonStart = message.indexOf('{');
+        const jsonEnd = message.lastIndexOf('}');
+        if (jsonStart !== -1 && jsonEnd !== -1) {
+          jsonStr = message.substring(jsonStart, jsonEnd + 1);
+        }
+        
+        const parsed = JSON.parse(jsonStr);
         
         // Track database recommendations in background
         if (phoneNumber && parsed.recommendations && Array.isArray(parsed.recommendations)) {
