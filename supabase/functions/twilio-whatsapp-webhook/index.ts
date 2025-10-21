@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
     const ageMatches = body.match(agePattern);
     if (ageMatches && whatsappUser && !whatsappUser.age) {
       // Check if the context suggests they're providing age
-      const ageContextPatterns = /(i'm|im|i am|we're|were|we are|age|years old|año|años)/i;
+      const ageContextPatterns = /(i'm|im|i am|we're|were|we are|age|years? old|año|años)/i;
       if (ageContextPatterns.test(body) || body.trim().length < 20) {
         // Take the first reasonable age (between 10 and 99)
         const ages = ageMatches.map(m => parseInt(m)).filter(a => a >= 10 && a <= 99);
