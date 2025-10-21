@@ -13,7 +13,20 @@ Deno.serve(async (req) => {
   try {
     const { recommendations, toNumber, fromNumber, introText } = await req.json();
     
-    console.log(`Sending ${recommendations.length} recommendations to ${toNumber}`);
+    // Deduplicate recommendations by id to prevent sending duplicates
+    const uniqueRecs = recommendations.reduce((acc: any[], rec: any) => {
+      if (!acc.some(r => r.id === rec.id)) {
+        acc.push(rec);
+      }
+      return acc;
+    }, []);
+    
+    const duplicatesRemoved = recommendations.length - uniqueRecs.length;
+    if (duplicatesRemoved > 0) {
+      console.log(`Removed ${duplicatesRemoved} duplicate recommendation(s)`);
+    }
+    
+    console.log(`Sending ${uniqueRecs.length} unique recommendations to ${toNumber}`);
     
     const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
@@ -64,8 +77,8 @@ Deno.serve(async (req) => {
     }
     
     // Now send recommendations
-    for (let i = 0; i < recommendations.length; i++) {
-      const rec = recommendations[i];
+    for (let i = 0; i < uniqueRecs.length; i++) {
+      const rec = uniqueRecs[i];
       
       if (!rec.title || !rec.description) {
         console.log(`Skipping recommendation ${i + 1}: missing title or description`);
@@ -75,7 +88,7 @@ Deno.serve(async (req) => {
       const messageBody = `*${rec.title}*\n\n${rec.description}`;
       
       try {
-        console.log(`[${i + 1}/${recommendations.length}] Sending: ${rec.title}`);
+        console.log(`[${i + 1}/${uniqueRecs.length}] Sending: ${rec.title}`);
         
         // Build request body - only include MediaUrl if image exists
         const requestBody: Record<string, string> = {
@@ -115,7 +128,7 @@ Deno.serve(async (req) => {
       }
 
       // Wait between messages to avoid rate limits
-      if (i < recommendations.length - 1) {
+      if (i < uniqueRecs.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }

@@ -257,29 +257,33 @@ Deno.serve(async (req) => {
 
       // Prepare the intro message - send this first before recommendations
       const welcomeText = welcomeMessageSent ? "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
-      const introMessage = welcomeText + "Looking for some great recommendations for you... just a moment! ⏳";
+      const introMessage = welcomeText + "Yes! Sending you the best recommendations in just a moment! ✨";
       
       // Send intro via TwiML immediately
       console.log('Sending intro message via TwiML...');
       
-      // Trigger background function to send recommendations after a brief delay (don't await - fire and forget)
+      // Use EdgeRuntime.waitUntil for proper background task handling
       console.log('Triggering send-whatsapp-recommendations function...');
-      setTimeout(() => {
-        supabase.functions.invoke('send-whatsapp-recommendations', {
-          body: {
-            recommendations: parsedResponse.recommendations,
-            toNumber: from,
-            fromNumber: twilioWhatsAppNumber,
-            introText: parsedResponse.intro_message || 'Here are some recommendations for you:'
-          }
-        }).then(({ data, error }) => {
+      EdgeRuntime.waitUntil((async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke('send-whatsapp-recommendations', {
+            body: {
+              recommendations: parsedResponse.recommendations,
+              toNumber: from,
+              fromNumber: twilioWhatsAppNumber,
+              introText: parsedResponse.intro_message || 'Here are some recommendations for you:'
+            }
+          });
+          
           if (error) {
             console.error('Error invoking send-whatsapp-recommendations:', error);
           } else {
             console.log('Send-whatsapp-recommendations invoked successfully:', data);
           }
-        });
-      }, 1000); // 1 second delay to ensure intro arrives first
+        } catch (error) {
+          console.error('Failed to invoke send-whatsapp-recommendations:', error);
+        }
+      })());
 
       // Return intro message immediately via TwiML
       const introTwiml = `<?xml version="1.0" encoding="UTF-8"?>
