@@ -271,7 +271,7 @@ Deno.serve(async (req) => {
               recommendations: parsedResponse.recommendations,
               toNumber: from,
               fromNumber: twilioWhatsAppNumber,
-              introText: parsedResponse.intro_message || 'Here are some recommendations for you:'
+              introText: null // Don't send intro from background - already sent via TwiML
             }
           });
           
