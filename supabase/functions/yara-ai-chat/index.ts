@@ -162,7 +162,7 @@ DETECTION KEYWORDS FOR JSON RESPONSE (if user message contains ANY of these, ret
 **JSON-ONLY RULES - ENFORCE STRICTLY:**
 1. NO conversational text whatsoever
 2. NO markdown formatting
-3. NO code blocks or ```json wrappers
+3. NO code blocks or json wrappers
 4. NO explanatory text before or after the JSON
 5. Start with { and end with }
 6. Return ONLY the raw JSON object
