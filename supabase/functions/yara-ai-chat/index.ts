@@ -38,9 +38,12 @@ serve(async (req) => {
       interactionHistory = interactions || [];
     }
 
+    // Get current date for filtering
+    const today = new Date().toISOString().split('T')[0];
+    
     // Fetch relevant data from database with image URLs
     const [eventsResult, itemsResult, couponsResult] = await Promise.all([
-      supabase.from('events').select('id, title, description, date, time, location, price, mood, music_type, venue_size, image_url').order('created_at', { ascending: false }).limit(50),
+      supabase.from('events').select('id, title, description, date, time, location, price, mood, music_type, venue_size, image_url').gte('date', today).order('date', { ascending: true }).limit(50),
       supabase.from('items').select('id, title, description, category, location, price, image_url').eq('status', 'active').order('created_at', { ascending: false }).limit(50),
       supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood, valid_until, image_url').eq('is_active', true).order('created_at', { ascending: false }).limit(50)
     ]);
@@ -122,6 +125,8 @@ serve(async (req) => {
 
     const systemPrompt = `You are Yara, a friendly AI assistant for Buenos Aires events and experiences. Use emojis naturally to add warmth (1-2 per message), but don't overdo it.
 
+Today's date is: ${today}
+
 Available data:
 ${JSON.stringify(contextData, null, 2)}${userContext}
 
@@ -159,6 +164,11 @@ DETECTION KEYWORDS FOR JSON RESPONSE (if user message contains ANY of these, ret
 - "tonight", "today", "this week", "weekend"
 - "dance", "music", "live", "party", "art", "food"
 
+**DATE FILTERING - CRITICAL:**
+- If user mentions "tonight" or "today", ONLY return events with date = ${today}
+- If user mentions a specific date, ONLY return events matching that date
+- Filter events by date BEFORE selecting which ones to recommend
+
 **JSON-ONLY RULES - ENFORCE STRICTLY:**
 1. NO conversational text whatsoever
 2. NO markdown formatting
@@ -176,16 +186,18 @@ REQUIRED JSON FORMAT:
       "id": "actual-event-id",
       "title": "Event Title",
       "description": "Location: [location]. Date: [date]. Time: [time]. Price: [price]. Brief description.",
+      "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
       "image_url": "full-image-url"
     }
   ]
 }
 
 RECOMMENDATION RULES:
-- Return 2-3 recommendations from database (prioritize best matches but ALWAYS return something)
+- Return MAXIMUM 6 recommendations total (combining database + live recommendations)
 - Only include items with image_url
 - Keep description under 100 words
 - Include location, date, time, price in description
+- ALWAYS include "why_recommended" field with personalized explanation based on user's request, profile, and past interactions
 - Prioritize matches to user request, but if no perfect matches exist, return the most relevant/interesting events available
 - Use user profile (budget, neighborhoods, interests) to further personalize
 - NEVER return empty recommendations array if events exist in the database
@@ -278,6 +290,7 @@ Return ONLY a JSON array with this exact structure (no markdown, no extra text):
   {
     "title": "Event/Venue Name",
     "description": "Location: [venue/address]. Date: [date]. Time: [time if known]. Brief engaging description (1-2 sentences max, ~30 words).",
+    "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request.",
     "source": "Website or source URL"
   }
 ]`
@@ -313,19 +326,23 @@ Return ONLY a JSON array with this exact structure (no markdown, no extra text):
                   id: `perplexity-live-${idx}`,
                   title: rec.title,
                   description: `${rec.description}\n\n🔗 ${rec.source}`,
+                  why_recommended: rec.why_recommended || "This is a current, live recommendation happening in Buenos Aires.",
                   image_url: null
                 }));
                 
-                // Combine database recommendations (max 2) with Perplexity recommendations
-                const dbRecs = parsed.recommendations.slice(0, 2);
-                const combinedRecommendations = [...dbRecs, ...liveRecs];
+                // Combine database recommendations with Perplexity recommendations (max 6 total)
+                const dbRecs = parsed.recommendations.slice(0, Math.min(3, 6 - liveRecs.length));
+                const finalLiveRecs = liveRecs.slice(0, 6 - dbRecs.length);
+                const combinedRecommendations = [...dbRecs, ...finalLiveRecs].slice(0, 6);
                 
                 // Update intro message
                 let updatedIntro = parsed.intro_message;
-                if (dbRecs.length > 0) {
-                  updatedIntro = `Here are ${dbRecs.length} from our community + ${liveRecs.length} live recommendations:`;
+                if (dbRecs.length > 0 && finalLiveRecs.length > 0) {
+                  updatedIntro = `Here are ${combinedRecommendations.length} recommendations for you (${dbRecs.length} from our community + ${finalLiveRecs.length} live):`;
+                } else if (dbRecs.length > 0) {
+                  updatedIntro = `Here are ${dbRecs.length} recommendations from our community:`;
                 } else {
-                  updatedIntro = `Here are ${liveRecs.length} live recommendations for you:`;
+                  updatedIntro = `Here are ${finalLiveRecs.length} live recommendations for you:`;
                 }
                 
                 message = JSON.stringify({
