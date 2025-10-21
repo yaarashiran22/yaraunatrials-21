@@ -239,7 +239,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         const parsed = JSON.parse(jsonStr);
         
         // Track database recommendations in background
-        if (phoneNumber && parsed.recommendations && Array.isArray(parsed.recommendations)) {
+        if (phoneNumber && parsed.recommendations && Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
           const interactions = parsed.recommendations.map((rec: any) => ({
             phone_number: phoneNumber,
             item_type: rec.type,
@@ -252,10 +252,10 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         // Get the last user message to understand their query
         const lastUserMessage = messages[messages.length - 1]?.content || '';
         
-        // Call Perplexity to get 1 real-time recommendation
+        // ALWAYS call Perplexity for real-time recommendations (even if DB has no matches)
         const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
         if (perplexityApiKey && perplexityApiKey.trim() !== '') {
-          console.log('Fetching real-time recommendation from Perplexity with key:', perplexityApiKey.substring(0, 10) + '...');
+          console.log('Fetching real-time recommendations from Perplexity...');
           
           try {
             const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -269,20 +269,22 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                 messages: [
                   {
                     role: 'system',
-                    content: `You are a local Buenos Aires expert. Find ONE real-time event, bar, or experience happening now or soon that matches the user's request. Return ONLY a JSON object with this exact structure (no markdown, no extra text):
-{
-  "title": "Event/Place Name",
-  "description": "Brief description including location, date/time if applicable, and what makes it special. Max 80 words.",
-  "source": "Website or source URL where you found this"
-}`
+                    content: `You are a local Buenos Aires expert. Find 2-3 real, current events or venues that match the user's request. Return ONLY a JSON array with this exact structure (no markdown, no extra text):
+[
+  {
+    "title": "Event/Venue Name",
+    "description": "Brief description including location, date/time if applicable, and what makes it special. Max 80 words.",
+    "source": "Website or source URL"
+  }
+]`
                   },
                   {
                     role: 'user',
-                    content: `Find 1 current event or place in Buenos Aires for: ${lastUserMessage}`
+                    content: `Find 2-3 specific, real events or venues in Buenos Aires for: ${lastUserMessage}. Include actual venue names, dates, and locations.`
                   }
                 ],
                 temperature: 0.2,
-                max_tokens: 300
+                max_tokens: 500
               }),
             });
 
@@ -294,35 +296,46 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
               
               // Try to parse Perplexity's response
               try {
-                const perplexityRec = JSON.parse(perplexityText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim());
+                let perplexityRecs = JSON.parse(perplexityText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim());
                 
-                // Limit database recommendations to 2, then add Perplexity recommendation
-                const dbRecs = parsed.recommendations.slice(0, 2);
-                const liveRec = {
+                // Ensure it's an array
+                if (!Array.isArray(perplexityRecs)) {
+                  perplexityRecs = [perplexityRecs];
+                }
+                
+                // Convert Perplexity recommendations to our format
+                const liveRecs = perplexityRecs.map((rec: any, idx: number) => ({
                   type: 'live',
-                  id: 'perplexity-live',
-                  title: perplexityRec.title,
-                  description: `${perplexityRec.description}\n\n🔗 Source: ${perplexityRec.source}`,
+                  id: `perplexity-live-${idx}`,
+                  title: rec.title,
+                  description: `${rec.description}\n\n🔗 ${rec.source}`,
                   image_url: null
-                };
+                }));
                 
-                // Combine recommendations
-                const combinedRecommendations = [...dbRecs, liveRec];
+                // Combine database recommendations (max 2) with Perplexity recommendations
+                const dbRecs = parsed.recommendations.slice(0, 2);
+                const combinedRecommendations = [...dbRecs, ...liveRecs];
                 
-                // Update intro message to indicate live recommendations
-                const updatedIntro = parsed.intro_message.replace('Here are', 'Here are 2 from our community plus 1 live recommendation');
+                // Update intro message
+                let updatedIntro = parsed.intro_message;
+                if (dbRecs.length > 0) {
+                  updatedIntro = `Here are ${dbRecs.length} from our community + ${liveRecs.length} live recommendations:`;
+                } else {
+                  updatedIntro = `Here are ${liveRecs.length} live recommendations for you:`;
+                }
                 
                 message = JSON.stringify({
                   intro_message: updatedIntro,
                   recommendations: combinedRecommendations
                 });
                 
-                console.log('Combined recommendations:', combinedRecommendations.length);
+                console.log(`Combined ${dbRecs.length} database + ${liveRecs.length} Perplexity recommendations`);
               } catch (e) {
                 console.log('Could not parse Perplexity response as JSON:', e);
               }
             } else {
-              console.log('Perplexity API error:', perplexityResponse.status);
+              const errorText = await perplexityResponse.text();
+              console.log('Perplexity API error:', perplexityResponse.status, errorText);
             }
           } catch (e) {
             console.log('Error calling Perplexity:', e);
