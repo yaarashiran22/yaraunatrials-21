@@ -132,6 +132,28 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Detect and save age from user message
+    const agePattern = /\b(\d{1,2})\b/g;
+    const ageMatches = body.match(agePattern);
+    if (ageMatches && whatsappUser && !whatsappUser.age) {
+      // Check if the context suggests they're providing age
+      const ageContextPatterns = /(i'm|im|i am|we're|were|we are|age|years old|año|años)/i;
+      if (ageContextPatterns.test(body) || body.trim().length < 20) {
+        // Take the first reasonable age (between 10 and 99)
+        const ages = ageMatches.map(m => parseInt(m)).filter(a => a >= 10 && a <= 99);
+        if (ages.length > 0) {
+          console.log(`Detected age(s): ${ages.join(', ')} - saving first age: ${ages[0]}`);
+          await supabase
+            .from('whatsapp_users')
+            .update({ age: ages[0] })
+            .eq('id', whatsappUser.id);
+          
+          // Update local whatsappUser object so AI has the latest data
+          whatsappUser.age = ages[0];
+        }
+      }
+    }
+
     // Detect if this is a recommendation request
     const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|esta noche|hoy|mañana|fin de semana|dance|music|live|party|art|food)\b/i;
     const isRecommendationRequest = recommendationKeywords.test(body);
