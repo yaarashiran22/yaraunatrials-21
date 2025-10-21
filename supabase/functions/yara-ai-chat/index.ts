@@ -210,27 +210,107 @@ IMPORTANT: If user asks "I'm looking for dance events" or "show me bars" or any 
 
     // Get the complete message
     const data = await response.json();
-    const message = data.choices?.[0]?.message?.content || '';
+    let message = data.choices?.[0]?.message?.content || '';
     
     console.log('AI response:', message);
     
-    // Track recommendations in background (don't await)
-    if (phoneNumber && message.includes('"recommendations"')) {
+    // Check if this is a recommendations response and enhance with Perplexity
+    if (message.includes('"recommendations"')) {
       try {
         const parsed = JSON.parse(message);
-        if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
+        
+        // Track database recommendations in background
+        if (phoneNumber && parsed.recommendations && Array.isArray(parsed.recommendations)) {
           const interactions = parsed.recommendations.map((rec: any) => ({
             phone_number: phoneNumber,
             item_type: rec.type,
             item_id: rec.id,
             interaction_type: 'recommended'
           }));
-          
-          // Log recommendations asynchronously
           supabase.from('whatsapp_user_interactions').insert(interactions).then();
         }
+        
+        // Get the last user message to understand their query
+        const lastUserMessage = messages[messages.length - 1]?.content || '';
+        
+        // Call Perplexity to get 1 real-time recommendation
+        const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
+        if (perplexityApiKey) {
+          console.log('Fetching real-time recommendation from Perplexity...');
+          
+          try {
+            const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${perplexityApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'llama-3.1-sonar-small-128k-online',
+                messages: [
+                  {
+                    role: 'system',
+                    content: `You are a local Buenos Aires expert. Find ONE real-time event, bar, or experience happening now or soon that matches the user's request. Return ONLY a JSON object with this exact structure (no markdown, no extra text):
+{
+  "title": "Event/Place Name",
+  "description": "Brief description including location, date/time if applicable, and what makes it special. Max 80 words.",
+  "source": "Website or source URL where you found this"
+}`
+                  },
+                  {
+                    role: 'user',
+                    content: `Find 1 current event or place in Buenos Aires for: ${lastUserMessage}`
+                  }
+                ],
+                temperature: 0.2,
+                max_tokens: 300
+              }),
+            });
+
+            if (perplexityResponse.ok) {
+              const perplexityData = await perplexityResponse.json();
+              const perplexityText = perplexityData.choices?.[0]?.message?.content || '';
+              
+              console.log('Perplexity raw response:', perplexityText);
+              
+              // Try to parse Perplexity's response
+              try {
+                const perplexityRec = JSON.parse(perplexityText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim());
+                
+                // Limit database recommendations to 2, then add Perplexity recommendation
+                const dbRecs = parsed.recommendations.slice(0, 2);
+                const liveRec = {
+                  type: 'live',
+                  id: 'perplexity-live',
+                  title: perplexityRec.title,
+                  description: `${perplexityRec.description}\n\n🔗 Source: ${perplexityRec.source}`,
+                  image_url: null
+                };
+                
+                // Combine recommendations
+                const combinedRecommendations = [...dbRecs, liveRec];
+                
+                // Update intro message to indicate live recommendations
+                const updatedIntro = parsed.intro_message.replace('Here are', 'Here are 2 from our community plus 1 live recommendation');
+                
+                message = JSON.stringify({
+                  intro_message: updatedIntro,
+                  recommendations: combinedRecommendations
+                });
+                
+                console.log('Combined recommendations:', combinedRecommendations.length);
+              } catch (e) {
+                console.log('Could not parse Perplexity response as JSON:', e);
+              }
+            } else {
+              console.log('Perplexity API error:', perplexityResponse.status);
+            }
+          } catch (e) {
+            console.log('Error calling Perplexity:', e);
+          }
+        }
       } catch (e) {
-        console.log('Could not parse recommendations for tracking:', e);
+        console.log('Could not parse or enhance recommendations:', e);
       }
     }
     
