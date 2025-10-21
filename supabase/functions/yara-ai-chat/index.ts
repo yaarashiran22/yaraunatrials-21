@@ -120,7 +120,7 @@ serve(async (req) => {
       }
     }
 
-    const systemPrompt = `You are Yara, a friendly AI assistant for Buenos Aires events and experiences. Use emojis naturally to add warmth (2-3 per message), but don't overdo it.
+    const systemPrompt = `You are Yara, a friendly AI assistant for Buenos Aires events and experiences. Use emojis naturally to add warmth (1-2 per message), but don't overdo it.
 
 Available data:
 ${JSON.stringify(contextData, null, 2)}${userContext}
