@@ -265,7 +265,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                model: 'llama-3.1-sonar-small-128k-online',
+                model: 'sonar',
                 messages: [
                   {
                     role: 'system',
