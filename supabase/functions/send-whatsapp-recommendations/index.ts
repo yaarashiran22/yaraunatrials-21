@@ -33,8 +33,8 @@ Deno.serve(async (req) => {
     for (let i = 0; i < recommendations.length; i++) {
       const rec = recommendations[i];
       
-      if (!rec.image_url || !rec.title || !rec.description) {
-        console.log(`Skipping recommendation ${i + 1}: missing required fields`);
+      if (!rec.title || !rec.description) {
+        console.log(`Skipping recommendation ${i + 1}: missing title or description`);
         continue;
       }
 
@@ -42,6 +42,17 @@ Deno.serve(async (req) => {
       
       try {
         console.log(`[${i + 1}/${recommendations.length}] Sending: ${rec.title}`);
+        
+        // Build request body - only include MediaUrl if image exists
+        const requestBody: Record<string, string> = {
+          From: cleanFrom,
+          To: cleanTo,
+          Body: messageBody
+        };
+        
+        if (rec.image_url) {
+          requestBody.MediaUrl = rec.image_url;
+        }
         
         const twilioResponse = await fetch(
           `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
@@ -51,12 +62,7 @@ Deno.serve(async (req) => {
               'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
               'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: new URLSearchParams({
-              From: cleanFrom,
-              To: cleanTo,
-              Body: messageBody,
-              MediaUrl: rec.image_url
-            }).toString()
+            body: new URLSearchParams(requestBody).toString()
           }
         );
 
