@@ -132,6 +132,57 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Detect if this is a recommendation request
+    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|esta noche|hoy|mañana|fin de semana|dance|music|live|party|art|food)\b/i;
+    const isRecommendationRequest = recommendationKeywords.test(body);
+
+    // If it's a recommendation request, send immediate acknowledgment
+    if (isRecommendationRequest) {
+      console.log('Detected recommendation request, sending acknowledgment...');
+      
+      const acknowledgmentMessage = "Looking for some great recommendations for you... just a moment! ⏳";
+      
+      // Send acknowledgment via Twilio API
+      const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
+      
+      if (twilioAccountSid && twilioAuthToken) {
+        try {
+          const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
+          const twilioAuth = btoa(`${twilioAccountSid}:${twilioAuthToken}`);
+          
+          const twilioResponse = await fetch(twilioUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Basic ${twilioAuth}`,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              From: twilioWhatsAppNumber,
+              To: from,
+              Body: acknowledgmentMessage
+            })
+          });
+          
+          if (twilioResponse.ok) {
+            console.log('Acknowledgment message sent successfully');
+            
+            // Store acknowledgment in conversation history
+            await supabase.from('whatsapp_conversations').insert({
+              phone_number: from,
+              role: 'assistant',
+              content: acknowledgmentMessage
+            });
+          } else {
+            console.error('Failed to send acknowledgment:', await twilioResponse.text());
+          }
+        } catch (e) {
+          console.error('Error sending acknowledgment:', e);
+        }
+      }
+    }
+
     // Build conversation history for AI
     const messages = conversationHistory.map(msg => ({
       role: msg.role as 'user' | 'assistant',
