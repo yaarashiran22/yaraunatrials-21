@@ -380,9 +380,11 @@ RESPOND WITH ONLY JSON. NO OTHER TEXT.`
                   image_url: null
                 }));
                 
-                if (liveRecs.length > 0) {
+                // Get database recommendations (outside if block to avoid scope error)
+                const dbRecs = parsed?.recommendations ? parsed.recommendations.slice(0, Math.min(3, 6 - liveRecs.length)) : [];
+                
+                if (liveRecs.length > 0 || dbRecs.length > 0) {
                   // Combine database recommendations with Perplexity recommendations (max 6 total)
-                  const dbRecs = parsed?.recommendations ? parsed.recommendations.slice(0, Math.min(3, 6 - liveRecs.length)) : [];
                   const finalLiveRecs = liveRecs.slice(0, 6 - dbRecs.length);
                   const combinedRecommendations = [...dbRecs, ...finalLiveRecs].slice(0, 6);
                   
@@ -392,7 +394,7 @@ RESPOND WITH ONLY JSON. NO OTHER TEXT.`
                     updatedIntro = `Here are ${combinedRecommendations.length} recommendations (${dbRecs.length} from our community + ${finalLiveRecs.length} live):`;
                   } else if (dbRecs.length > 0) {
                     updatedIntro = `Here are ${dbRecs.length} recommendations from our community:`;
-                  } else {
+                  } else if (finalLiveRecs.length > 0) {
                     updatedIntro = `Here are ${finalLiveRecs.length} live recommendations for you:`;
                   }
                   
@@ -400,9 +402,11 @@ RESPOND WITH ONLY JSON. NO OTHER TEXT.`
                     intro_message: updatedIntro,
                     recommendations: combinedRecommendations
                   });
+                  
+                  console.log(`Combined ${dbRecs.length} database + ${liveRecs.length} Perplexity recommendations`);
+                } else {
+                  console.log('No recommendations found from either database or Perplexity');
                 }
-                
-                console.log(`Combined ${dbRecs.length} database + ${liveRecs.length} Perplexity recommendations`);
               } catch (e) {
                 console.log('Could not parse Perplexity response as JSON:', e);
               }
