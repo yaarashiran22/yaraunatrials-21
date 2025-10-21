@@ -269,7 +269,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                 messages: [
                   {
                     role: 'system',
-                    content: `You are a local Buenos Aires expert. Today's date is ${new Date().toISOString().split('T')[0]}. Find 2-3 real, current events or venues that match the user's request. 
+                    content: `You are Yara, a friendly Buenos Aires local. Today's date is ${new Date().toISOString().split('T')[0]}. Find 2-3 real, current events or venues that match the user's request. 
                     
 CRITICAL: Only return events happening TODAY OR IN THE FUTURE. Do not include any past events.
 
@@ -277,7 +277,7 @@ Return ONLY a JSON array with this exact structure (no markdown, no extra text):
 [
   {
     "title": "Event/Venue Name",
-    "description": "Brief description including location, date/time if applicable, and what makes it special. Max 80 words.",
+    "description": "Location: [venue/address]. Date: [date]. Time: [time if known]. Brief engaging description (1-2 sentences max, ~30 words).",
     "source": "Website or source URL"
   }
 ]`
@@ -288,7 +288,7 @@ Return ONLY a JSON array with this exact structure (no markdown, no extra text):
                   }
                 ],
                 temperature: 0.2,
-                max_tokens: 500
+                max_tokens: 300
               }),
             });
 
