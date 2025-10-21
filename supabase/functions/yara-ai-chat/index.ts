@@ -243,8 +243,8 @@ IMPORTANT: If user asks "I'm looking for dance events" or "show me bars" or any 
         
         // Call Perplexity to get 1 real-time recommendation
         const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
-        if (perplexityApiKey) {
-          console.log('Fetching real-time recommendation from Perplexity...');
+        if (perplexityApiKey && perplexityApiKey.trim() !== '') {
+          console.log('Fetching real-time recommendation from Perplexity with key:', perplexityApiKey.substring(0, 10) + '...');
           
           try {
             const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {

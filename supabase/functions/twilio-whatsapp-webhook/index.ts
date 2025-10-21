@@ -184,9 +184,30 @@ Deno.serve(async (req) => {
     }
 
 
-    // Handle recommendations with images
-    if (parsedResponse && parsedResponse.recommendations && Array.isArray(parsedResponse.recommendations) && parsedResponse.recommendations.length > 0) {
+    // Handle recommendations response (even if empty - don't show raw JSON)
+    if (parsedResponse && parsedResponse.recommendations && Array.isArray(parsedResponse.recommendations)) {
       console.log(`Found ${parsedResponse.recommendations.length} recommendations to send`);
+      
+      // If no recommendations found, send a helpful message instead of JSON
+      if (parsedResponse.recommendations.length === 0) {
+        const noResultsMessage = "I couldn't find specific matches for that right now. Try asking about something else - like 'bars in Palermo' or 'live music tonight'!";
+        
+        await supabase.from('whatsapp_conversations').insert({
+          phone_number: from,
+          role: 'assistant',
+          content: noResultsMessage
+        });
+        
+        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${noResultsMessage}</Message>
+</Response>`;
+        
+        return new Response(twimlResponse, {
+          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+          status: 200
+        });
+      }
       
       // Increment recommendation count for progressive profiling
       if (whatsappUser) {
