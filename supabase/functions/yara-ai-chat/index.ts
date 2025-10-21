@@ -253,34 +253,40 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     
     console.log('AI response:', message);
     
+    // Get the last user message to understand their query
+    const lastUserMessage = messages[messages.length - 1]?.content || '';
+    
+    // Detect if user is asking for recommendations (check for keywords)
+    const isRecommendationRequest = /\b(recommend|suggest|show me|looking for|find|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|next week|esta noche|hoy|mañana|fin de semana|próxima semana|dance|music|live|party|art|food)\b/i.test(lastUserMessage);
+    
     // Check if this is a recommendations response and enhance with Perplexity
-    if (message.includes('"recommendations"')) {
+    if (message.includes('"recommendations"') || isRecommendationRequest) {
+      let parsed: any = null;
+      
       try {
-        // Extract JSON from the message (handle cases where AI adds text before JSON)
-        let jsonStr = message;
-        const jsonStart = message.indexOf('{');
-        const jsonEnd = message.lastIndexOf('}');
-        if (jsonStart !== -1 && jsonEnd !== -1) {
-          jsonStr = message.substring(jsonStart, jsonEnd + 1);
+        // Try to extract JSON from the message if it exists
+        if (message.includes('"recommendations"')) {
+          let jsonStr = message;
+          const jsonStart = message.indexOf('{');
+          const jsonEnd = message.lastIndexOf('}');
+          if (jsonStart !== -1 && jsonEnd !== -1) {
+            jsonStr = message.substring(jsonStart, jsonEnd + 1);
+          }
+          parsed = JSON.parse(jsonStr);
+          
+          // Track database recommendations in background
+          if (phoneNumber && parsed.recommendations && Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
+            const interactions = parsed.recommendations.map((rec: any) => ({
+              phone_number: phoneNumber,
+              item_type: rec.type,
+              item_id: rec.id,
+              interaction_type: 'recommended'
+            }));
+            supabase.from('whatsapp_user_interactions').insert(interactions).then();
+          }
         }
         
-        const parsed = JSON.parse(jsonStr);
-        
-        // Track database recommendations in background
-        if (phoneNumber && parsed.recommendations && Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
-          const interactions = parsed.recommendations.map((rec: any) => ({
-            phone_number: phoneNumber,
-            item_type: rec.type,
-            item_id: rec.id,
-            interaction_type: 'recommended'
-          }));
-          supabase.from('whatsapp_user_interactions').insert(interactions).then();
-        }
-        
-        // Get the last user message to understand their query
-        const lastUserMessage = messages[messages.length - 1]?.content || '';
-        
-        // ALWAYS call Perplexity for real-time recommendations (even if DB has no matches)
+        // ALWAYS call Perplexity for real-time recommendations
         const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
         if (perplexityApiKey && perplexityApiKey.trim() !== '') {
           console.log('Fetching real-time recommendations from Perplexity...');
@@ -350,25 +356,27 @@ Return ONLY a JSON array with this exact structure (no markdown, no extra text):
                   image_url: null
                 }));
                 
-                // Combine database recommendations with Perplexity recommendations (max 6 total)
-                const dbRecs = parsed.recommendations.slice(0, Math.min(3, 6 - liveRecs.length));
-                const finalLiveRecs = liveRecs.slice(0, 6 - dbRecs.length);
-                const combinedRecommendations = [...dbRecs, ...finalLiveRecs].slice(0, 6);
-                
-                // Update intro message
-                let updatedIntro = parsed.intro_message;
-                if (dbRecs.length > 0 && finalLiveRecs.length > 0) {
-                  updatedIntro = `Here are ${combinedRecommendations.length} recommendations for you (${dbRecs.length} from our community + ${finalLiveRecs.length} live):`;
-                } else if (dbRecs.length > 0) {
-                  updatedIntro = `Here are ${dbRecs.length} recommendations from our community:`;
-                } else {
-                  updatedIntro = `Here are ${finalLiveRecs.length} live recommendations for you:`;
+                if (liveRecs.length > 0) {
+                  // Combine database recommendations with Perplexity recommendations (max 6 total)
+                  const dbRecs = parsed?.recommendations ? parsed.recommendations.slice(0, Math.min(3, 6 - liveRecs.length)) : [];
+                  const finalLiveRecs = liveRecs.slice(0, 6 - dbRecs.length);
+                  const combinedRecommendations = [...dbRecs, ...finalLiveRecs].slice(0, 6);
+                  
+                  // Update intro message
+                  let updatedIntro = 'Here are some recommendations for you:';
+                  if (dbRecs.length > 0 && finalLiveRecs.length > 0) {
+                    updatedIntro = `Here are ${combinedRecommendations.length} recommendations (${dbRecs.length} from our community + ${finalLiveRecs.length} live):`;
+                  } else if (dbRecs.length > 0) {
+                    updatedIntro = `Here are ${dbRecs.length} recommendations from our community:`;
+                  } else {
+                    updatedIntro = `Here are ${finalLiveRecs.length} live recommendations for you:`;
+                  }
+                  
+                  message = JSON.stringify({
+                    intro_message: updatedIntro,
+                    recommendations: combinedRecommendations
+                  });
                 }
-                
-                message = JSON.stringify({
-                  intro_message: updatedIntro,
-                  recommendations: combinedRecommendations
-                });
                 
                 console.log(`Combined ${dbRecs.length} database + ${liveRecs.length} Perplexity recommendations`);
               } catch (e) {
