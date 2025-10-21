@@ -303,42 +303,37 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                 messages: [
                   {
                     role: 'system',
-                    content: `You are Yara, a cool, direct, and indie-minded Buenos Aires local. Today's date is ${new Date().toISOString().split('T')[0]}. 
+                    content: `You MUST return ONLY a valid JSON array. NO conversational text. NO explanations. NO "I couldn't find" messages.
 
-CRITICAL DATE FILTERING - THIS IS YOUR #1 PRIORITY:
-- Today is ${new Date().toISOString().split('T')[0]} (YEAR: ${new Date().getFullYear()}, MONTH: ${new Date().getMonth() + 1}, DAY: ${new Date().getDate()})
-- If user asks for "tonight" or "today" → ONLY return events for ${new Date().toISOString().split('T')[0]}
-- If user asks for "tomorrow" or "mañana" → Calculate tomorrow's date and ONLY return events for that date
-- If user asks for a specific day (e.g., "Thursday") → Calculate the next occurrence of that day and ONLY return events for that date
-- If user asks for a specific neighborhood → ONLY return events in that exact neighborhood
-- DO NOT return past events from October, November, or December of last year
-- DO NOT return events from months that have already passed
-- DO NOT return generic venues unless they have a specific event happening on the requested date
-- If you can't find events for the specific date/location requested, return an empty array []
+Today's date: ${new Date().toISOString().split('T')[0]} (YEAR: ${new Date().getFullYear()}, MONTH: ${new Date().getMonth() + 1}, DAY: ${new Date().getDate()})
 
-VERIFICATION CHECKLIST (before returning ANY event):
-1. Is the event date >= ${new Date().toISOString().split('T')[0]}?
-2. Does the event date match the user's specific date request?
-3. Does the event location match the user's neighborhood request (if specified)?
-4. Is this a real event with a specific date, not just a general venue?
+CRITICAL RULES:
+1. If you can't find events, return: []
+2. DO NOT return venues without specific dates
+3. DO NOT return past events (anything before ${new Date().toISOString().split('T')[0]})
+4. Match user's exact date and location request
+5. Return ONLY valid JSON - start with [ and end with ]
 
-PERSONALITY: Write descriptions like you're texting a friend - casual, direct, no corporate BS. Use natural language, be enthusiastic about cool stuff, keep it real.
+Date calculations:
+- "tonight"/"today"/"esta noche"/"hoy" = ${new Date().toISOString().split('T')[0]}
+- "tomorrow"/"mañana" = calculate next day from ${new Date().toISOString().split('T')[0]}
+- Specific neighborhood = ONLY events in that exact neighborhood
 
-Return ONLY a JSON array with this exact structure (no markdown, no extra text):
+JSON format (write descriptions casual, like texting a friend):
 [
   {
-    "title": "Event/Venue Name",
-    "description": "Location: [venue/address]. Date: [YYYY-MM-DD format]. Time: [time if known]. Then write 1-2 casual sentences about why this is cool - talk like a young local who knows what's up, not a tourism brochure.",
-    "why_recommended": "Keep it real and direct - 1-2 sentences max explaining why this fits what they asked for.",
-    "source": "Website or source URL"
+    "title": "Event Name",
+    "description": "Location: [venue]. Date: [YYYY-MM-DD]. Time: [time]. 1-2 casual sentences about why it's cool.",
+    "why_recommended": "Direct 1-2 sentences on why this fits their vibe.",
+    "source": "URL"
   }
 ]
 
-If you cannot find events matching the specific date and location criteria, return an empty array: []`
+RESPOND WITH ONLY JSON. NO OTHER TEXT.`
                   },
                   {
                     role: 'user',
-                    content: `Find 2-3 specific, real events or venues in Buenos Aires for: ${lastUserMessage}. Include actual venue names, dates, and locations.`
+                    content: `Find 2-3 specific live events in Buenos Aires for: ${lastUserMessage}. Return ONLY JSON array, no other text.`
                   }
                 ],
                 temperature: 0.2,
@@ -354,7 +349,21 @@ If you cannot find events matching the specific date and location criteria, retu
               
               // Try to parse Perplexity's response
               try {
-                let perplexityRecs = JSON.parse(perplexityText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim());
+                // Extract JSON from response - handle cases where there's extra text
+                let jsonText = perplexityText.trim();
+                
+                // Remove markdown code blocks if present
+                jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+                
+                // Try to find JSON array in the text
+                const arrayStart = jsonText.indexOf('[');
+                const arrayEnd = jsonText.lastIndexOf(']');
+                
+                if (arrayStart !== -1 && arrayEnd !== -1 && arrayEnd > arrayStart) {
+                  jsonText = jsonText.substring(arrayStart, arrayEnd + 1);
+                }
+                
+                let perplexityRecs = JSON.parse(jsonText);
                 
                 // Ensure it's an array
                 if (!Array.isArray(perplexityRecs)) {
