@@ -269,7 +269,11 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                 messages: [
                   {
                     role: 'system',
-                    content: `You are a local Buenos Aires expert. Find 2-3 real, current events or venues that match the user's request. Return ONLY a JSON array with this exact structure (no markdown, no extra text):
+                    content: `You are a local Buenos Aires expert. Today's date is ${new Date().toISOString().split('T')[0]}. Find 2-3 real, current events or venues that match the user's request. 
+                    
+CRITICAL: Only return events happening TODAY OR IN THE FUTURE. Do not include any past events.
+
+Return ONLY a JSON array with this exact structure (no markdown, no extra text):
 [
   {
     "title": "Event/Venue Name",
