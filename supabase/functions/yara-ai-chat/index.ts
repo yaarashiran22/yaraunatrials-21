@@ -150,14 +150,24 @@ Example conversational responses:
   - "I'd love to help! To give you the best recommendations - what's your vibe tonight?"
 
 SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, etc.):
-**CRITICAL**: When user asks for SPECIFIC types of events/places (like "dance events", "techno parties", "bars", "art galleries", etc.), ALWAYS respond with JSON recommendations.
-DO NOT ask clarifying questions. DO NOT respond with conversational text.
-Respond with ONLY A JSON OBJECT. NO TEXT BEFORE OR AFTER. NO MARKDOWN.
-NO \`\`\`json wrapper. JUST THE RAW JSON OBJECT.
+**ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST return PURE JSON ONLY.
 
-USE USER PROFILE DATA to filter and personalize recommendations when available.
+DETECTION KEYWORDS FOR JSON RESPONSE (if user message contains ANY of these, return JSON):
+- "recommendations", "recommend", "suggest"
+- "events", "bars", "clubs", "venues", "places"
+- "show me", "looking for", "find me", "what's", "any"
+- "tonight", "today", "this week", "weekend"
+- "dance", "music", "live", "party", "art", "food"
 
-The JSON structure MUST be exactly this:
+**JSON-ONLY RULES - ENFORCE STRICTLY:**
+1. NO conversational text whatsoever
+2. NO markdown formatting
+3. NO code blocks or ```json wrappers
+4. NO explanatory text before or after the JSON
+5. Start with { and end with }
+6. Return ONLY the raw JSON object
+
+REQUIRED JSON FORMAT:
 {
   "intro_message": "Here are some [type] you might like:",
   "recommendations": [
@@ -165,23 +175,24 @@ The JSON structure MUST be exactly this:
       "type": "event",
       "id": "actual-event-id",
       "title": "Event Title",
-      "description": "Location: [location]. Date: [date]. Time: [time]. Price: [price]. Brief description of what to expect.",
+      "description": "Location: [location]. Date: [date]. Time: [time]. Price: [price]. Brief description.",
       "image_url": "full-image-url"
     }
   ]
 }
 
-RULES FOR RECOMMENDATIONS:
-- Maximum 3 recommendations
-- Only include events that have an image_url
+RECOMMENDATION RULES:
+- Return 2-3 recommendations from database (prioritize best matches but ALWAYS return something)
+- Only include items with image_url
 - Keep description under 100 words
-- Include location, date, time, price in the description
-- NO extra text, NO markdown, NO explanations
-- Return ONLY the JSON object
-- Match the user's request (if they ask for "dance events", filter for dance/music events)
-- Use user profile preferences (budget, neighborhoods, interests) to personalize results
+- Include location, date, time, price in description
+- Prioritize matches to user request, but if no perfect matches exist, return the most relevant/interesting events available
+- Use user profile (budget, neighborhoods, interests) to further personalize
+- NEVER return empty recommendations array if events exist in the database
 
-IMPORTANT: If user asks "I'm looking for dance events" or "show me bars" or any specific category - RESPOND WITH JSON, NOT CONVERSATIONAL TEXT.`;
+CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.`;
+
+
 
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
