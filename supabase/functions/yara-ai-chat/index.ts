@@ -305,6 +305,8 @@ IMPLEMENTATION NOTES
 END OF SPEC
 `;
 
+    console.log(`Calling OpenAI with ${messages.length} messages, stream=${stream}`);
+    
     const openAIResponse = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -320,6 +322,8 @@ END OF SPEC
       }),
     });
 
+    console.log(`OpenAI response status: ${openAIResponse.status}`);
+
     if (!openAIResponse.ok) {
       const error = await openAIResponse.text();
       console.error("OpenAI API error:", openAIResponse.status, error);
@@ -328,6 +332,7 @@ END OF SPEC
 
     // If streaming is requested, return the stream directly
     if (stream) {
+      console.log("Returning streaming response");
       return new Response(openAIResponse.body, {
         headers: {
           ...corsHeaders,
@@ -339,8 +344,10 @@ END OF SPEC
     }
 
     // For non-streaming, parse the response and return JSON
+    console.log("Parsing non-streaming response");
     const data = await openAIResponse.json();
     const message = data.choices[0].message.content;
+    console.log(`OpenAI response message length: ${message?.length || 0}`);
 
     return new Response(JSON.stringify({ message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
