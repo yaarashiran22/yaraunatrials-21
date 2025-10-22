@@ -396,13 +396,17 @@ RESPOND WITH ONLY JSON. NO OTHER TEXT.`
                   image_url: null
                 }));
                 
-                // Get database recommendations (outside if block to avoid scope error)
-                const dbRecs = parsed?.recommendations ? parsed.recommendations.slice(0, Math.min(3, 6 - liveRecs.length)) : [];
+                // Get database recommendations - ALWAYS prioritize database events
+                const dbRecs = parsed?.recommendations ? parsed.recommendations : [];
                 
                 if (liveRecs.length > 0 || dbRecs.length > 0) {
                   // Combine database recommendations with Perplexity recommendations (max 6 total)
-                  const finalLiveRecs = liveRecs.slice(0, 6 - dbRecs.length);
-                  const combinedRecommendations = [...dbRecs, ...finalLiveRecs].slice(0, 6);
+                  // Prioritize database events first, then add Perplexity results to fill up to 6
+                  const maxDbRecs = Math.min(dbRecs.length, 6);
+                  const finalDbRecs = dbRecs.slice(0, maxDbRecs);
+                  const remainingSlots = 6 - finalDbRecs.length;
+                  const finalLiveRecs = liveRecs.slice(0, remainingSlots);
+                  const combinedRecommendations = [...finalDbRecs, ...finalLiveRecs];
                   
                   // Update intro message
                   let updatedIntro = 'Here are some recommendations for you:';
