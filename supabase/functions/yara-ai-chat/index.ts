@@ -38,9 +38,8 @@ serve(async (req) => {
       interactionHistory = interactions || [];
     }
 
-    // Get current date in Buenos Aires timezone (UTC-3)
-    const buenosAiresDate = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
-    const today = buenosAiresDate.toISOString().split('T')[0];
+    // Get current date for filtering
+    const today = new Date().toISOString().split('T')[0];
     
     // Fetch relevant data from database with image URLs
     const [eventsResult, itemsResult, couponsResult] = await Promise.all([
@@ -133,21 +132,13 @@ ${JSON.stringify(contextData, null, 2)}${userContext}
 
 CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 
-SCENARIO 1 - User greeting, feedback, clarifying questions, or general conversation:
+SCENARIO 1 - User greeting, asking follow-up questions, or general conversation:
 Respond with PLAIN TEXT ONLY. Be warm and conversational.
-- **IMPORTANT**: If user is giving FEEDBACK about previous recommendations (e.g., "these are for tomorrow", "wrong dates", "not what I asked"), acknowledge and CLARIFY rather than sending more recommendations immediately
 - If user asks about age ranges, demographics, or details about previously recommended events, answer based on the event data
 - If user asks clarifying questions about recommendations you already gave, refer to the conversation history and provide helpful answers
 - Be contextually aware - if they're asking about "these events" or "the recommendations", they're referring to what you previously suggested
 - **IMPORTANT**: Keep responses brief and ask ONLY ONE question at a time
 - If user asks VERY GENERAL questions about things to do in the city (like "what's happening?", "what should I do?", "any events tonight?") WITHOUT any specific preferences, ask them ONE clarifying question to personalize recommendations
-
-FEEDBACK HANDLING - HIGHEST PRIORITY:
-When user says recommendations are wrong (wrong date, wrong location, etc.):
-1. Apologize and acknowledge the specific issue
-2. Ask ONE clarifying question to understand what they actually want
-3. DO NOT immediately send new recommendations - wait for their clarification
-4. Example: "Sorry about that! Just to clarify - are you looking for events happening today (October 22nd) or tomorrow (October 23rd)?"
 
 AGE COLLECTION - HIGHEST PRIORITY:
 **CRITICAL - THIS IS NON-NEGOTIABLE**: If the user requests recommendations AND their age is not saved in the profile, you MUST ask for their age BEFORE giving any recommendations. DO NOT proceed with recommendations without age.
@@ -175,23 +166,17 @@ Example conversational responses:
   - "Most of those events are popular with people in their 20s and 30s, though all ages are welcome!"
   - "That event is in Palermo, near Plaza Serrano"
   - "I'd love to help! To give you the best recommendations - what's your vibe tonight?"
-  - "Sorry about that! Just to clarify - you're looking for events TODAY (${today}), right?"
 
-SCENARIO 2 - User wants SPECIFIC NEW recommendations (dance events, bars, techno, etc.):
-**ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific NEW recommendations, you MUST return PURE JSON ONLY.
+SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, etc.):
+**ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST return PURE JSON ONLY.
 
-DETECTION KEYWORDS FOR JSON RESPONSE (if user message contains ANY of these AND is asking for NEW recommendations):
-- "recommend", "suggest", "find me"
-- "show me", "looking for" (but NOT when discussing existing recommendations)
-- "events", "bars", "clubs", "venues", "places" (in context of wanting new suggestions)
-- "tonight", "today", "this week", "weekend", "tomorrow", "next week" (when asking for suggestions, not clarifying)
-- "dance", "music", "live", "party", "art", "food" (when requesting new options)
-- Spanish: "recomienda", "busco", "esta noche", "hoy", "mañana"
-
-**DO NOT trigger JSON response if user is:**
-- Discussing/questioning existing recommendations ("these are for tomorrow", "wrong date")
-- Asking follow-up questions about previous suggestions
-- Giving feedback about what you already sent
+DETECTION KEYWORDS FOR JSON RESPONSE (if user message contains ANY of these, return JSON):
+- "recommendations", "recommend", "suggest"
+- "events", "bars", "clubs", "venues", "places"
+- "show me", "looking for", "find me", "what's", "any"
+- "tonight", "today", "this week", "weekend", "tomorrow", "next week"
+- "dance", "music", "live", "party", "art", "food"
+- Spanish: "esta noche", "hoy", "mañana", "próxima semana", "semana que viene", "fin de semana"
 
 **IMPORTANT**: ONLY return JSON if age is already collected. If age is missing, respond with conversational text asking for age first.
 
@@ -205,12 +190,7 @@ Date calculation rules (today is ${today}):
 - "this weekend" / "weekend" / "fin de semana" → calculate next Saturday and Sunday
 - Specific dates (e.g., "December 25", "25 de diciembre", "2025-12-25") → parse and use that exact date
 
-**CRITICAL - DATABASE EVENTS FIRST:**
-1. ALWAYS check the available database events for matches FIRST
-2. Filter database events by the target date
-3. Include ALL matching database events in your recommendations
-4. ONLY after including database events, add Perplexity results to fill remaining slots
-5. If there are 0 database matches, then use only Perplexity results
+**IMPORTANT**: After calculating the target date, ONLY return events where the event date matches your calculated date or falls within the calculated date range. Filter events by date BEFORE selecting which ones to recommend.
 
 **JSON-ONLY RULES - ENFORCE STRICTLY:**
 1. NO conversational text whatsoever
@@ -226,25 +206,24 @@ REQUIRED JSON FORMAT:
   "recommendations": [
     {
       "type": "event",
-      "id": "actual-event-id-from-database",
+      "id": "actual-event-id",
       "title": "Event Title",
       "description": "Location: [location]. Date: [date]. Time: [time]. Price: [price]. Brief description.",
       "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
-      "image_url": "full-image-url-from-database"
+      "image_url": "full-image-url"
     }
   ]
 }
 
 RECOMMENDATION RULES:
 - Return MAXIMUM 6 recommendations total (combining database + live recommendations)
-- **CRITICAL**: ALWAYS prioritize and include matching database events FIRST
-- Only include items with image_url from the database
+- Only include items with image_url
 - Keep description under 100 words
 - Include location, date, time, price in description
 - ALWAYS include "why_recommended" field with personalized explanation based on user's request, profile, and past interactions
-- After including all matching database events, fill remaining slots with Perplexity results
+- Prioritize matches to user request, but if no perfect matches exist, return the most relevant/interesting events available
 - Use user profile (budget, neighborhoods, interests) to further personalize
-- NEVER return empty recommendations array if events exist in the database that match the date
+- NEVER return empty recommendations array if events exist in the database
 
 CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.`;
 
@@ -284,15 +263,11 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     // Get the last user message to understand their query
     const lastUserMessage = messages[messages.length - 1]?.content || '';
     
-    // Detect if user is asking for NEW recommendations (not discussing existing ones)
-    const isFeedbackAboutRecommendations = /\b(these|those|your|the)\s+(recommendations?|events?|suggestions?)\s+(are|were|seem)\b/i.test(lastUserMessage) ||
-      /\b(wrong|incorrect|not what|different)\b/i.test(lastUserMessage);
-    
-    const isNewRecommendationRequest = !isFeedbackAboutRecommendations && 
-      /\b(recommend|suggest|show me|looking for|find|events?|bars?|clubs?|tonight|today|tomorrow)\b/i.test(lastUserMessage);
+    // Detect if user is asking for recommendations (check for keywords)
+    const isRecommendationRequest = /\b(recommend|suggest|show me|looking for|find|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|next week|esta noche|hoy|mañana|fin de semana|próxima semana|dance|music|live|party|art|food)\b/i.test(lastUserMessage);
     
     // Check if this is a recommendations response and enhance with Perplexity
-    if (message.includes('"recommendations"') || isNewRecommendationRequest) {
+    if (message.includes('"recommendations"') || isRecommendationRequest) {
       let parsed: any = null;
       
       try {
@@ -305,28 +280,6 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
             jsonStr = message.substring(jsonStart, jsonEnd + 1);
           }
           parsed = JSON.parse(jsonStr);
-          
-          // CRITICAL: If AI didn't include database events but we have matching ones, add them manually
-          // This ensures database events are ALWAYS prioritized
-          const userQuery = lastUserMessage.toLowerCase();
-          const isForToday = /\b(tonight|today|esta noche|hoy)\b/i.test(userQuery);
-          
-          if (isForToday && contextData.events.length > 0) {
-            // Filter database events for today
-            const todayEvents = contextData.events.filter((e: any) => e.date === today);
-            
-            if (todayEvents.length > 0 && (!parsed.recommendations || parsed.recommendations.length === 0)) {
-              // AI didn't include any events, but we have matching database events - add them
-              parsed.recommendations = todayEvents.map((e: any) => ({
-                type: 'event',
-                id: e.id,
-                title: e.title,
-                description: `Location: ${e.location}. Date: ${e.date}. Time: ${e.time}. ${e.description || ''}`,
-                why_recommended: `This event is happening tonight in Buenos Aires and matches your request.`,
-                image_url: e.image_url
-              }));
-            }
-          }
           
           // Track database recommendations in background
           if (phoneNumber && parsed.recommendations && Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
@@ -443,17 +396,13 @@ RESPOND WITH ONLY JSON. NO OTHER TEXT.`
                   image_url: null
                 }));
                 
-                // Get database recommendations - ALWAYS prioritize database events
-                const dbRecs = parsed?.recommendations ? parsed.recommendations : [];
+                // Get database recommendations (outside if block to avoid scope error)
+                const dbRecs = parsed?.recommendations ? parsed.recommendations.slice(0, Math.min(3, 6 - liveRecs.length)) : [];
                 
                 if (liveRecs.length > 0 || dbRecs.length > 0) {
                   // Combine database recommendations with Perplexity recommendations (max 6 total)
-                  // Prioritize database events first, then add Perplexity results to fill up to 6
-                  const maxDbRecs = Math.min(dbRecs.length, 6);
-                  const finalDbRecs = dbRecs.slice(0, maxDbRecs);
-                  const remainingSlots = 6 - finalDbRecs.length;
-                  const finalLiveRecs = liveRecs.slice(0, remainingSlots);
-                  const combinedRecommendations = [...finalDbRecs, ...finalLiveRecs];
+                  const finalLiveRecs = liveRecs.slice(0, 6 - dbRecs.length);
+                  const combinedRecommendations = [...dbRecs, ...finalLiveRecs].slice(0, 6);
                   
                   // Update intro message
                   let updatedIntro = 'Here are some recommendations for you:';
