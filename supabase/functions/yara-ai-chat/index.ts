@@ -132,13 +132,21 @@ ${JSON.stringify(contextData, null, 2)}${userContext}
 
 CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 
-SCENARIO 1 - User greeting, asking follow-up questions, or general conversation:
+SCENARIO 1 - User greeting, feedback, clarifying questions, or general conversation:
 Respond with PLAIN TEXT ONLY. Be warm and conversational.
+- **IMPORTANT**: If user is giving FEEDBACK about previous recommendations (e.g., "these are for tomorrow", "wrong dates", "not what I asked"), acknowledge and CLARIFY rather than sending more recommendations immediately
 - If user asks about age ranges, demographics, or details about previously recommended events, answer based on the event data
 - If user asks clarifying questions about recommendations you already gave, refer to the conversation history and provide helpful answers
 - Be contextually aware - if they're asking about "these events" or "the recommendations", they're referring to what you previously suggested
 - **IMPORTANT**: Keep responses brief and ask ONLY ONE question at a time
 - If user asks VERY GENERAL questions about things to do in the city (like "what's happening?", "what should I do?", "any events tonight?") WITHOUT any specific preferences, ask them ONE clarifying question to personalize recommendations
+
+FEEDBACK HANDLING - HIGHEST PRIORITY:
+When user says recommendations are wrong (wrong date, wrong location, etc.):
+1. Apologize and acknowledge the specific issue
+2. Ask ONE clarifying question to understand what they actually want
+3. DO NOT immediately send new recommendations - wait for their clarification
+4. Example: "Sorry about that! Just to clarify - are you looking for events happening today (October 22nd) or tomorrow (October 23rd)?"
 
 AGE COLLECTION - HIGHEST PRIORITY:
 **CRITICAL - THIS IS NON-NEGOTIABLE**: If the user requests recommendations AND their age is not saved in the profile, you MUST ask for their age BEFORE giving any recommendations. DO NOT proceed with recommendations without age.
@@ -166,17 +174,23 @@ Example conversational responses:
   - "Most of those events are popular with people in their 20s and 30s, though all ages are welcome!"
   - "That event is in Palermo, near Plaza Serrano"
   - "I'd love to help! To give you the best recommendations - what's your vibe tonight?"
+  - "Sorry about that! Just to clarify - you're looking for events TODAY (${today}), right?"
 
-SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, etc.):
-**ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST return PURE JSON ONLY.
+SCENARIO 2 - User wants SPECIFIC NEW recommendations (dance events, bars, techno, etc.):
+**ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific NEW recommendations, you MUST return PURE JSON ONLY.
 
-DETECTION KEYWORDS FOR JSON RESPONSE (if user message contains ANY of these, return JSON):
-- "recommendations", "recommend", "suggest"
-- "events", "bars", "clubs", "venues", "places"
-- "show me", "looking for", "find me", "what's", "any"
-- "tonight", "today", "this week", "weekend", "tomorrow", "next week"
-- "dance", "music", "live", "party", "art", "food"
-- Spanish: "esta noche", "hoy", "mañana", "próxima semana", "semana que viene", "fin de semana"
+DETECTION KEYWORDS FOR JSON RESPONSE (if user message contains ANY of these AND is asking for NEW recommendations):
+- "recommend", "suggest", "find me"
+- "show me", "looking for" (but NOT when discussing existing recommendations)
+- "events", "bars", "clubs", "venues", "places" (in context of wanting new suggestions)
+- "tonight", "today", "this week", "weekend", "tomorrow", "next week" (when asking for suggestions, not clarifying)
+- "dance", "music", "live", "party", "art", "food" (when requesting new options)
+- Spanish: "recomienda", "busco", "esta noche", "hoy", "mañana"
+
+**DO NOT trigger JSON response if user is:**
+- Discussing/questioning existing recommendations ("these are for tomorrow", "wrong date")
+- Asking follow-up questions about previous suggestions
+- Giving feedback about what you already sent
 
 **IMPORTANT**: ONLY return JSON if age is already collected. If age is missing, respond with conversational text asking for age first.
 
@@ -263,11 +277,15 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     // Get the last user message to understand their query
     const lastUserMessage = messages[messages.length - 1]?.content || '';
     
-    // Detect if user is asking for recommendations (check for keywords)
-    const isRecommendationRequest = /\b(recommend|suggest|show me|looking for|find|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|next week|esta noche|hoy|mañana|fin de semana|próxima semana|dance|music|live|party|art|food)\b/i.test(lastUserMessage);
+    // Detect if user is asking for NEW recommendations (not discussing existing ones)
+    const isFeedbackAboutRecommendations = /\b(these|those|your|the)\s+(recommendations?|events?|suggestions?)\s+(are|were|seem)\b/i.test(lastUserMessage) ||
+      /\b(wrong|incorrect|not what|different)\b/i.test(lastUserMessage);
+    
+    const isNewRecommendationRequest = !isFeedbackAboutRecommendations && 
+      /\b(recommend|suggest|show me|looking for|find|events?|bars?|clubs?|tonight|today|tomorrow)\b/i.test(lastUserMessage);
     
     // Check if this is a recommendations response and enhance with Perplexity
-    if (message.includes('"recommendations"') || isRecommendationRequest) {
+    if (message.includes('"recommendations"') || isNewRecommendationRequest) {
       let parsed: any = null;
       
       try {
