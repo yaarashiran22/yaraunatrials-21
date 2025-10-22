@@ -396,8 +396,32 @@ RESPOND WITH ONLY JSON. NO OTHER TEXT.`
                   image_url: null
                 }));
                 
-                // Get database recommendations (outside if block to avoid scope error)
-                const dbRecs = parsed?.recommendations ? parsed.recommendations.slice(0, Math.min(3, 6 - liveRecs.length)) : [];
+                // FORCE include matching database events - prioritize database over Perplexity
+                let dbRecs = parsed?.recommendations ? parsed.recommendations : [];
+                
+                // If no database recs from AI, manually create them from matching events
+                if (dbRecs.length === 0 && events.length > 0) {
+                  // Filter for today's events if user asked for "tonight" or "today"
+                  const isTodayRequest = /\b(tonight|today|esta noche|hoy)\b/i.test(lastUserMessage);
+                  const relevantEvents = isTodayRequest 
+                    ? events.filter(e => e.date === today)
+                    : events;
+                  
+                  // Take up to 3 matching database events
+                  dbRecs = relevantEvents.slice(0, 3).map(e => ({
+                    type: 'event',
+                    id: e.id,
+                    title: e.title,
+                    description: `Location: ${e.location || 'TBA'}. Date: ${e.date}. Time: ${e.time || 'TBA'}. Price: ${e.price || 'TBA'}. ${e.description || ''}`,
+                    why_recommended: `This event is happening ${isTodayRequest ? 'tonight' : 'soon'} in Buenos Aires and matches your interests.`,
+                    image_url: e.image_url
+                  }));
+                  
+                  console.log(`Manually added ${dbRecs.length} database events for ${isTodayRequest ? 'tonight' : 'upcoming'}`);
+                }
+                
+                // Limit database recs to leave room for Perplexity
+                dbRecs = dbRecs.slice(0, Math.min(3, 6 - liveRecs.length));
                 
                 if (liveRecs.length > 0 || dbRecs.length > 0) {
                   // Combine database recommendations with Perplexity recommendations (max 6 total)
