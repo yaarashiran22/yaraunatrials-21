@@ -262,29 +262,27 @@ Deno.serve(async (req) => {
       // Invoke send-whatsapp-recommendations to send both intro and recommendations
       console.log('Triggering send-whatsapp-recommendations function...');
       
-      // Call the function directly - it will send all messages including intro
-      supabase.functions.invoke('send-whatsapp-recommendations', {
+      // AWAIT the function call to ensure it completes before returning
+      const { data: sendData, error: sendError } = await supabase.functions.invoke('send-whatsapp-recommendations', {
         body: {
           recommendations: parsedResponse.recommendations,
           toNumber: from,
           fromNumber: twilioWhatsAppNumber,
           introText: introMessage
         }
-      }).then(({ data, error }) => {
-        if (error) {
-          console.error('Error invoking send-whatsapp-recommendations:', error);
-        } else {
-          console.log('Send-whatsapp-recommendations invoked successfully:', data);
-        }
-      }).catch(error => {
-        console.error('Failed to invoke send-whatsapp-recommendations:', error);
       });
+      
+      if (sendError) {
+        console.error('Error invoking send-whatsapp-recommendations:', sendError);
+      } else {
+        console.log('Send-whatsapp-recommendations completed successfully:', sendData);
+      }
 
-      // Return empty TwiML response immediately - messages will be sent by the function
+      // Return empty TwiML response after messages are sent
       const emptyTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response></Response>`;
 
-      console.log('Returning empty TwiML response - recommendations will be sent by background function');
+      console.log('Returning empty TwiML response - recommendations have been sent');
       return new Response(emptyTwiml, {
         headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
         status: 200
