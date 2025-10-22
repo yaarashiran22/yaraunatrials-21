@@ -170,18 +170,33 @@ Deno.serve(async (req) => {
       // Process AI response in background for recommendations
       EdgeRuntime.waitUntil((async () => {
         try {
-          console.log('Processing recommendation request in background...');
+          console.log('[BG] Processing recommendation request...');
           
           const { data: aiResponse, error: aiError } = await supabase.functions.invoke('yara-ai-chat', {
             body: { messages, stream: false, userProfile: whatsappUser, phoneNumber: from }
           });
 
           if (aiError) {
-            console.error('Yara AI error:', aiError);
+            console.error('[BG] Yara AI error:', aiError);
+            const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+            const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+            const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
+            
+            await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: new URLSearchParams({ From: twilioWhatsAppNumber, To: from, Body: "Sorry, I had trouble processing that request. Try again!" })
+            });
             return;
           }
 
+          console.log('[BG] AI response received');
           let assistantMessage = aiResponse?.message || '';
+          console.log('[BG] Message preview:', assistantMessage.substring(0, 150));
+          
           let cleanedMessage = assistantMessage.trim();
           const jsonMatch = cleanedMessage.match(/\{[\s\S]*\}/);
           if (jsonMatch) cleanedMessage = jsonMatch[0];
@@ -189,12 +204,17 @@ Deno.serve(async (req) => {
           let parsedResponse;
           try {
             parsedResponse = JSON.parse(cleanedMessage);
+            console.log('[BG] Parsed JSON -', parsedResponse.recommendations?.length || 0, 'recommendations');
           } catch (e) {
+            console.error('[BG] JSON parse error:', e.message);
             parsedResponse = null;
           }
 
           if (parsedResponse?.recommendations && Array.isArray(parsedResponse.recommendations)) {
+            console.log('[BG] Found', parsedResponse.recommendations.length, 'recommendations');
+            
             if (parsedResponse.recommendations.length === 0) {
+              console.log('[BG] No recommendations - sending fallback message');
               const noResultsMessage = "I couldn't find specific matches. Try 'bars in Palermo' or 'live music tonight'!";
               await supabase.from('whatsapp_conversations').insert({
                 phone_number: from, role: 'assistant', content: noResultsMessage
@@ -215,18 +235,22 @@ Deno.serve(async (req) => {
               return;
             }
             
+            console.log('[BG] Updating recommendation count');
             if (whatsappUser) {
               await supabase.from('whatsapp_users')
                 .update({ recommendation_count: (whatsappUser.recommendation_count || 0) + 1 })
                 .eq('id', whatsappUser.id);
             }
             
+            console.log('[BG] Storing conversation');
             await supabase.from('whatsapp_conversations').insert({
               phone_number: from, role: 'assistant', content: JSON.stringify(parsedResponse)
             });
 
             const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
-            await supabase.functions.invoke('send-whatsapp-recommendations', {
+            
+            console.log('[BG] Calling send-whatsapp-recommendations with', parsedResponse.recommendations.length, 'items');
+            const { data: sendData, error: sendError } = await supabase.functions.invoke('send-whatsapp-recommendations', {
               body: {
                 recommendations: parsedResponse.recommendations,
                 toNumber: from,
@@ -234,9 +258,33 @@ Deno.serve(async (req) => {
                 introText: null
               }
             });
+            
+            if (sendError) {
+              console.error('[BG] Send recommendations error:', sendError);
+            } else {
+              console.log('[BG] Recommendations sent successfully:', sendData);
+            }
+          } else {
+            console.error('[BG] No recommendations array found in response. Response was:', typeof parsedResponse, parsedResponse);
           }
         } catch (error) {
-          console.error('Background processing error:', error);
+          console.error('[BG] Fatal error:', error);
+          try {
+            const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+            const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+            const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
+            
+            await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: new URLSearchParams({ From: twilioWhatsAppNumber, To: from, Body: "Sorry, something went wrong. Please try again!" })
+            });
+          } catch (e) {
+            console.error('[BG] Failed to send error message:', e);
+          }
         }
       })());
 
