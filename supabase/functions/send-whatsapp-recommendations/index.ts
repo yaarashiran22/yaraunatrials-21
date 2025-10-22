@@ -66,8 +66,8 @@ Deno.serve(async (req) => {
         
         if (introResponse.ok) {
           console.log('✅ Intro text sent successfully');
-          // Wait a moment before sending recommendations
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          // Wait briefly before sending recommendations
+          await new Promise(resolve => setTimeout(resolve, 500));
         } else {
           console.error('❌ Failed to send intro text:', await introResponse.text());
         }
@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
 
       // Wait between messages to avoid rate limits
       if (i < uniqueRecs.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 600));
       }
     }
 
