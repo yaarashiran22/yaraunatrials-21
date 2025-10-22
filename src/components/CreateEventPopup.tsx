@@ -36,7 +36,6 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
   const [fileType, setFileType] = useState<'image' | 'video' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedMood, setSelectedMood] = useState<string>("");
-  const [isOpenDate, setIsOpenDate] = useState(false);
   const [targetAudience, setTargetAudience] = useState("");
   const [musicType, setMusicType] = useState("");
   const [venueSize, setVenueSize] = useState("");
@@ -100,7 +99,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
       return;
     }
 
-    if (!date.trim() && !isOpenDate) {
+    if (!date.trim()) {
       toast({
         title: t('createEvent.error'),
         description: t('createEvent.enterDateError'),
@@ -178,8 +177,8 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
           user_id: user.id,
           title: eventName.trim(),
           description: description.trim() || null,
-          date: isOpenDate ? null : (date || null),
-          time: isOpenDate ? null : (time || null),
+          date: date || null,
+          time: time || null,
           location: location.trim(),
           price: price.trim() || null,
           image_url: imageUrl,
@@ -214,7 +213,6 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
       setFilePreview(null);
       setFileType(null);
       setSelectedMood("");
-      setIsOpenDate(false);
       setTargetAudience("");
       setMusicType("");
       setVenueSize("");
@@ -287,55 +285,30 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
           {/* Date Field */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.whatDay')}*</label>
-            
-            {/* Open Date Option */}
-            <div className="flex items-center gap-2 mb-3">
-              <input
-                type="checkbox"
-                id="open-date"
-                checked={isOpenDate}
-                onChange={(e) => {
-                  setIsOpenDate(e.target.checked);
-                  if (e.target.checked) {
-                    setDate("");
-                    setTime("");
-                  }
-                }}
-                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input 
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full h-12 pl-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
               />
-              <label htmlFor="open-date" className="text-sm text-foreground cursor-pointer">
-                {t('createEvent.openDate')}
-              </label>
             </div>
-
-            {!isOpenDate && (
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input 
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full h-12 pl-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
-                />
-              </div>
-            )}
           </div>
 
           {/* Time Field */}
-          {!isOpenDate && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.time')}</label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input 
-                  type="time"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  className="w-full h-12 pl-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
-                />
-              </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.time')}</label>
+            <div className="relative">
+              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input 
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="w-full h-12 pl-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
+              />
             </div>
-          )}
+          </div>
 
           {/* Location Field */}
           <div className="space-y-2">
@@ -343,10 +316,10 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
               <Select value={location} onValueChange={setLocation}>
-                <SelectTrigger className="w-full h-12 pl-12 text-left bg-background border-2 border-border rounded-full">
+                <SelectTrigger className="w-full h-12 pl-12 text-left bg-white border-2 border-border rounded-full">
                   <SelectValue placeholder={t('createEvent.chooseNeighborhood')} />
                 </SelectTrigger>
-                <SelectContent className="bg-background border shadow-lg z-50 max-h-60">
+                <SelectContent className="bg-white border shadow-lg z-[9999] max-h-60">
                   {neighborhoods.map((neighborhood) => (
                     <SelectItem 
                       key={neighborhood} 
@@ -409,10 +382,10 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.venueSize')}</label>
             <Select value={venueSize} onValueChange={setVenueSize}>
-              <SelectTrigger className="w-full h-12 text-left bg-background border-2 border-border rounded-full">
+              <SelectTrigger className="w-full h-12 text-left bg-white border-2 border-border rounded-full">
                 <SelectValue placeholder={t('createEvent.chooseVenueSize')} />
               </SelectTrigger>
-              <SelectContent className="bg-background border shadow-lg z-50">
+              <SelectContent className="bg-white border shadow-lg z-[9999]">
                 <SelectItem value="intimate" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.intimateVenue')}</SelectItem>
                 <SelectItem value="moderate" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.moderateVenue')}</SelectItem>
                 <SelectItem value="big" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.bigVenue')}</SelectItem>
@@ -424,10 +397,10 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.priceRange')}</label>
             <Select value={priceRange} onValueChange={setPriceRange}>
-              <SelectTrigger className="w-full h-12 text-left bg-background border-2 border-border rounded-full">
+              <SelectTrigger className="w-full h-12 text-left bg-white border-2 border-border rounded-full">
                 <SelectValue placeholder={t('createEvent.choosePriceRange')} />
               </SelectTrigger>
-              <SelectContent className="bg-background border shadow-lg z-50">
+              <SelectContent className="bg-white border shadow-lg z-[9999]">
                 <SelectItem value="cheap" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.cheap')}</SelectItem>
                 <SelectItem value="moderate" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.moderate')}</SelectItem>
                 <SelectItem value="expensive" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.expensive')}</SelectItem>
