@@ -8,6 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
+import { useLanguage } from "@/contexts/LanguageContext";
+import LanguageSelector from "@/components/LanguageSelector";
 
 interface CreateEventPopupProps {
   isOpen: boolean;
@@ -20,6 +22,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
   const { toast } = useToast();
   const { user } = useAuth();
   const { profile } = useProfile(user?.id);
+  const { t } = useLanguage();
   const [eventName, setEventName] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
@@ -81,8 +84,8 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
     
     if (!user) {
       toast({
-        title: "🔐 Login Required",
-        description: "Please sign in to create amazing events and connect with your community!",
+        title: t('createEvent.loginRequired'),
+        description: t('createEvent.loginRequiredDesc'),
         variant: "destructive",
       });
       return;
@@ -90,8 +93,8 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
 
     if (!eventName.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter an event name",
+        title: t('createEvent.error'),
+        description: t('createEvent.enterEventNameError'),
         variant: "destructive",
       });
       return;
@@ -99,8 +102,8 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
 
     if (!date.trim() && !isOpenDate) {
       toast({
-        title: "Error",
-        description: "Please enter an event date or select open date option",
+        title: t('createEvent.error'),
+        description: t('createEvent.enterDateError'),
         variant: "destructive",
       });
       return;
@@ -108,8 +111,8 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
 
     if (!location.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter an event location",
+        title: t('createEvent.error'),
+        description: t('createEvent.enterLocationError'),
         variant: "destructive",
       });
       return;
@@ -117,8 +120,8 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
 
     if (!selectedFile) {
       toast({
-        title: "Error", 
-        description: "Please add an image or video for the event",
+        title: t('createEvent.error'), 
+        description: t('createEvent.addMediaError'),
         variant: "destructive",
       });
       return;
@@ -194,8 +197,8 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
       if (error) throw error;
 
       toast({
-        title: eventType === 'meetup' ? "Meetup created successfully!" : "Event created successfully!",
-        description: eventType === 'meetup' ? "Your meetup has been added to the meetups page" : "Your event has been added to the events page",
+        title: eventType === 'meetup' ? t('createEvent.meetupCreatedSuccess') : t('createEvent.eventCreatedSuccess'),
+        description: eventType === 'meetup' ? t('createEvent.meetupCreatedDesc') : t('createEvent.eventCreatedDesc'),
       });
 
       // Reset form
@@ -226,8 +229,8 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
     } catch (error) {
       console.error('Error creating event:', error);
       toast({
-        title: "Error",
-        description: "Could not create the event. Please try again.",
+        title: t('createEvent.error'),
+        description: t('createEvent.createEventError'),
         variant: "destructive",
       });
     } finally {
@@ -241,46 +244,49 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-lg font-bold text-foreground">
-            {eventType === 'meetup' ? 'New Meetup' : 'New Event'}
+            {eventType === 'meetup' ? t('createEvent.newMeetup') : t('createEvent.newEvent')}
           </h2>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={onClose}
-            className="rounded-full"
-          >
-            <X className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <LanguageSelector />
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onClose}
+              className="rounded-full"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
 
         <div className="p-6 space-y-6">
           {/* Event Name Field */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground block text-left">
-              Title*
+              {t('createEvent.eventTitle')}*
             </label>
             <Input 
               value={eventName}
               onChange={(e) => setEventName(e.target.value)}
-              placeholder={eventType === 'meetup' ? 'Enter meetup name' : 'Enter event name'}
+              placeholder={eventType === 'meetup' ? t('createEvent.enterMeetupName') : t('createEvent.enterEventName')}
               className="w-full h-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
             />
           </div>
 
           {/* Description Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground block text-left">Description</label>
+            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.description')}</label>
             <Textarea 
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={eventType === 'meetup' ? 'Describe your meetup' : 'Describe your event'}
+              placeholder={eventType === 'meetup' ? t('createEvent.describeMeetup') : t('createEvent.describeEvent')}
               className="w-full min-h-24 text-left bg-white border-2 border-gray-200 rounded-2xl resize-none"
             />
           </div>
 
           {/* Date Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground block text-left">What Day*</label>
+            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.whatDay')}*</label>
             
             {/* Open Date Option */}
             <div className="flex items-center gap-2 mb-3">
@@ -298,7 +304,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
                 className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
               />
               <label htmlFor="open-date" className="text-sm text-foreground cursor-pointer">
-                Open date (no specific day - open invite)
+                {t('createEvent.openDate')}
               </label>
             </div>
 
@@ -318,7 +324,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
           {/* Time Field */}
           {!isOpenDate && (
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground block text-left">Time</label>
+              <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.time')}</label>
               <div className="relative">
                 <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input 
@@ -333,12 +339,12 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
 
           {/* Location Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground block text-left">Location*</label>
+            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.location')}*</label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
               <Select value={location} onValueChange={setLocation}>
                 <SelectTrigger className="w-full h-12 pl-12 text-left bg-background border-2 border-border rounded-full">
-                  <SelectValue placeholder="Choose neighborhood" />
+                  <SelectValue placeholder={t('createEvent.chooseNeighborhood')} />
                 </SelectTrigger>
                 <SelectContent className="bg-background border shadow-lg z-50 max-h-60">
                   {neighborhoods.map((neighborhood) => (
@@ -357,81 +363,81 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
 
           {/* Price Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground block text-left">Price (Optional)</label>
+            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.priceOptional')}</label>
             <Input 
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              placeholder="Free / ₪50"
+              placeholder={t('createEvent.pricePlaceholder')}
               className="w-full h-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
             />
           </div>
 
           {/* External Link Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground block text-left">External Link (Optional)</label>
+            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.externalLinkOptional')}</label>
             <Input 
               value={externalLink}
               onChange={(e) => setExternalLink(e.target.value)}
-              placeholder="https://example.com"
+              placeholder={t('createEvent.linkPlaceholder')}
               className="w-full h-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
             />
           </div>
 
           {/* Target Audience Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground block text-left">Target Audience (Age Group)</label>
+            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.targetAudience')}</label>
             <Input 
               value={targetAudience}
               onChange={(e) => setTargetAudience(e.target.value)}
-              placeholder="e.g., 18-25, 25-35, All ages"
+              placeholder={t('createEvent.targetAudiencePlaceholder')}
               className="w-full h-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
             />
           </div>
 
           {/* Music Type Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground block text-left">Type of Music</label>
+            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.musicType')}</label>
             <Input 
               value={musicType}
               onChange={(e) => setMusicType(e.target.value)}
-              placeholder="e.g., Jazz, Techno, Indie Rock"
+              placeholder={t('createEvent.musicTypePlaceholder')}
               className="w-full h-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
             />
           </div>
 
           {/* Venue Size Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground block text-left">Venue Size</label>
+            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.venueSize')}</label>
             <Select value={venueSize} onValueChange={setVenueSize}>
               <SelectTrigger className="w-full h-12 text-left bg-background border-2 border-border rounded-full">
-                <SelectValue placeholder="Choose venue size" />
+                <SelectValue placeholder={t('createEvent.chooseVenueSize')} />
               </SelectTrigger>
               <SelectContent className="bg-background border shadow-lg z-50">
-                <SelectItem value="intimate" className="text-left cursor-pointer hover:bg-muted">Intimate (up to 50 people)</SelectItem>
-                <SelectItem value="moderate" className="text-left cursor-pointer hover:bg-muted">Moderate (up to 100 people)</SelectItem>
-                <SelectItem value="big" className="text-left cursor-pointer hover:bg-muted">Big (100+ people)</SelectItem>
+                <SelectItem value="intimate" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.intimateVenue')}</SelectItem>
+                <SelectItem value="moderate" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.moderateVenue')}</SelectItem>
+                <SelectItem value="big" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.bigVenue')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Price Range Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground block text-left">Price Range</label>
+            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.priceRange')}</label>
             <Select value={priceRange} onValueChange={setPriceRange}>
               <SelectTrigger className="w-full h-12 text-left bg-background border-2 border-border rounded-full">
-                <SelectValue placeholder="Choose price range" />
+                <SelectValue placeholder={t('createEvent.choosePriceRange')} />
               </SelectTrigger>
               <SelectContent className="bg-background border shadow-lg z-50">
-                <SelectItem value="cheap" className="text-left cursor-pointer hover:bg-muted">Cheap</SelectItem>
-                <SelectItem value="moderate" className="text-left cursor-pointer hover:bg-muted">Moderate</SelectItem>
-                <SelectItem value="expensive" className="text-left cursor-pointer hover:bg-muted">Expensive</SelectItem>
+                <SelectItem value="cheap" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.cheap')}</SelectItem>
+                <SelectItem value="moderate" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.moderate')}</SelectItem>
+                <SelectItem value="expensive" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.expensive')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* What Mood Section */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground block text-left">What Mood</label>
+            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.whatMood')}</label>
             <div className="flex flex-wrap gap-2">
               {moodFilters.map((mood) => {
                 const IconComponent = mood.icon;
@@ -460,7 +466,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
 
           {/* Media Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground block text-left">Image or Video*</label>
+            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.addMedia')}*</label>
             <div className="space-y-2">
               <input
                 type="file"
@@ -475,7 +481,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
               >
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Camera className="h-5 w-5" />
-                  <span className="text-sm">{selectedFile ? selectedFile.name : "Choose image or video"}</span>
+                  <span className="text-sm">{selectedFile ? selectedFile.name : t('createEvent.chooseMedia')}</span>
                 </div>
               </label>
               {filePreview && (
@@ -507,8 +513,8 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
               className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full text-lg font-medium"
             >
               {isSubmitting ? 
-                (eventType === 'meetup' ? "Creating meetup..." : "Creating event...") : 
-                (eventType === 'meetup' ? "Create Meetup" : "Create Event")
+                (eventType === 'meetup' ? t('createEvent.creatingMeetup') : t('createEvent.creatingEvent')) : 
+                (eventType === 'meetup' ? t('createEvent.postMeetup') : t('createEvent.postEvent'))
               }
             </Button>
           </div>
