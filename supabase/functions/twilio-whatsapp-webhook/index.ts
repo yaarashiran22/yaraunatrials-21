@@ -154,8 +154,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Send immediate acknowledgment message
-    const ackMessage = "Yes! Sending you recommendations in just a minute! 🎯";
+    // Detect if this is a recommendation request
+    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|esta noche|hoy|mañana|fin de semana|dance|music|live|party|art|food)\b/i;
+    const isRecommendationRequest = recommendationKeywords.test(body);
     
     // Build conversation history for AI
     const messages = conversationHistory.map(msg => ({
@@ -310,13 +311,31 @@ Deno.serve(async (req) => {
       }
     })());
 
-    // Return immediate acknowledgment
+    // Return immediate response - only send acknowledgment if it's a recommendation request
     const welcomeText = welcomeMessageSent ? "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
-    const immediateResponse = welcomeText + ackMessage;
+    let immediateMessage = "";
+    
+    if (isRecommendationRequest) {
+      immediateMessage = welcomeText + "Yes! Sending you recommendations in just a minute! 🎯";
+    } else {
+      // For non-recommendation messages, just send welcome or wait for AI response
+      if (welcomeMessageSent && !isGreeting) {
+        immediateMessage = welcomeText;
+      } else {
+        // Don't send immediate message - let background AI response handle it
+        return new Response(
+          '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+            status: 200 
+          }
+        );
+      }
+    }
     
     const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>${immediateResponse}</Message>
+  <Message>${immediateMessage}</Message>
 </Response>`;
 
     console.log('Returning immediate acknowledgment');
