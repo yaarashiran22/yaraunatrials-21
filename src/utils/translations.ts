@@ -16,7 +16,30 @@ export const translations = {
       login: "Login",
       register: "Register",
       logout: "Logout",
-      settings: "Settings"
+    settings: "Settings"
+    },
+    register: {
+      signUp: "Sign Up",
+      welcome: "Welcome to una- our local social platform for finding cool and original new experiences happening around.",
+      name: "Name",
+      email: "Email",
+      password: "Password",
+      neighborhood: "Neighborhood",
+      shortBio: "Short Bio",
+      profilePicture: "Profile Picture",
+      uploadPhoto: "Click to upload your profile photo",
+      socialNetworks: "Social Networks",
+      facebook: "Facebook",
+      tiktok: "TikTok @",
+      linkedin: "LinkedIn",
+      registering: "Registering...",
+      error: "Error",
+      fillRequired: "Please fill in all required fields (name, email and password)",
+      registrationError: "Registration Error",
+      unableToRegister: "Unable to register",
+      registrationSuccess: "Registration completed successfully!",
+      profileCreated: "Your profile has been created and will appear on the home page",
+      unexpectedError: "An unexpected error occurred"
     },
     events: {
       title: "Happening Around",
@@ -117,7 +140,30 @@ export const translations = {
       login: "Iniciar Sesión",
       register: "Registrarse",
       logout: "Cerrar Sesión",
-      settings: "Configuración"
+    settings: "Configuración"
+    },
+    register: {
+      signUp: "Registrarse",
+      welcome: "Bienvenido a una- nuestra plataforma social local para encontrar experiencias nuevas, geniales y originales que suceden alrededor.",
+      name: "Nombre",
+      email: "Correo Electrónico",
+      password: "Contraseña",
+      neighborhood: "Barrio",
+      shortBio: "Biografía Corta",
+      profilePicture: "Foto de Perfil",
+      uploadPhoto: "Haz clic para subir tu foto de perfil",
+      socialNetworks: "Redes Sociales",
+      facebook: "Facebook",
+      tiktok: "TikTok @",
+      linkedin: "LinkedIn",
+      registering: "Registrando...",
+      error: "Error",
+      fillRequired: "Por favor completa todos los campos requeridos (nombre, correo electrónico y contraseña)",
+      registrationError: "Error de Registro",
+      unableToRegister: "No se pudo registrar",
+      registrationSuccess: "¡Registro completado con éxito!",
+      profileCreated: "Tu perfil ha sido creado y aparecerá en la página principal",
+      unexpectedError: "Ocurrió un error inesperado"
     },
     events: {
       title: "Sucediendo Alrededor",

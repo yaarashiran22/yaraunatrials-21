@@ -8,11 +8,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import InterestsSelector from "@/components/InterestsSelector";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
   const { signUp } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -51,8 +53,8 @@ const RegisterPage = () => {
   const handleSubmit = async () => {
     if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim()) {
       toast({
-        title: "Error",
-        description: "Please fill in all required fields (name, email and password)",
+        title: t('register.error'),
+        description: t('register.fillRequired'),
         variant: "destructive",
       });
       return;
@@ -67,8 +69,8 @@ const RegisterPage = () => {
       if (signUpError) {
         console.error('Sign up error:', signUpError);
         toast({
-          title: "Registration Error",
-          description: signUpError.message || "Unable to register",
+          title: t('register.registrationError'),
+          description: signUpError.message || t('register.unableToRegister'),
           variant: "destructive",
         });
         return;
@@ -107,8 +109,8 @@ const RegisterPage = () => {
       }
 
       toast({
-        title: "Registration completed successfully!",
-        description: "Your profile has been created and will appear on the home page",
+        title: t('register.registrationSuccess'),
+        description: t('register.profileCreated'),
         variant: "default",
       });
 
@@ -118,8 +120,8 @@ const RegisterPage = () => {
     } catch (error) {
       console.error('Registration error:', error);
       toast({
-        title: "Error",
-        description: "An unexpected error occurred",
+        title: t('register.error'),
+        description: t('register.unexpectedError'),
         variant: "destructive",
       });
     } finally {
@@ -165,12 +167,12 @@ const RegisterPage = () => {
       <main className="container mx-auto px-4 py-8">
         {/* Page Title */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Sign Up</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t('register.signUp')}</h1>
           
           {/* Welcome Description */}
           <div className="px-4 mt-4">
             <p className="text-base text-muted-foreground leading-relaxed">
-              Welcome to una- our local social platform for finding cool and original new experiences happening around.
+              {t('register.welcome')}
             </p>
           </div>
         </div>
@@ -181,7 +183,7 @@ const RegisterPage = () => {
             <div className="space-y-4">
               <div>
                 <Input 
-                  placeholder="Name"
+                  placeholder={t('register.name')}
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   className="w-full h-12 text-left bg-background border border-border rounded-lg"
@@ -190,7 +192,7 @@ const RegisterPage = () => {
               
               <div>
                 <Input 
-                  placeholder="Email"
+                  placeholder={t('register.email')}
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
@@ -200,7 +202,7 @@ const RegisterPage = () => {
               
               <div>
                 <Input 
-                  placeholder="Password"
+                  placeholder={t('register.password')}
                   type="password"
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
@@ -211,7 +213,7 @@ const RegisterPage = () => {
               
               <div>
                 <Input 
-                  placeholder="Neighborhood"
+                  placeholder={t('register.neighborhood')}
                   value={formData.neighborhood}
                   onChange={(e) => handleInputChange('neighborhood', e.target.value)}
                   className="w-full h-12 text-left bg-background border border-border rounded-lg"
@@ -220,7 +222,7 @@ const RegisterPage = () => {
               
               <div>
                 <Input 
-                  placeholder="Short Bio"
+                  placeholder={t('register.shortBio')}
                   value={formData.bio}
                   onChange={(e) => handleInputChange('bio', e.target.value)}
                   className="w-full h-12 text-left bg-background border border-border rounded-lg"
@@ -252,8 +254,8 @@ const RegisterPage = () => {
                   </div>
                 </label>
                 <div>
-                  <span className="text-foreground font-medium">Profile Picture</span>
-                  <p className="text-sm text-muted-foreground">Click to upload your profile photo</p>
+                  <span className="text-foreground font-medium">{t('register.profilePicture')}</span>
+                  <p className="text-sm text-muted-foreground">{t('register.uploadPhoto')}</p>
                 </div>
               </div>
             </div>
@@ -270,11 +272,11 @@ const RegisterPage = () => {
 
           {/* Social Networks Section */}
           <div className="bg-card rounded-2xl shadow-lg p-6">
-            <h2 className="text-lg font-bold text-foreground mb-4 text-center">Social Networks</h2>
+            <h2 className="text-lg font-bold text-foreground mb-4 text-center">{t('register.socialNetworks')}</h2>
             <div className="space-y-4">
               <div>
                 <Input 
-                  placeholder="Facebook"
+                  placeholder={t('register.facebook')}
                   value={formData.facebook}
                   onChange={(e) => handleInputChange('facebook', e.target.value)}
                   className="w-full h-12 text-left bg-background border border-border rounded-lg"
@@ -283,7 +285,7 @@ const RegisterPage = () => {
               
               <div>
                 <Input 
-                  placeholder="TikTok @"
+                  placeholder={t('register.tiktok')}
                   value={formData.tiktok}
                   onChange={(e) => handleInputChange('tiktok', e.target.value)}
                   className="w-full h-12 text-left bg-background border border-border rounded-lg"
@@ -292,7 +294,7 @@ const RegisterPage = () => {
               
               <div>
                 <Input 
-                  placeholder="LinkedIn"
+                  placeholder={t('register.linkedin')}
                   value={formData.linkedin}
                   onChange={(e) => handleInputChange('linkedin', e.target.value)}
                   className="w-full h-12 text-left bg-background border border-border rounded-lg"
@@ -307,7 +309,7 @@ const RegisterPage = () => {
                 disabled={isSubmitting}
                 className="w-full h-12 text-white text-lg font-medium rounded-lg !bg-gradient-to-r !from-[#E91E63] !to-[#9C27B0] hover:!from-[#D81B60] hover:!to-[#8E24AA]"
               >
-                {isSubmitting ? 'Registering...' : 'Sign Up'}
+                {isSubmitting ? t('register.registering') : t('register.signUp')}
               </Button>
             </div>
           </div>
