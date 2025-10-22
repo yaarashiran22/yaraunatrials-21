@@ -316,7 +316,7 @@ END OF SPEC
         messages: [{ role: "system", content: systemPrompt }, ...messages],
         max_tokens: 800,
         temperature: 0.8,
-        stream: true,
+        stream: stream,
       }),
     });
 
@@ -326,14 +326,24 @@ END OF SPEC
       throw new Error(`OpenAI API error: ${openAIResponse.status}`);
     }
 
-    // Return the streaming response directly
-    return new Response(openAIResponse.body, {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-      },
+    // If streaming is requested, return the stream directly
+    if (stream) {
+      return new Response(openAIResponse.body, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive",
+        },
+      });
+    }
+
+    // For non-streaming, parse the response and return JSON
+    const data = await openAIResponse.json();
+    const message = data.choices[0].message.content;
+
+    return new Response(JSON.stringify({ message }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Error in yara-ai-chat:", error);
