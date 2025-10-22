@@ -255,35 +255,44 @@ Deno.serve(async (req) => {
       // Get Twilio WhatsApp number
       const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
 
-      // Prepare the intro message
+      // Prepare the intro message - send this first before recommendations
       const welcomeText = welcomeMessageSent ? "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
-      const introMessage = welcomeText + (parsedResponse.intro_message || "Here are some recommendations for you:");
+      const introMessage = welcomeText + "Yes! Sending you the recommendations in just a minute! 🎯";
       
-      // Invoke send-whatsapp-recommendations to send both intro and recommendations
+      // Send intro via TwiML immediately
+      console.log('Sending intro message via TwiML...');
+      
+      // Use EdgeRuntime.waitUntil for proper background task handling
       console.log('Triggering send-whatsapp-recommendations function...');
-      
-      // AWAIT the function call to ensure it completes before returning
-      const { data: sendData, error: sendError } = await supabase.functions.invoke('send-whatsapp-recommendations', {
-        body: {
-          recommendations: parsedResponse.recommendations,
-          toNumber: from,
-          fromNumber: twilioWhatsAppNumber,
-          introText: introMessage
+      EdgeRuntime.waitUntil((async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke('send-whatsapp-recommendations', {
+            body: {
+              recommendations: parsedResponse.recommendations,
+              toNumber: from,
+              fromNumber: twilioWhatsAppNumber,
+              introText: null // Don't send intro from background - already sent via TwiML
+            }
+          });
+          
+          if (error) {
+            console.error('Error invoking send-whatsapp-recommendations:', error);
+          } else {
+            console.log('Send-whatsapp-recommendations invoked successfully:', data);
+          }
+        } catch (error) {
+          console.error('Failed to invoke send-whatsapp-recommendations:', error);
         }
-      });
-      
-      if (sendError) {
-        console.error('Error invoking send-whatsapp-recommendations:', sendError);
-      } else {
-        console.log('Send-whatsapp-recommendations completed successfully:', sendData);
-      }
+      })());
 
-      // Return empty TwiML response after messages are sent
-      const emptyTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response></Response>`;
+      // Return intro message immediately via TwiML
+      const introTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${introMessage}</Message>
+</Response>`;
 
-      console.log('Returning empty TwiML response - recommendations have been sent');
-      return new Response(emptyTwiml, {
+      console.log('Returning intro TwiML response');
+      return new Response(introTwiml, {
         headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
         status: 200
       });
