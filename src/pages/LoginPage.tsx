@@ -599,7 +599,7 @@ const LoginPage = () => {
 
                   <div>
                     <textarea
-                      placeholder={t('login.targetAudienceDescription')}
+                      placeholder={t('login.venueVibe')}
                       value={formData.targetAudienceDescription}
                       onChange={(e) => handleInputChange('targetAudienceDescription', e.target.value)}
                       className="w-full min-h-24 text-left text-black bg-white border border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg px-3 py-2 placeholder:text-gray-500 resize-none"
