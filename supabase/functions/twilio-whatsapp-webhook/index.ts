@@ -154,12 +154,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Detect if this is a recommendation request
-    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|esta noche|hoy|mañana|fin de semana|dance|music|live|party|art|food)\b/i;
-    const isRecommendationRequest = recommendationKeywords.test(body);
-
-    // Note: We'll send intro message later with recommendations instead of acknowledgment
-
+    // Send immediate acknowledgment message
+    const ackMessage = "Yes! Sending you recommendations in just a minute! 🎯";
+    
     // Build conversation history for AI
     const messages = conversationHistory.map(msg => ({
       role: msg.role as 'user' | 'assistant',
@@ -167,155 +164,162 @@ Deno.serve(async (req) => {
     }));
     messages.push({ role: 'user', content: body });
 
-    // Call Yara AI chat function with user profile context
-    const { data: aiResponse, error: aiError } = await supabase.functions.invoke('yara-ai-chat', {
-      body: { 
-        messages, 
-        stream: false,
-        userProfile: whatsappUser, // Pass user profile to AI
-        phoneNumber: from // Pass phone number for tracking
-      }
-    });
-
-    if (aiError) {
-      console.error('Yara AI error:', aiError);
-      throw aiError;
-    }
-
-    // Extract AI response
-    let assistantMessage = '';
-    if (aiResponse) {
-      assistantMessage = aiResponse.message || 'Sorry, I encountered an error processing your request.';
-    }
-
-    console.log('Yara AI raw response:', assistantMessage);
-
-    // Try to parse as JSON - extract JSON from text if needed
-    let cleanedMessage = assistantMessage.trim();
-    
-    // Try to extract JSON from the response
-    // Look for a JSON object starting with { and ending with }
-    const jsonMatch = cleanedMessage.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      cleanedMessage = jsonMatch[0];
-      console.log('Extracted JSON from response:', cleanedMessage.substring(0, 200) + '...');
-    }
-
-    let parsedResponse;
-    try {
-      parsedResponse = JSON.parse(cleanedMessage);
-      console.log('Successfully parsed JSON response with', parsedResponse.recommendations?.length || 0, 'recommendations');
-    } catch (e) {
-      // Not JSON, just a regular conversational response
-      console.log('Response is not valid JSON, treating as conversational text');
-      parsedResponse = null;
-    }
-
-
-    // Handle recommendations response (even if empty - don't show raw JSON)
-    if (parsedResponse && parsedResponse.recommendations && Array.isArray(parsedResponse.recommendations)) {
-      console.log(`Found ${parsedResponse.recommendations.length} recommendations to send`);
-      
-      // If no recommendations found, send a helpful message instead of JSON
-      if (parsedResponse.recommendations.length === 0) {
-        const noResultsMessage = "I couldn't find specific matches for that right now. Try asking about something else - like 'bars in Palermo' or 'live music tonight'!";
+    // Process AI response in background
+    EdgeRuntime.waitUntil((async () => {
+      try {
+        console.log('Processing AI response in background...');
         
-        await supabase.from('whatsapp_conversations').insert({
-          phone_number: from,
-          role: 'assistant',
-          content: noResultsMessage
+        // Call Yara AI chat function with user profile context
+        const { data: aiResponse, error: aiError } = await supabase.functions.invoke('yara-ai-chat', {
+          body: { 
+            messages, 
+            stream: false,
+            userProfile: whatsappUser,
+            phoneNumber: from
+          }
         });
-        
-        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${noResultsMessage}</Message>
-</Response>`;
-        
-        return new Response(twimlResponse, {
-          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
-          status: 200
-        });
-      }
-      
-      // Increment recommendation count for progressive profiling
-      if (whatsappUser) {
-        await supabase
-          .from('whatsapp_users')
-          .update({ recommendation_count: (whatsappUser.recommendation_count || 0) + 1 })
-          .eq('id', whatsappUser.id);
-      }
-      
-      // Store the assistant message
-      await supabase.from('whatsapp_conversations').insert({
-        phone_number: from,
-        role: 'assistant',
-        content: JSON.stringify(parsedResponse)
-      });
 
-      // Get Twilio WhatsApp number
-      const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
+        if (aiError) {
+          console.error('Yara AI error:', aiError);
+          throw aiError;
+        }
 
-      // Prepare the intro message - send this first before recommendations
-      const welcomeText = welcomeMessageSent ? "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
-      const introMessage = welcomeText + "Yes! Sending you the recommendations in just a minute! 🎯";
-      
-      // Send intro via TwiML immediately
-      console.log('Sending intro message via TwiML...');
-      
-      // Use EdgeRuntime.waitUntil for proper background task handling
-      console.log('Triggering send-whatsapp-recommendations function...');
-      EdgeRuntime.waitUntil((async () => {
+        // Extract AI response
+        let assistantMessage = '';
+        if (aiResponse) {
+          assistantMessage = aiResponse.message || 'Sorry, I encountered an error processing your request.';
+        }
+
+        console.log('Yara AI raw response:', assistantMessage);
+
+        // Try to parse as JSON
+        let cleanedMessage = assistantMessage.trim();
+        const jsonMatch = cleanedMessage.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          cleanedMessage = jsonMatch[0];
+        }
+
+        let parsedResponse;
         try {
+          parsedResponse = JSON.parse(cleanedMessage);
+          console.log('Successfully parsed JSON response with', parsedResponse.recommendations?.length || 0, 'recommendations');
+        } catch (e) {
+          console.log('Response is not valid JSON, treating as conversational text');
+          parsedResponse = null;
+        }
+
+        // Handle recommendations response
+        if (parsedResponse && parsedResponse.recommendations && Array.isArray(parsedResponse.recommendations)) {
+          console.log(`Found ${parsedResponse.recommendations.length} recommendations to send`);
+          
+          // If no recommendations found, send a helpful message
+          if (parsedResponse.recommendations.length === 0) {
+            const noResultsMessage = "I couldn't find specific matches for that right now. Try asking about something else - like 'bars in Palermo' or 'live music tonight'!";
+            
+            await supabase.from('whatsapp_conversations').insert({
+              phone_number: from,
+              role: 'assistant',
+              content: noResultsMessage
+            });
+            
+            // Send via Twilio API
+            const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+            const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+            const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
+            
+            await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: new URLSearchParams({
+                From: twilioWhatsAppNumber,
+                To: from,
+                Body: noResultsMessage
+              })
+            });
+            
+            return;
+          }
+          
+          // Increment recommendation count
+          if (whatsappUser) {
+            await supabase
+              .from('whatsapp_users')
+              .update({ recommendation_count: (whatsappUser.recommendation_count || 0) + 1 })
+              .eq('id', whatsappUser.id);
+          }
+          
+          // Store the assistant message
+          await supabase.from('whatsapp_conversations').insert({
+            phone_number: from,
+            role: 'assistant',
+            content: JSON.stringify(parsedResponse)
+          });
+
+          // Get Twilio WhatsApp number
+          const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
+
+          // Send recommendations
           const { data, error } = await supabase.functions.invoke('send-whatsapp-recommendations', {
             body: {
               recommendations: parsedResponse.recommendations,
               toNumber: from,
               fromNumber: twilioWhatsAppNumber,
-              introText: null // Don't send intro from background - already sent via TwiML
+              introText: null
             }
           });
           
           if (error) {
-            console.error('Error invoking send-whatsapp-recommendations:', error);
+            console.error('Error sending recommendations:', error);
           } else {
-            console.log('Send-whatsapp-recommendations invoked successfully:', data);
+            console.log('Recommendations sent successfully:', data);
           }
-        } catch (error) {
-          console.error('Failed to invoke send-whatsapp-recommendations:', error);
+        } else {
+          // Regular conversational response
+          console.log('Sending conversational response');
+          
+          // Store the assistant message
+          await supabase.from('whatsapp_conversations').insert({
+            phone_number: from,
+            role: 'assistant',
+            content: assistantMessage
+          });
+
+          // Send via Twilio API
+          const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+          const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+          const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
+          
+          await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              From: twilioWhatsAppNumber,
+              To: from,
+              Body: assistantMessage
+            })
+          });
         }
-      })());
+      } catch (error) {
+        console.error('Background processing error:', error);
+      }
+    })());
 
-      // Return intro message immediately via TwiML
-      const introTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${introMessage}</Message>
-</Response>`;
-
-      console.log('Returning intro TwiML response');
-      return new Response(introTwiml, {
-        headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
-        status: 200
-      });
-    }
-
-    // Regular conversational response (no recommendations)
-    console.log('Sending conversational response');
-    
-    // Store the assistant message
-    await supabase.from('whatsapp_conversations').insert({
-      phone_number: from,
-      role: 'assistant',
-      content: assistantMessage
-    });
-
+    // Return immediate acknowledgment
     const welcomeText = welcomeMessageSent ? "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
+    const immediateResponse = welcomeText + ackMessage;
     
     const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>${welcomeText}${assistantMessage}</Message>
+  <Message>${immediateResponse}</Message>
 </Response>`;
 
-    console.log('Sending TwiML response');
+    console.log('Returning immediate acknowledgment');
     
     return new Response(twimlResponse, {
       headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
