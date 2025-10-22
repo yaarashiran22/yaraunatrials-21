@@ -38,8 +38,9 @@ serve(async (req) => {
       interactionHistory = interactions || [];
     }
 
-    // Get current date for filtering
-    const today = new Date().toISOString().split('T')[0];
+    // Get current date in Buenos Aires timezone (UTC-3)
+    const buenosAiresDate = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
+    const today = buenosAiresDate.toISOString().split('T')[0];
     
     // Fetch relevant data from database with image URLs
     const [eventsResult, itemsResult, couponsResult] = await Promise.all([
