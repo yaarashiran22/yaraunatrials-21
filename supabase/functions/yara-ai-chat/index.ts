@@ -205,7 +205,12 @@ Date calculation rules (today is ${today}):
 - "this weekend" / "weekend" / "fin de semana" → calculate next Saturday and Sunday
 - Specific dates (e.g., "December 25", "25 de diciembre", "2025-12-25") → parse and use that exact date
 
-**IMPORTANT**: After calculating the target date, ONLY return events where the event date matches your calculated date or falls within the calculated date range. Filter events by date BEFORE selecting which ones to recommend.
+**CRITICAL - DATABASE EVENTS FIRST:**
+1. ALWAYS check the available database events for matches FIRST
+2. Filter database events by the target date
+3. Include ALL matching database events in your recommendations
+4. ONLY after including database events, add Perplexity results to fill remaining slots
+5. If there are 0 database matches, then use only Perplexity results
 
 **JSON-ONLY RULES - ENFORCE STRICTLY:**
 1. NO conversational text whatsoever
@@ -221,24 +226,25 @@ REQUIRED JSON FORMAT:
   "recommendations": [
     {
       "type": "event",
-      "id": "actual-event-id",
+      "id": "actual-event-id-from-database",
       "title": "Event Title",
       "description": "Location: [location]. Date: [date]. Time: [time]. Price: [price]. Brief description.",
       "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
-      "image_url": "full-image-url"
+      "image_url": "full-image-url-from-database"
     }
   ]
 }
 
 RECOMMENDATION RULES:
 - Return MAXIMUM 6 recommendations total (combining database + live recommendations)
-- Only include items with image_url
+- **CRITICAL**: ALWAYS prioritize and include matching database events FIRST
+- Only include items with image_url from the database
 - Keep description under 100 words
 - Include location, date, time, price in description
 - ALWAYS include "why_recommended" field with personalized explanation based on user's request, profile, and past interactions
-- Prioritize matches to user request, but if no perfect matches exist, return the most relevant/interesting events available
+- After including all matching database events, fill remaining slots with Perplexity results
 - Use user profile (budget, neighborhoods, interests) to further personalize
-- NEVER return empty recommendations array if events exist in the database
+- NEVER return empty recommendations array if events exist in the database that match the date
 
 CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.`;
 
@@ -299,6 +305,28 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
             jsonStr = message.substring(jsonStart, jsonEnd + 1);
           }
           parsed = JSON.parse(jsonStr);
+          
+          // CRITICAL: If AI didn't include database events but we have matching ones, add them manually
+          // This ensures database events are ALWAYS prioritized
+          const userQuery = lastUserMessage.toLowerCase();
+          const isForToday = /\b(tonight|today|esta noche|hoy)\b/i.test(userQuery);
+          
+          if (isForToday && contextData.events.length > 0) {
+            // Filter database events for today
+            const todayEvents = contextData.events.filter((e: any) => e.date === today);
+            
+            if (todayEvents.length > 0 && (!parsed.recommendations || parsed.recommendations.length === 0)) {
+              // AI didn't include any events, but we have matching database events - add them
+              parsed.recommendations = todayEvents.map((e: any) => ({
+                type: 'event',
+                id: e.id,
+                title: e.title,
+                description: `Location: ${e.location}. Date: ${e.date}. Time: ${e.time}. ${e.description || ''}`,
+                why_recommended: `This event is happening tonight in Buenos Aires and matches your request.`,
+                image_url: e.image_url
+              }));
+            }
+          }
           
           // Track database recommendations in background
           if (phoneNumber && parsed.recommendations && Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
