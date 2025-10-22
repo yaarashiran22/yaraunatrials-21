@@ -230,23 +230,74 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
 
 
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages
-        ],
-        max_tokens: 600, // Reduced for faster responses
-        temperature: 0.7, // Slightly lower for more consistent responses
-        stream: false
+    // Make OpenAI and Perplexity calls in parallel for faster response
+    const lastUserMessage = messages[messages.length - 1]?.content || '';
+    const isRecommendationRequest = /\b(recommend|suggest|show me|looking for|find|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|next week|esta noche|hoy|mañana|fin de semana|próxima semana|dance|music|live|party|art|food)\b/i.test(lastUserMessage);
+    
+    const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
+    const shouldCallPerplexity = isRecommendationRequest && perplexityApiKey && perplexityApiKey.trim() !== '';
+    
+    // Start both API calls in parallel
+    const [openAIResponse, perplexityResponse] = await Promise.all([
+      fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...messages
+          ],
+          max_tokens: 600,
+          temperature: 0.7,
+          stream: false
+        }),
       }),
-    });
+      // Only call Perplexity if needed, otherwise resolve immediately
+      shouldCallPerplexity ? (async () => {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+          
+          const response = await fetch('https://api.perplexity.ai/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${perplexityApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            signal: controller.signal,
+            body: JSON.stringify({
+              model: 'sonar',
+              messages: [
+                {
+                  role: 'system',
+                  content: `Return ONLY valid JSON array (2-3 events max). NO other text.
+Today: ${new Date().toISOString().split('T')[0]}
+Rules: 1) Find 2-3 events 2) Be flexible with genres 3) Only real events ≥ ${new Date().toISOString().split('T')[0]} 4) Return [] if nothing found 5) ONLY JSON
+Format: [{"title":"Name","description":"Location: X. Date: YYYY-MM-DD. Brief info.","why_recommended":"Why it matches.","source":"URL"}]`
+                },
+                {
+                  role: 'user',
+                  content: `Find 2-3 events in Buenos Aires for: ${lastUserMessage}. ONLY JSON.`
+                }
+              ],
+              temperature: 0.2,
+              max_tokens: 250
+            }),
+          });
+          clearTimeout(timeout);
+          return response;
+        } catch (e) {
+          console.log('Perplexity skipped:', e.name === 'AbortError' ? 'timeout' : e.message);
+          return null;
+        }
+      })() : Promise.resolve(null)
+    ]);
+
+    const response = openAIResponse;
 
     if (!response.ok) {
       const error = await response.text();
@@ -260,13 +311,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     
     console.log('AI response:', message);
     
-    // Get the last user message to understand their query
-    const lastUserMessage = messages[messages.length - 1]?.content || '';
-    
-    // Detect if user is asking for recommendations (check for keywords)
-    const isRecommendationRequest = /\b(recommend|suggest|show me|looking for|find|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|next week|esta noche|hoy|mañana|fin de semana|próxima semana|dance|music|live|party|art|food)\b/i.test(lastUserMessage);
-    
-    // Check if this is a recommendations response and enhance with Perplexity
+    // Check if this is a recommendations response and enhance with Perplexity (if available)
     if (message.includes('"recommendations"') || isRecommendationRequest) {
       let parsed: any = null;
       
@@ -293,126 +338,58 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
           }
         }
         
-        // Skip Perplexity if user is not asking for recommendations (conversational message)
-        if (!isRecommendationRequest) {
-          return;
-        }
-        
-        // Call Perplexity for real-time recommendations - make it optional for speed
-        const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
-        if (!perplexityApiKey || perplexityApiKey.trim() === '') {
-          return; // Skip Perplexity if no key
-        }
-        
-        console.log('Fetching real-time recommendations from Perplexity...');
-        
-        try {
-          // Set timeout for Perplexity call to ensure fast response
-          const perplexityController = new AbortController();
-          const perplexityTimeout = setTimeout(() => perplexityController.abort(), 5000); // 5 second timeout
-          
-          const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${perplexityApiKey}`,
-              'Content-Type': 'application/json',
-            },
-            signal: perplexityController.signal,
-            body: JSON.stringify({
-              model: 'sonar',
-              messages: [
-                {
-                  role: 'system',
-                  content: `Return ONLY a valid JSON array (2-3 events max). NO other text.
-
-Today: ${new Date().toISOString().split('T')[0]}
-
-Rules:
-1. Find 2-3 events max
-2. Be flexible with genres (afrobeats → afro music, world music, etc.)
-3. Only real events with dates ≥ ${new Date().toISOString().split('T')[0]}
-4. Return [] if nothing found
-5. ONLY JSON array format
-
-Format:
-[{"title":"Name","description":"Location: X. Date: YYYY-MM-DD. Time: X. Brief info.","why_recommended":"Why it matches.","source":"URL"}]`
-                },
-                {
-                  role: 'user',
-                  content: `Find 2-3 events in Buenos Aires for: ${lastUserMessage}. ONLY JSON.`
-                }
-              ],
-              temperature: 0.2,
-              max_tokens: 300 // Reduced for faster response
-            }),
-          });
-
-          clearTimeout(perplexityTimeout);
-
-          if (perplexityResponse.ok) {
+        // Process Perplexity response if available
+        if (perplexityResponse && perplexityResponse.ok) {
+          try {
             const perplexityData = await perplexityResponse.json();
             const perplexityText = perplexityData.choices?.[0]?.message?.content || '';
             
-            console.log('Perplexity raw response:', perplexityText.substring(0, 500));
+            console.log('Perplexity response received:', perplexityText.substring(0, 200));
             
-            // Parse Perplexity response
-            try {
-              let jsonText = perplexityText.trim()
-                .replace(/```json\n?/g, '')
-                .replace(/```\n?/g, '')
-                .replace(/^[^[{]*/, '') // Remove leading non-JSON text
-                .replace(/[^}\]]*$/, ''); // Remove trailing non-JSON text
+            let jsonText = perplexityText.trim()
+              .replace(/```json\n?/g, '')
+              .replace(/```\n?/g, '')
+              .replace(/^[^[{]*/, '')
+              .replace(/[^}\]]*$/, '');
+            
+            const arrayStart = jsonText.indexOf('[');
+            const arrayEnd = jsonText.lastIndexOf(']');
+            
+            if (arrayStart !== -1 && arrayEnd !== -1 && arrayEnd > arrayStart) {
+              jsonText = jsonText.substring(arrayStart, arrayEnd + 1);
               
-              const arrayStart = jsonText.indexOf('[');
-              const arrayEnd = jsonText.lastIndexOf(']');
+              let perplexityRecs = JSON.parse(jsonText);
+              if (!Array.isArray(perplexityRecs)) perplexityRecs = [perplexityRecs];
               
-              if (arrayStart !== -1 && arrayEnd !== -1 && arrayEnd > arrayStart) {
-                jsonText = jsonText.substring(arrayStart, arrayEnd + 1);
+              const liveRecs = perplexityRecs.slice(0, 3).map((rec: any, idx: number) => ({
+                type: 'live',
+                id: `perplexity-live-${idx}`,
+                title: rec.title || 'Event',
+                description: `${rec.description || ''}\n\n🔗 ${rec.source || ''}`.trim(),
+                why_recommended: rec.why_recommended || "Live recommendation.",
+                image_url: null
+              }));
+              
+              const dbRecs = parsed?.recommendations ? parsed.recommendations.slice(0, 3) : [];
+              
+              if (liveRecs.length > 0 || dbRecs.length > 0) {
+                const combinedRecommendations = [...dbRecs, ...liveRecs].slice(0, 6);
                 
-                let perplexityRecs = JSON.parse(jsonText);
-                
-                if (!Array.isArray(perplexityRecs)) {
-                  perplexityRecs = [perplexityRecs];
+                let updatedIntro = 'Here are some recommendations:';
+                if (dbRecs.length > 0 && liveRecs.length > 0) {
+                  updatedIntro = `Here are ${combinedRecommendations.length} recommendations (${dbRecs.length} community + ${liveRecs.length} live):`;
                 }
                 
-                // Convert to our format
-                const liveRecs = perplexityRecs.slice(0, 3).map((rec: any, idx: number) => ({
-                  type: 'live',
-                  id: `perplexity-live-${idx}`,
-                  title: rec.title || 'Event',
-                  description: `${rec.description || ''}\n\n🔗 ${rec.source || ''}`.trim(),
-                  why_recommended: rec.why_recommended || "Live recommendation from Buenos Aires.",
-                  image_url: null
-                }));
+                message = JSON.stringify({
+                  intro_message: updatedIntro,
+                  recommendations: combinedRecommendations
+                });
                 
-                const dbRecs = parsed?.recommendations ? parsed.recommendations.slice(0, 3) : [];
-                
-                if (liveRecs.length > 0 || dbRecs.length > 0) {
-                  const combinedRecommendations = [...dbRecs, ...liveRecs].slice(0, 6);
-                  
-                  let updatedIntro = 'Here are some recommendations:';
-                  if (dbRecs.length > 0 && liveRecs.length > 0) {
-                    updatedIntro = `Here are ${combinedRecommendations.length} recommendations (${dbRecs.length} community + ${liveRecs.length} live):`;
-                  }
-                  
-                  message = JSON.stringify({
-                    intro_message: updatedIntro,
-                    recommendations: combinedRecommendations
-                  });
-                  
-                  console.log(`Combined ${dbRecs.length} database + ${liveRecs.length} Perplexity recommendations`);
-                }
+                console.log(`Combined ${dbRecs.length} db + ${liveRecs.length} Perplexity recs`);
               }
-            } catch (e) {
-              console.log('Perplexity parse error (non-blocking):', e.message);
             }
-          }
-        } catch (e) {
-          // Don't fail the whole request if Perplexity fails - just log and continue
-          if (e.name === 'AbortError') {
-            console.log('Perplexity timeout - skipping for faster response');
-          } else {
-            console.log('Perplexity error (non-blocking):', e.message);
+          } catch (e) {
+            console.log('Perplexity parse error:', e.message);
           }
         }
       } catch (e) {
