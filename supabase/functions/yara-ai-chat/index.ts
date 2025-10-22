@@ -41,11 +41,11 @@ serve(async (req) => {
     // Get current date for filtering
     const today = new Date().toISOString().split('T')[0];
     
-    // Fetch relevant data from database with image URLs
+    // Fetch relevant data from database with image URLs - OPTIMIZED: reduced limits for faster response
     const [eventsResult, itemsResult, couponsResult] = await Promise.all([
-      supabase.from('events').select('id, title, description, date, time, location, price, mood, music_type, venue_size, image_url').gte('date', today).order('date', { ascending: true }).limit(50),
-      supabase.from('items').select('id, title, description, category, location, price, image_url').eq('status', 'active').order('created_at', { ascending: false }).limit(50),
-      supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood, valid_until, image_url').eq('is_active', true).order('created_at', { ascending: false }).limit(50)
+      supabase.from('events').select('id, title, description, date, time, location, price, mood, music_type, venue_size, image_url').gte('date', today).order('date', { ascending: true }).limit(20),
+      supabase.from('items').select('id, title, description, category, location, price, image_url').eq('status', 'active').order('created_at', { ascending: false }).limit(20),
+      supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood, valid_until, image_url').eq('is_active', true).order('created_at', { ascending: false }).limit(20)
     ]);
 
     const events = eventsResult.data || [];
@@ -242,9 +242,9 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
           { role: 'system', content: systemPrompt },
           ...messages
         ],
-        max_tokens: 800,
-        temperature: 0.8,
-        stream: false  // Disable streaming to get structured JSON response
+        max_tokens: 600, // Reduced for faster responses
+        temperature: 0.7, // Slightly lower for more consistent responses
+        stream: false
       }),
     });
 
@@ -293,125 +293,106 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
           }
         }
         
-        // ALWAYS call Perplexity for real-time recommendations
+        // Skip Perplexity if user is not asking for recommendations (conversational message)
+        if (!isRecommendationRequest) {
+          return;
+        }
+        
+        // Call Perplexity for real-time recommendations - make it optional for speed
         const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
-        if (perplexityApiKey && perplexityApiKey.trim() !== '') {
-          console.log('Fetching real-time recommendations from Perplexity...');
+        if (!perplexityApiKey || perplexityApiKey.trim() === '') {
+          return; // Skip Perplexity if no key
+        }
+        
+        console.log('Fetching real-time recommendations from Perplexity...');
+        
+        try {
+          // Set timeout for Perplexity call to ensure fast response
+          const perplexityController = new AbortController();
+          const perplexityTimeout = setTimeout(() => perplexityController.abort(), 5000); // 5 second timeout
           
-          try {
-            const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${perplexityApiKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                model: 'sonar',
-                messages: [
-                  {
-                    role: 'system',
-                    content: `You MUST return ONLY a valid JSON array. NO conversational text. NO explanations.
+          const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${perplexityApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            signal: perplexityController.signal,
+            body: JSON.stringify({
+              model: 'sonar',
+              messages: [
+                {
+                  role: 'system',
+                  content: `Return ONLY a valid JSON array (2-3 events max). NO other text.
 
-Today's date: ${new Date().toISOString().split('T')[0]} (YEAR: ${new Date().getFullYear()}, MONTH: ${new Date().getMonth() + 1}, DAY: ${new Date().getDate()})
+Today: ${new Date().toISOString().split('T')[0]}
 
-CRITICAL RULES:
-1. ALWAYS try to find 2-3 recommendations - be creative and flexible with matching
-2. If no EXACT matches exist, recommend SIMILAR/RELATED events (e.g., "afrobeats" → afro-style, african music, world music, reggaeton with afro vibes)
-3. Only return [] if there are absolutely NO relevant events at all in Buenos Aires
-4. DO NOT return venues without specific dates
-5. DO NOT return past events (anything before ${new Date().toISOString().split('T')[0]})
-6. Match user's date/location requests, but be flexible with genre/vibe
-7. Return ONLY valid JSON - start with [ and end with ]
+Rules:
+1. Find 2-3 events max
+2. Be flexible with genres (afrobeats → afro music, world music, etc.)
+3. Only real events with dates ≥ ${new Date().toISOString().split('T')[0]}
+4. Return [] if nothing found
+5. ONLY JSON array format
 
-FLEXIBILITY EXAMPLES:
-- "afrobeats" → african music, afro-style events, world music, reggaeton, dancehall, tropical vibes, ANY events with african/afro themes
-- "jazz" → live music, acoustic, blues, soul
-- "techno" → electronic, house, underground, dance
-- "indie" → alternative, rock, live bands, underground venues
-
-Date calculations:
-- "tonight"/"today"/"esta noche"/"hoy" = ${new Date().toISOString().split('T')[0]}
-- "tomorrow"/"mañana" = calculate next day from ${new Date().toISOString().split('T')[0]}
-- "this month" = any date in current month ${new Date().getMonth() + 1}/${new Date().getFullYear()}
-- Specific neighborhood = ONLY events in that exact neighborhood
-
-JSON format (write descriptions casual, like texting a friend):
-[
-  {
-    "title": "Event Name",
-    "description": "Location: [venue]. Date: [YYYY-MM-DD]. Time: [time]. 1-2 casual sentences about why it's cool.",
-    "why_recommended": "Direct 1-2 sentences on why this matches their vibe (mention if it's related/similar to their request).",
-    "source": "URL"
-  }
-]
-
-RESPOND WITH ONLY JSON. NO OTHER TEXT.`
-                  },
-                  {
-                    role: 'user',
-                    content: `Find 2-3 specific events in Buenos Aires for: ${lastUserMessage}. If exact matches don't exist, find similar/related events. Return ONLY JSON array, no other text.`
-                  }
-                ],
-                temperature: 0.2,
-                max_tokens: 400
-              }),
-            });
-
-            if (perplexityResponse.ok) {
-              const perplexityData = await perplexityResponse.json();
-              const perplexityText = perplexityData.choices?.[0]?.message?.content || '';
-              
-              console.log('Perplexity raw response:', perplexityText);
-              
-              // Try to parse Perplexity's response
-              try {
-                // Extract JSON from response - handle cases where there's extra text
-                let jsonText = perplexityText.trim();
-                
-                // Remove markdown code blocks if present
-                jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-                
-                // Try to find JSON array in the text
-                const arrayStart = jsonText.indexOf('[');
-                const arrayEnd = jsonText.lastIndexOf(']');
-                
-                if (arrayStart !== -1 && arrayEnd !== -1 && arrayEnd > arrayStart) {
-                  jsonText = jsonText.substring(arrayStart, arrayEnd + 1);
+Format:
+[{"title":"Name","description":"Location: X. Date: YYYY-MM-DD. Time: X. Brief info.","why_recommended":"Why it matches.","source":"URL"}]`
+                },
+                {
+                  role: 'user',
+                  content: `Find 2-3 events in Buenos Aires for: ${lastUserMessage}. ONLY JSON.`
                 }
+              ],
+              temperature: 0.2,
+              max_tokens: 300 // Reduced for faster response
+            }),
+          });
+
+          clearTimeout(perplexityTimeout);
+
+          if (perplexityResponse.ok) {
+            const perplexityData = await perplexityResponse.json();
+            const perplexityText = perplexityData.choices?.[0]?.message?.content || '';
+            
+            console.log('Perplexity raw response:', perplexityText.substring(0, 500));
+            
+            // Parse Perplexity response
+            try {
+              let jsonText = perplexityText.trim()
+                .replace(/```json\n?/g, '')
+                .replace(/```\n?/g, '')
+                .replace(/^[^[{]*/, '') // Remove leading non-JSON text
+                .replace(/[^}\]]*$/, ''); // Remove trailing non-JSON text
+              
+              const arrayStart = jsonText.indexOf('[');
+              const arrayEnd = jsonText.lastIndexOf(']');
+              
+              if (arrayStart !== -1 && arrayEnd !== -1 && arrayEnd > arrayStart) {
+                jsonText = jsonText.substring(arrayStart, arrayEnd + 1);
                 
                 let perplexityRecs = JSON.parse(jsonText);
                 
-                // Ensure it's an array
                 if (!Array.isArray(perplexityRecs)) {
                   perplexityRecs = [perplexityRecs];
                 }
                 
-                // Convert Perplexity recommendations to our format
-                const liveRecs = perplexityRecs.map((rec: any, idx: number) => ({
+                // Convert to our format
+                const liveRecs = perplexityRecs.slice(0, 3).map((rec: any, idx: number) => ({
                   type: 'live',
                   id: `perplexity-live-${idx}`,
-                  title: rec.title,
-                  description: `${rec.description}\n\n🔗 ${rec.source}`,
-                  why_recommended: rec.why_recommended || "This is a current, live recommendation happening in Buenos Aires.",
+                  title: rec.title || 'Event',
+                  description: `${rec.description || ''}\n\n🔗 ${rec.source || ''}`.trim(),
+                  why_recommended: rec.why_recommended || "Live recommendation from Buenos Aires.",
                   image_url: null
                 }));
                 
-                // Get database recommendations (outside if block to avoid scope error)
-                const dbRecs = parsed?.recommendations ? parsed.recommendations.slice(0, Math.min(3, 6 - liveRecs.length)) : [];
+                const dbRecs = parsed?.recommendations ? parsed.recommendations.slice(0, 3) : [];
                 
                 if (liveRecs.length > 0 || dbRecs.length > 0) {
-                  // Combine database recommendations with Perplexity recommendations (max 6 total)
-                  const finalLiveRecs = liveRecs.slice(0, 6 - dbRecs.length);
-                  const combinedRecommendations = [...dbRecs, ...finalLiveRecs].slice(0, 6);
+                  const combinedRecommendations = [...dbRecs, ...liveRecs].slice(0, 6);
                   
-                  // Update intro message
-                  let updatedIntro = 'Here are some recommendations for you:';
-                  if (dbRecs.length > 0 && finalLiveRecs.length > 0) {
-                    updatedIntro = `Here are ${combinedRecommendations.length} recommendations (${dbRecs.length} from our community + ${finalLiveRecs.length} live):`;
-                  } else if (dbRecs.length > 0) {
-                    updatedIntro = `Here are ${dbRecs.length} recommendations from our community:`;
-                  } else if (finalLiveRecs.length > 0) {
-                    updatedIntro = `Here are ${finalLiveRecs.length} live recommendations for you:`;
+                  let updatedIntro = 'Here are some recommendations:';
+                  if (dbRecs.length > 0 && liveRecs.length > 0) {
+                    updatedIntro = `Here are ${combinedRecommendations.length} recommendations (${dbRecs.length} community + ${liveRecs.length} live):`;
                   }
                   
                   message = JSON.stringify({
@@ -420,18 +401,18 @@ RESPOND WITH ONLY JSON. NO OTHER TEXT.`
                   });
                   
                   console.log(`Combined ${dbRecs.length} database + ${liveRecs.length} Perplexity recommendations`);
-                } else {
-                  console.log('No recommendations found from either database or Perplexity');
                 }
-              } catch (e) {
-                console.log('Could not parse Perplexity response as JSON:', e);
               }
-            } else {
-              const errorText = await perplexityResponse.text();
-              console.log('Perplexity API error:', perplexityResponse.status, errorText);
+            } catch (e) {
+              console.log('Perplexity parse error (non-blocking):', e.message);
             }
-          } catch (e) {
-            console.log('Error calling Perplexity:', e);
+          }
+        } catch (e) {
+          // Don't fail the whole request if Perplexity fails - just log and continue
+          if (e.name === 'AbortError') {
+            console.log('Perplexity timeout - skipping for faster response');
+          } else {
+            console.log('Perplexity error (non-blocking):', e.message);
           }
         }
       } catch (e) {
