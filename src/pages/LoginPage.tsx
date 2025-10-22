@@ -9,6 +9,8 @@ import { Paperclip, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import InterestsSelector from "@/components/InterestsSelector";
 import { useQueryClient } from "@tanstack/react-query";
+import { useLanguage } from "@/contexts/LanguageContext";
+import LanguageSelector from "@/components/LanguageSelector";
 
 const LoginPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -21,6 +23,7 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useLanguage();
 
   // Sign up form data
   const [formData, setFormData] = useState({
@@ -108,8 +111,8 @@ const LoginPage = () => {
     // Basic validation for all profiles
     if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim()) {
       toast({
-        title: "Error",
-        description: "Please fill in all required fields",
+        title: t('register.error'),
+        description: t('login.fillAllFields'),
         variant: "destructive",
       });
       return;
@@ -117,8 +120,8 @@ const LoginPage = () => {
 
     if (formData.password !== formData.confirmPassword) {
       toast({
-        title: "Error",
-        description: "Passwords do not match",
+        title: t('register.error'),
+        description: t('login.passwordsDoNotMatch'),
         variant: "destructive",
       });
       return;
@@ -128,8 +131,8 @@ const LoginPage = () => {
     if (formData.profileType === 'personal') {
       if (!formData.age || !formData.origin) {
         toast({
-          title: "Error",
-          description: "Please fill in your age and origin",
+          title: t('register.error'),
+          description: t('login.fillAgeOrigin'),
           variant: "destructive",
         });
         return;
@@ -140,8 +143,8 @@ const LoginPage = () => {
     if (formData.profileType === 'business') {
       if (!formData.whatsappNumber.trim()) {
         toast({
-          title: "Error",
-          description: "Business profiles must provide a WhatsApp number",
+          title: t('register.error'),
+          description: t('login.businessWhatsAppRequired'),
           variant: "destructive",
         });
         return;
@@ -149,8 +152,8 @@ const LoginPage = () => {
 
       if (!formData.targetAgeRange) {
         toast({
-          title: "Error",
-          description: "Business profiles must specify target audience age range",
+          title: t('register.error'),
+          description: t('login.businessTargetAgeRequired'),
           variant: "destructive",
         });
         return;
@@ -166,8 +169,8 @@ const LoginPage = () => {
       if (signUpError) {
         console.error('Sign up error:', signUpError);
         toast({
-          title: "Registration Error",
-          description: signUpError.message || "Unable to register",
+          title: t('login.registrationError'),
+          description: signUpError.message || t('login.unableToRegister'),
           variant: "destructive",
         });
         return;
@@ -215,8 +218,8 @@ const LoginPage = () => {
       }
 
       toast({
-        title: "Registration completed successfully!",
-        description: "Your profile has been created and will appear on the home page",
+        title: t('login.registrationSuccess'),
+        description: t('login.profileCreated'),
         variant: "default",
       });
 
@@ -229,8 +232,8 @@ const LoginPage = () => {
     } catch (error) {
       console.error('Registration error:', error);
       toast({
-        title: "Error",
-        description: "An unexpected error occurred",
+        title: t('register.error'),
+        description: t('login.unexpectedError'),
         variant: "destructive",
       });
     } finally {
@@ -431,8 +434,9 @@ const LoginPage = () => {
   // Sign up form
   return (
     <div className="min-h-screen bg-black pb-20">
-      {/* Header with X button */}
-      <div className="flex justify-end items-center pt-4 px-4">
+      {/* Header with X button and Language Selector */}
+      <div className="flex justify-between items-center pt-4 px-4">
+        <LanguageSelector />
         <Button 
           variant="ghost" 
           size="sm"
@@ -452,9 +456,9 @@ const LoginPage = () => {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text'
-              }}>Sign Up</h1>
+              }}>{t('login.signUp')}</h1>
           <p className="text-white/90 text-base max-w-md mx-auto px-4 font-light leading-relaxed tracking-wide" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" }}>
-            Welcome to Yara AI- your personal concierge for finding indie events, exclusive deals and bohemian spots in your city.
+            {t('login.welcomeYaraAI')}
           </p>
         </div>
 
@@ -464,7 +468,7 @@ const LoginPage = () => {
             <div className="space-y-4">
               <div>
                 <Input 
-                  placeholder="Name"
+                  placeholder={t('login.name')}
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
@@ -473,7 +477,7 @@ const LoginPage = () => {
               
               <div>
                 <Input 
-                  placeholder="Email"
+                  placeholder={t('login.email')}
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
@@ -483,17 +487,17 @@ const LoginPage = () => {
               
               <div>
                 <Input 
-                  placeholder="Password"
+                  placeholder={t('login.password')}
                   type="password"
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
                 />
               </div>
-
+              
               <div>
                 <Input 
-                  placeholder="Confirm Password"
+                  placeholder={t('login.confirmPassword')}
                   type="password"
                   value={formData.confirmPassword}
                   onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
@@ -503,7 +507,7 @@ const LoginPage = () => {
               
               <div>
                 <Input 
-                  placeholder="Neighborhood"
+                  placeholder={t('login.neighborhood')}
                   value={formData.neighborhood}
                   onChange={(e) => handleInputChange('neighborhood', e.target.value)}
                   className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
@@ -511,7 +515,7 @@ const LoginPage = () => {
               </div>
 
               <div className="space-y-3">
-                <label className="text-white text-sm font-medium">Profile Type</label>
+                <label className="text-white text-sm font-medium">{t('login.profileType')}</label>
                 <div className="flex gap-4">
                   <button
                     type="button"
@@ -522,7 +526,7 @@ const LoginPage = () => {
                         : 'border-white/20 bg-white/5 text-white/60'
                     }`}
                   >
-                    Personal
+                    {t('login.personal')}
                   </button>
                   <button
                     type="button"
@@ -533,7 +537,7 @@ const LoginPage = () => {
                         : 'border-white/20 bg-white/5 text-white/60'
                     }`}
                   >
-                    Business
+                    {t('login.business')}
                   </button>
                 </div>
               </div>
@@ -543,7 +547,7 @@ const LoginPage = () => {
                   <div>
                     <Input 
                       type="number"
-                      placeholder="Age"
+                      placeholder={t('login.age')}
                       value={formData.age}
                       onChange={(e) => handleInputChange('age', e.target.value)}
                       className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
@@ -558,7 +562,7 @@ const LoginPage = () => {
                       className="w-full h-12 text-left text-black bg-white border border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg px-3 py-2"
                       required
                     >
-                      <option value="">Where I'm from</option>
+                      <option value="">{t('login.origin')}</option>
                       <option value="Argentina">Argentina</option>
                       <option value="Abroad">Abroad</option>
                     </select>
@@ -566,7 +570,7 @@ const LoginPage = () => {
 
                   <div>
                     <textarea
-                      placeholder="Tell us about your interests and what you like to do when going out (music, food, activities, etc.)"
+                      placeholder={t('login.personalDescription')}
                       value={formData.personalDescription}
                       onChange={(e) => handleInputChange('personalDescription', e.target.value)}
                       className="w-full min-h-24 text-left text-black bg-white border border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg px-3 py-2 placeholder:text-gray-500 resize-none"
@@ -579,24 +583,13 @@ const LoginPage = () => {
               {formData.profileType === 'business' && (
                 <>
                   <div>
-                    <Input 
-                      type="tel"
-                      placeholder="WhatsApp Number (for internal use only)"
-                      value={formData.whatsappNumber}
-                      onChange={(e) => handleInputChange('whatsappNumber', e.target.value)}
-                      className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
-                      required
-                    />
-                  </div>
-
-                  <div>
                     <select
                       value={formData.targetAgeRange}
                       onChange={(e) => handleInputChange('targetAgeRange', e.target.value)}
                       className="w-full h-12 text-left text-black bg-white border border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg px-3 py-2"
                       required
                     >
-                      <option value="">Target Audience Age Range</option>
+                      <option value="">{t('login.targetAgeRange')}</option>
                       <option value="18-24">18-24</option>
                       <option value="25-30">25-30</option>
                       <option value="30-40">30-40</option>
@@ -606,7 +599,7 @@ const LoginPage = () => {
 
                   <div>
                     <textarea
-                      placeholder="Describe your target audience (what type of people, interests, etc.)"
+                      placeholder={t('login.targetAudienceDescription')}
                       value={formData.targetAudienceDescription}
                       onChange={(e) => handleInputChange('targetAudienceDescription', e.target.value)}
                       className="w-full min-h-24 text-left text-black bg-white border border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg px-3 py-2 placeholder:text-gray-500 resize-none"
@@ -616,7 +609,7 @@ const LoginPage = () => {
 
                   <div>
                     <Input 
-                      placeholder="Instagram (link to profile)"
+                      placeholder={t('login.instagram')}
                       value={formData.instagram}
                       onChange={(e) => handleInputChange('instagram', e.target.value)}
                       className="w-full h-12 text-left text-black bg-white border-white/20 focus:border-coral focus:ring-coral/20 rounded-lg placeholder:text-gray-500"
@@ -650,8 +643,8 @@ const LoginPage = () => {
                   </div>
                 </label>
                 <div>
-                  <span className="text-white font-medium">Profile Picture</span>
-                  <p className="text-sm text-muted-foreground">Click to upload your profile photo</p>
+                  <span className="text-white font-medium">{t('login.uploadProfilePicture')}</span>
+                  <p className="text-sm text-muted-foreground">{t('register.uploadPhoto')}</p>
                 </div>
               </div>
             </div>
@@ -662,7 +655,7 @@ const LoginPage = () => {
                 disabled={isLoading}
                 className="w-full h-12 text-white text-lg font-medium rounded-lg !bg-gradient-to-r !from-[#E91E63] !to-[#9C27B0] hover:!from-[#D81B60] hover:!to-[#8E24AA] shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
               >
-                {isLoading ? 'Registering...' : 'Sign Up'}
+                {isLoading ? t('login.registering') : t('login.signUp')}
               </Button>
             </div>
 
@@ -679,7 +672,7 @@ const LoginPage = () => {
                 backgroundClip: 'text'
               }}
             >
-                Already have an account? Login
+                {t('login.haveAccount')}
               </button>
             </div>
           </div>
