@@ -297,16 +297,14 @@ Format: [{"title":"Name","description":"Location: X. Date: YYYY-MM-DD. Brief inf
       })() : Promise.resolve(null)
     ]);
 
-    const response = openAIResponse;
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('OpenAI API error:', response.status, error);
-      throw new Error(`OpenAI API error: ${response.status}`);
+    if (!openAIResponse || !openAIResponse.ok) {
+      const error = openAIResponse ? await openAIResponse.text() : 'No response from OpenAI';
+      console.error('OpenAI API error:', openAIResponse?.status || 'unknown', error);
+      throw new Error(`OpenAI API error: ${openAIResponse?.status || 'unknown'}`);
     }
 
     // Get the complete message
-    const data = await response.json();
+    const data = await openAIResponse.json();
     let message = data.choices?.[0]?.message?.content || '';
     
     console.log('AI response:', message);
