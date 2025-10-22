@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import InterestsSelector from "@/components/InterestsSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
+import LanguageSelector from "@/components/LanguageSelector";
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -151,8 +152,9 @@ const RegisterPage = () => {
               {/* Empty - title moved to page content */}
             </div>
             
-            {/* Logo - Right side */}
+            {/* Logo and Language Selector - Right side */}
             <div className="flex items-center gap-2">
+              <LanguageSelector />
               <div className="text-center">
                 <div className="flex items-center justify-center">
                   <div className="text-3xl font-black font-nunito" style={{ color: '#BB31E9', textShadow: '0 0 2px rgba(187, 49, 233, 0.5)' }}>una</div>
