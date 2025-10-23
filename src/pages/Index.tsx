@@ -220,7 +220,7 @@ const Index = () => {
   const filteredEvents = useMemo(() => {
     if (!realEvents.length) return [];
     
-    return realEvents.filter(event => {
+    const filtered = realEvents.filter(event => {
       // Search filter - case insensitive
       if (eventFilters.search.trim()) {
         const query = eventFilters.search.toLowerCase().trim();
@@ -310,6 +310,31 @@ const Index = () => {
       }
 
       return true;
+    });
+
+    // Sort events by date - soonest first
+    return filtered.sort((a, b) => {
+      const dateA = a.date?.toLowerCase().trim();
+      const dateB = b.date?.toLowerCase().trim();
+      
+      // Handle recurring events (e.g., "every monday") - put them at the end
+      const isRecurringA = dateA?.startsWith('every ');
+      const isRecurringB = dateB?.startsWith('every ');
+      
+      if (isRecurringA && !isRecurringB) return 1;
+      if (!isRecurringA && isRecurringB) return -1;
+      if (isRecurringA && isRecurringB) return 0; // Keep recurring events in their original order
+      
+      // Parse dates for regular events
+      const parsedDateA = dateA ? new Date(dateA) : null;
+      const parsedDateB = dateB ? new Date(dateB) : null;
+      
+      // Handle invalid dates - put them at the end
+      if (!parsedDateA || isNaN(parsedDateA.getTime())) return 1;
+      if (!parsedDateB || isNaN(parsedDateB.getTime())) return -1;
+      
+      // Sort by date ascending (soonest first)
+      return parsedDateA.getTime() - parsedDateB.getTime();
     });
   }, [realEvents, eventFilters]);
 
