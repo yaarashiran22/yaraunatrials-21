@@ -1,6 +1,16 @@
 export const getRelativeDay = (dateString?: string | null): string => {
   if (!dateString) return 'Date TBD';
   
+  // Check if it's a recurring event (e.g., "every monday", "Every Tuesday")
+  const lowerDateString = dateString.toLowerCase().trim();
+  if (lowerDateString.startsWith('every ')) {
+    // Capitalize first letter of each word for display
+    return dateString
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+  
   const targetDate = new Date(dateString);
   const today = new Date();
   const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
