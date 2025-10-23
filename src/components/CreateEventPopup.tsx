@@ -40,6 +40,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
   const [musicType, setMusicType] = useState("");
   const [venueSize, setVenueSize] = useState("");
   const [priceRange, setPriceRange] = useState("");
+  const [venueName, setVenueName] = useState("");
 
   // Mood filters from home page
   const moodFilters = [
@@ -112,6 +113,15 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
       toast({
         title: t('createEvent.error'),
         description: t('createEvent.enterLocationError'),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!venueName.trim()) {
+      toast({
+        title: t('createEvent.error'),
+        description: t('createEvent.enterVenueNameError'),
         variant: "destructive",
       });
       return;
@@ -190,7 +200,8 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
           target_audience: targetAudience.trim() || null,
           music_type: musicType.trim() || null,
           venue_size: venueSize || null,
-          price_range: priceRange || null
+          price_range: priceRange || null,
+          venue_name: venueName.trim()
         });
 
       if (error) throw error;
@@ -217,6 +228,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
       setMusicType("");
       setVenueSize("");
       setPriceRange("");
+      setVenueName("");
 
       // Call callback to refresh data
       if (onEventCreated) {
@@ -332,6 +344,17 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Venue Name and Type Field */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.venueName')}*</label>
+            <Input 
+              value={venueName}
+              onChange={(e) => setVenueName(e.target.value)}
+              placeholder={t('createEvent.venueNamePlaceholder')}
+              className="w-full h-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
+            />
           </div>
 
           {/* Price Field */}
