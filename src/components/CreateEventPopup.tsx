@@ -327,7 +327,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsRecurring(false)}
-                className={`flex-1 rounded-full ${!isRecurring ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
+                className={`flex-1 rounded-full ${!isRecurring ? 'bg-primary text-primary-foreground' : 'bg-muted text-purple-600'}`}
               >
                 {t('createEvent.specificDate')}
               </Button>
@@ -336,7 +336,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsRecurring(true)}
-                className={`flex-1 rounded-full ${isRecurring ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
+                className={`flex-1 rounded-full ${isRecurring ? 'bg-primary text-primary-foreground' : 'bg-muted text-purple-600'}`}
               >
                 {t('createEvent.recurringEvent')}
               </Button>
