@@ -43,6 +43,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
   const [venueSize, setVenueSize] = useState("");
   const [priceRange, setPriceRange] = useState("");
   const [venueName, setVenueName] = useState("");
+  const [address, setAddress] = useState("");
 
   // Mood filters from home page
   const moodFilters = [
@@ -61,7 +62,8 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
     "Palermo Hollywood", 
     "Recoleta",
     "San Telmo",
-    "Villa Crespo"
+    "Villa Crespo",
+    "Other"
   ];
 
   if (!isOpen) return null;
@@ -221,7 +223,8 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
           music_type: musicType.trim() || null,
           venue_size: venueSize || null,
           price_range: priceRange || null,
-          venue_name: venueName.trim()
+          venue_name: venueName.trim(),
+          address: address.trim() || null
         });
 
       if (error) throw error;
@@ -251,6 +254,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
       setVenueSize("");
       setPriceRange("");
       setVenueName("");
+      setAddress("");
 
       // Call callback to refresh data
       if (onEventCreated) {
@@ -418,6 +422,17 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
               value={venueName}
               onChange={(e) => setVenueName(e.target.value)}
               placeholder={t('createEvent.venueNamePlaceholder')}
+              className="w-full h-12 text-left text-black placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-full"
+            />
+          </div>
+
+          {/* Address Field */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.address')}</label>
+            <Input 
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder={t('createEvent.addressPlaceholder')}
               className="w-full h-12 text-left text-black placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-full"
             />
           </div>
