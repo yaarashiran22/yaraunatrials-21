@@ -221,6 +221,20 @@ const Index = () => {
     if (!realEvents.length) return [];
     
     const filtered = realEvents.filter(event => {
+      // Filter out past events (but keep recurring events like "every monday")
+      const dateStr = event.date?.toLowerCase().trim();
+      const isRecurring = dateStr?.startsWith('every ');
+      
+      if (!isRecurring && event.date) {
+        const eventDate = new Date(event.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        eventDate.setHours(0, 0, 0, 0);
+        
+        // Exclude events that have already passed
+        if (eventDate < today) return false;
+      }
+
       // Search filter - case insensitive
       if (eventFilters.search.trim()) {
         const query = eventFilters.search.toLowerCase().trim();
