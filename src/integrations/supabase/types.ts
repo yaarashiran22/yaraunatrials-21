@@ -134,6 +134,7 @@ export type Database = {
       }
       events: {
         Row: {
+          address: string | null
           created_at: string | null
           date: string | null
           description: string | null
@@ -157,6 +158,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          address?: string | null
           created_at?: string | null
           date?: string | null
           description?: string | null
@@ -180,6 +182,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          address?: string | null
           created_at?: string | null
           date?: string | null
           description?: string | null
