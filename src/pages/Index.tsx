@@ -375,23 +375,6 @@ const Index = () => {
         {/* AI Assistant Toggle Bar */}
         <AIAssistantButton variant="toggle" />
         
-        {/* Business Profiles Section - Only show if there are business profiles */}
-        {businessProfiles && businessProfiles.length > 0 && (
-          <section className="-mb-1 lg:-mb-1">
-            <div className="px-1 lg:px-5 mb-3">
-              <h3 className="title-section-white">businesses</h3>
-            </div>
-            <div className="relative">
-              <div className="flex overflow-x-auto gap-6 pb-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40" dir="ltr" style={{
-              scrollBehavior: 'smooth'
-            }}>
-                {loading ? <FastLoadingSkeleton type="profiles" /> : businessProfiles.map((profile, index) => <OptimizedProfileCard key={profile.id} id={profile.id} image={profile.image} name={profile.name} className={`flex-shrink-0 min-w-[90px] animate-fade-in`} style={{
-                animationDelay: `${Math.min(index * 0.03, 0.3)}s`
-              } as React.CSSProperties} isCurrentUser={false} />)}
-              </div>
-            </div>
-          </section>
-        )}
 
 
         {/* Events Section - Vertical Carousel */}
