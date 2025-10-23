@@ -217,17 +217,23 @@ REQUIRED JSON FORMAT:
   ]
 }
 
-RECOMMENDATION RULES:
+RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
+1. **Search for keywords in event title and description first** - if user asks for "creative workshops", look for events with "creative", "workshop", "art", "craft" in title or description
+2. **Check mood field** - if event has mood field, use it for matching (e.g., "Creative" mood matches creative requests)
+3. **Use semantic matching** - "creative workshops" should match: art workshops, painting classes, craft events, DIY sessions, creative meetups
+4. **Don't force matches** - if user asks for "jazz concerts" and there are no jazz/music events, DON'T recommend unrelated events. Return empty array or only 1-2 loosely related options
+5. **Exact keyword matches win** - if an event title contains the exact words the user used, prioritize it
+
+RECOMMENDATION OUTPUT RULES:
 - Return MAXIMUM 6 recommendations total (combining database + live recommendations)
 - Only include items with image_url
 - Keep description under 120 words (increased to accommodate new fields)
 - ALWAYS include in description: location, date, time, price
 - ALSO include if available: address, music_type, venue_size, external_link (Instagram)
 - Format external_link as "Instagram: [link]" in the description
-- ALWAYS include "why_recommended" field with personalized explanation based on user's request, profile, and past interactions
-- Prioritize matches to user request, but if no perfect matches exist, return the most relevant/interesting events available
+- ALWAYS include "why_recommended" field explaining specifically WHY this event matches their request
 - Use user profile (budget, neighborhoods, interests) to further personalize
-- NEVER return empty recommendations array if events exist in the database
+- If no relevant database events exist, it's OK to return fewer recommendations or rely on Perplexity live results
 
 CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.`;
 
