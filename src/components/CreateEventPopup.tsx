@@ -35,7 +35,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'image' | 'video' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedMood, setSelectedMood] = useState<string>("");
+  const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [targetAudience, setTargetAudience] = useState("");
   const [musicType, setMusicType] = useState("");
   const [venueSize, setVenueSize] = useState("");
@@ -127,6 +127,15 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
       return;
     }
 
+    if (selectedMoods.length === 0) {
+      toast({
+        title: t('createEvent.error'),
+        description: t('createEvent.selectMoodError'),
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!selectedFile) {
       toast({
         title: t('createEvent.error'), 
@@ -195,7 +204,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
           video_url: videoUrl,
           external_link: externalLink.trim() || null,
           event_type: eventType,
-          mood: selectedMood || null,
+          mood: selectedMoods.join(','),
           market: 'argentina', // Argentina market only
           target_audience: targetAudience.trim() || null,
           music_type: musicType.trim() || null,
@@ -223,7 +232,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
       setSelectedFile(null);
       setFilePreview(null);
       setFileType(null);
-      setSelectedMood("");
+      setSelectedMoods([]);
       setTargetAudience("");
       setMusicType("");
       setVenueSize("");
@@ -433,20 +442,27 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
 
           {/* What Mood Section */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.whatMood')}</label>
+            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.whatMood')}* (Choose up to 2)</label>
             <div className="flex flex-wrap gap-2">
               {moodFilters.map((mood) => {
                 const IconComponent = mood.icon;
+                const isSelected = selectedMoods.includes(mood.id);
                 return (
                   <Button
                     key={mood.id}
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => setSelectedMood(selectedMood === mood.id ? "" : mood.id)}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedMoods(selectedMoods.filter(m => m !== mood.id));
+                      } else if (selectedMoods.length < 2) {
+                        setSelectedMoods([...selectedMoods, mood.id]);
+                      }
+                    }}
                     className={`
                       flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-200
-                      ${selectedMood === mood.id
+                      ${isSelected
                         ? `${mood.activeBg} ${mood.color} border-current/20`
                         : `${mood.color} border-border hover:bg-accent/50`
                       }
