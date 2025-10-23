@@ -27,6 +27,8 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringDay, setRecurringDay] = useState("");
   const [location, setLocation] = useState("");
   const [price, setPrice] = useState("");
   const [externalLink, setExternalLink] = useState("");
@@ -100,10 +102,19 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
       return;
     }
 
-    if (!date.trim()) {
+    if (!isRecurring && !date.trim()) {
       toast({
         title: t('createEvent.error'),
         description: t('createEvent.enterDateError'),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isRecurring && !recurringDay.trim()) {
+      toast({
+        title: t('createEvent.error'),
+        description: t('createEvent.selectRecurringDayError'),
         variant: "destructive",
       });
       return;
@@ -196,7 +207,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
           user_id: user.id,
           title: eventName.trim(),
           description: description.trim() || null,
-          date: date || null,
+          date: isRecurring ? `every ${recurringDay}` : (date || null),
           time: time || null,
           location: location.trim(),
           price: price.trim() || null,
@@ -225,6 +236,8 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
       setDescription("");
       setDate("");
       setTime("");
+      setIsRecurring(false);
+      setRecurringDay("");
       setLocation("");
       setPrice("");
       setExternalLink("");
@@ -306,15 +319,58 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
           {/* Date Field */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.whatDay')}*</label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input 
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full h-12 pl-12 text-left text-black placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-full"
-              />
+            
+            {/* Toggle between specific date and recurring */}
+            <div className="flex gap-2 mb-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsRecurring(false)}
+                className={`flex-1 rounded-full ${!isRecurring ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
+              >
+                {t('createEvent.specificDate')}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsRecurring(true)}
+                className={`flex-1 rounded-full ${isRecurring ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
+              >
+                {t('createEvent.recurringEvent')}
+              </Button>
             </div>
+
+            {!isRecurring ? (
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input 
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="w-full h-12 pl-12 text-left text-black placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-full"
+                />
+              </div>
+            ) : (
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
+                <Select value={recurringDay} onValueChange={setRecurringDay}>
+                  <SelectTrigger className="w-full h-12 pl-12 text-left bg-white border-2 border-border rounded-full">
+                    <SelectValue placeholder={t('createEvent.selectDayOfWeek')} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border shadow-lg z-[9999]">
+                    <SelectItem value="monday" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.monday')}</SelectItem>
+                    <SelectItem value="tuesday" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.tuesday')}</SelectItem>
+                    <SelectItem value="wednesday" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.wednesday')}</SelectItem>
+                    <SelectItem value="thursday" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.thursday')}</SelectItem>
+                    <SelectItem value="friday" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.friday')}</SelectItem>
+                    <SelectItem value="saturday" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.saturday')}</SelectItem>
+                    <SelectItem value="sunday" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.sunday')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           {/* Time Field */}
