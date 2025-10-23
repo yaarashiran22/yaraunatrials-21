@@ -279,7 +279,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
               value={eventName}
               onChange={(e) => setEventName(e.target.value)}
               placeholder={eventType === 'meetup' ? t('createEvent.enterMeetupName') : t('createEvent.enterEventName')}
-              className="w-full h-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
+              className="w-full h-12 text-left text-black placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-full"
             />
           </div>
 
@@ -290,7 +290,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={eventType === 'meetup' ? t('createEvent.describeMeetup') : t('createEvent.describeEvent')}
-              className="w-full min-h-24 text-left bg-white border-2 border-gray-200 rounded-2xl resize-none"
+              className="w-full min-h-24 text-left text-black placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-2xl resize-none"
             />
           </div>
 
@@ -303,7 +303,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full h-12 pl-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
+                className="w-full h-12 pl-12 text-left text-black placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-full"
               />
             </div>
           </div>
@@ -317,7 +317,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="w-full h-12 pl-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
+                className="w-full h-12 pl-12 text-left text-black placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-full"
               />
             </div>
           </div>
@@ -353,7 +353,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
               value={venueName}
               onChange={(e) => setVenueName(e.target.value)}
               placeholder={t('createEvent.venueNamePlaceholder')}
-              className="w-full h-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
+              className="w-full h-12 text-left text-black placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-full"
             />
           </div>
 
@@ -364,7 +364,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               placeholder={t('createEvent.pricePlaceholder')}
-              className="w-full h-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
+              className="w-full h-12 text-left text-black placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-full"
             />
           </div>
 
@@ -375,7 +375,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
               value={externalLink}
               onChange={(e) => setExternalLink(e.target.value)}
               placeholder={t('createEvent.linkPlaceholder')}
-              className="w-full h-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
+              className="w-full h-12 text-left text-black placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-full"
             />
           </div>
 
@@ -386,7 +386,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
               value={targetAudience}
               onChange={(e) => setTargetAudience(e.target.value)}
               placeholder={t('createEvent.targetAudiencePlaceholder')}
-              className="w-full h-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
+              className="w-full h-12 text-left text-black placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-full"
             />
           </div>
 
@@ -397,7 +397,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
               value={musicType}
               onChange={(e) => setMusicType(e.target.value)}
               placeholder={t('createEvent.musicTypePlaceholder')}
-              className="w-full h-12 text-left text-black bg-white border-2 border-gray-200 rounded-full"
+              className="w-full h-12 text-left text-black placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-full"
             />
           </div>
 
