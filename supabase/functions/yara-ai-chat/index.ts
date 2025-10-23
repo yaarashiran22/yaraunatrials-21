@@ -43,7 +43,7 @@ serve(async (req) => {
     
     // Fetch relevant data from database with image URLs
     const [eventsResult, itemsResult, couponsResult] = await Promise.all([
-      supabase.from('events').select('id, title, description, date, time, location, price, mood, music_type, venue_size, image_url').gte('date', today).order('date', { ascending: true }).limit(50),
+      supabase.from('events').select('id, title, description, date, time, location, address, price, mood, music_type, venue_size, external_link, image_url').gte('date', today).order('date', { ascending: true }).limit(50),
       supabase.from('items').select('id, title, description, category, location, price, image_url').eq('status', 'active').order('created_at', { ascending: false }).limit(50),
       supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood, valid_until, image_url').eq('is_active', true).order('created_at', { ascending: false }).limit(50)
     ]);
@@ -63,10 +63,12 @@ serve(async (req) => {
         date: e.date,
         time: e.time,
         location: e.location,
+        address: e.address,
         price: e.price,
         mood: e.mood,
         music_type: e.music_type,
         venue_size: e.venue_size,
+        external_link: e.external_link,
         image_url: e.image_url
       })),
       businesses: businesses.map(b => ({
@@ -208,7 +210,7 @@ REQUIRED JSON FORMAT:
       "type": "event",
       "id": "actual-event-id",
       "title": "Event Title",
-      "description": "Location: [location]. Date: [date]. Time: [time]. Price: [price]. Brief description.",
+      "description": "Location: [location]. Address: [address if available]. Date: [date]. Time: [time]. Price: [price]. Music Type: [music_type if available]. Venue Size: [venue_size if available]. Instagram: [external_link if available]. Brief description.",
       "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
       "image_url": "full-image-url"
     }
@@ -218,8 +220,10 @@ REQUIRED JSON FORMAT:
 RECOMMENDATION RULES:
 - Return MAXIMUM 6 recommendations total (combining database + live recommendations)
 - Only include items with image_url
-- Keep description under 100 words
-- Include location, date, time, price in description
+- Keep description under 120 words (increased to accommodate new fields)
+- ALWAYS include in description: location, date, time, price
+- ALSO include if available: address, music_type, venue_size, external_link (Instagram)
+- Format external_link as "Instagram: [link]" in the description
 - ALWAYS include "why_recommended" field with personalized explanation based on user's request, profile, and past interactions
 - Prioritize matches to user request, but if no perfect matches exist, return the most relevant/interesting events available
 - Use user profile (budget, neighborhoods, interests) to further personalize
@@ -408,14 +412,24 @@ RESPOND WITH ONLY JSON. NO OTHER TEXT.`
                     : events;
                   
                   // Take up to 3 matching database events
-                  dbRecs = relevantEvents.slice(0, 3).map(e => ({
-                    type: 'event',
-                    id: e.id,
-                    title: e.title,
-                    description: `Location: ${e.location || 'TBA'}. Date: ${e.date}. Time: ${e.time || 'TBA'}. Price: ${e.price || 'TBA'}. ${e.description || ''}`,
-                    why_recommended: `This event is happening ${isTodayRequest ? 'tonight' : 'soon'} in Buenos Aires and matches your interests.`,
-                    image_url: e.image_url
-                  }));
+                  dbRecs = relevantEvents.slice(0, 3).map(e => {
+                    let desc = `Location: ${e.location || 'TBA'}. `;
+                    if (e.address) desc += `Address: ${e.address}. `;
+                    desc += `Date: ${e.date}. Time: ${e.time || 'TBA'}. Price: ${e.price || 'TBA'}. `;
+                    if (e.music_type) desc += `Music Type: ${e.music_type}. `;
+                    if (e.venue_size) desc += `Venue Size: ${e.venue_size}. `;
+                    if (e.external_link) desc += `Instagram: ${e.external_link}. `;
+                    desc += e.description || '';
+                    
+                    return {
+                      type: 'event',
+                      id: e.id,
+                      title: e.title,
+                      description: desc,
+                      why_recommended: `This event is happening ${isTodayRequest ? 'tonight' : 'soon'} in Buenos Aires and matches your interests.`,
+                      image_url: e.image_url
+                    };
+                  });
                   
                   console.log(`Manually added ${dbRecs.length} database events for ${isTodayRequest ? 'tonight' : 'upcoming'}`);
                 }
