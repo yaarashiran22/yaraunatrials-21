@@ -312,17 +312,17 @@ const Index = () => {
       return true;
     });
 
-    // Sort events by date - soonest first
+    // Sort events: recurring events first, then by date (soonest first)
     return filtered.sort((a, b) => {
       const dateA = a.date?.toLowerCase().trim();
       const dateB = b.date?.toLowerCase().trim();
       
-      // Handle recurring events (e.g., "every monday") - put them at the end
+      // Handle recurring events (e.g., "every monday") - put them at the BEGINNING
       const isRecurringA = dateA?.startsWith('every ');
       const isRecurringB = dateB?.startsWith('every ');
       
-      if (isRecurringA && !isRecurringB) return 1;
-      if (!isRecurringA && isRecurringB) return -1;
+      if (isRecurringA && !isRecurringB) return -1; // Recurring events come first
+      if (!isRecurringA && isRecurringB) return 1;
       if (isRecurringA && isRecurringB) return 0; // Keep recurring events in their original order
       
       // Parse dates for regular events
