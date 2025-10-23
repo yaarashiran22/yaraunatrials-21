@@ -136,17 +136,6 @@ const LoginPage = () => {
       }
     }
 
-    // Business profile specific validation
-    if (formData.profileType === 'business') {
-      if (!formData.whatsappNumber.trim()) {
-        toast({
-          title: t('register.error'),
-          description: t('login.businessWhatsAppRequired'),
-          variant: "destructive",
-        });
-        return;
-      }
-    }
 
     setIsLoading(true);
     
