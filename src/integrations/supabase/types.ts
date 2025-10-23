@@ -152,6 +152,7 @@ export type Database = {
           title: string
           updated_at: string | null
           user_id: string | null
+          venue_name: string | null
           venue_size: string | null
           video_url: string | null
         }
@@ -174,6 +175,7 @@ export type Database = {
           title: string
           updated_at?: string | null
           user_id?: string | null
+          venue_name?: string | null
           venue_size?: string | null
           video_url?: string | null
         }
@@ -196,6 +198,7 @@ export type Database = {
           title?: string
           updated_at?: string | null
           user_id?: string | null
+          venue_name?: string | null
           venue_size?: string | null
           video_url?: string | null
         }
@@ -722,14 +725,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      delete_past_events: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      generate_coupon_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      delete_past_events: { Args: never; Returns: undefined }
+      generate_coupon_code: { Args: never; Returns: string }
       update_community_membership_status: {
         Args: { membership_id: string; new_status: string }
         Returns: Json
