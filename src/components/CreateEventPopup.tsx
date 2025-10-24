@@ -63,6 +63,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
     "Recoleta",
     "San Telmo",
     "Villa Crespo",
+    "Chacarita",
     "Other"
   ];
 
