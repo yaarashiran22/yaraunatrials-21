@@ -218,11 +218,13 @@ REQUIRED JSON FORMAT:
 }
 
 RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
-1. **Search for keywords in event title and description first** - if user asks for "creative workshops", look for events with "creative", "workshop", "art", "craft" in title or description
-2. **Check mood field** - if event has mood field, use it for matching (e.g., "Creative" mood matches creative requests)
-3. **Use semantic matching** - "creative workshops" should match: art workshops, painting classes, craft events, DIY sessions, creative meetups
-4. **Don't force matches** - if user asks for "jazz concerts" and there are no jazz/music events, DON'T recommend unrelated events. Return empty array or only 1-2 loosely related options
-5. **Exact keyword matches win** - if an event title contains the exact words the user used, prioritize it
+1. **Search for keywords in event title and description first** - if user asks for "workshops", look for ANY events with "workshop" in title or description, even if just one word matches (e.g., "creative vermuth workshop" MUST match "workshops")
+2. **Single word matches count** - if the user searches for "workshops" and an event has "workshop" anywhere in title/description, it's a VALID match
+3. **Check mood field** - if event has mood field, use it for matching (e.g., "Creative" mood matches creative requests)
+4. **Use semantic matching** - "creative workshops" should match: art workshops, painting classes, craft events, DIY sessions, creative meetups
+5. **Be inclusive, not exclusive** - if user asks for a general category like "workshops" or "bars", include ALL events that contain that word, don't filter too strictly
+6. **Don't force matches only when truly unrelated** - if user asks for "jazz concerts" and there are no music events at all, DON'T recommend food events. But if they ask for "workshops" and there's a "creative workshop", ALWAYS recommend it
+7. **Exact keyword matches win** - if an event title/description contains the exact words the user used, prioritize it
 
 RECOMMENDATION OUTPUT RULES:
 - Return MAXIMUM 6 recommendations total from the database

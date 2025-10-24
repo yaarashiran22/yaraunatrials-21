@@ -86,7 +86,16 @@ Deno.serve(async (req) => {
       }
 
       // Build message with why_recommended if available
-      let messageBody = `*${rec.title}*\n\n${rec.description}`;
+      // Make date and time bold in the description
+      let formattedDescription = rec.description;
+      if (formattedDescription) {
+        // Bold date patterns (Date: ...)
+        formattedDescription = formattedDescription.replace(/Date: ([^\n.]+)/gi, '*Date: $1*');
+        // Bold time patterns (Time: ...)
+        formattedDescription = formattedDescription.replace(/Time: ([^\n.]+)/gi, '*Time: $1*');
+      }
+      
+      let messageBody = `*${rec.title}*\n\n${formattedDescription}`;
       if (rec.why_recommended) {
         messageBody += `\n\n💡 ${rec.why_recommended}`;
       }
