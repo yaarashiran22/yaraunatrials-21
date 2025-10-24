@@ -225,7 +225,7 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 5. **Exact keyword matches win** - if an event title contains the exact words the user used, prioritize it
 
 RECOMMENDATION OUTPUT RULES:
-- Return MAXIMUM 6 recommendations total (combining database + live recommendations)
+- Return MAXIMUM 6 recommendations total from the database
 - Only include items with image_url
 - Keep description under 120 words (increased to accommodate new fields)
 - ALWAYS include in description: location, date, time, price
@@ -233,7 +233,7 @@ RECOMMENDATION OUTPUT RULES:
 - Format external_link as "Instagram: [link]" in the description
 - ALWAYS include "why_recommended" field explaining specifically WHY this event matches their request
 - Use user profile (budget, neighborhoods, interests) to further personalize
-- If no relevant database events exist, it's OK to return fewer recommendations or rely on Perplexity live results
+- If no relevant database events exist, return empty array with a friendly message like "I couldn't find matching events in our database right now"
 
 CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.`;
 
@@ -273,213 +273,32 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     // Get the last user message to understand their query
     const lastUserMessage = messages[messages.length - 1]?.content || '';
     
-    // Detect if user is asking for recommendations (check for keywords)
-    const isRecommendationRequest = /\b(recommend|suggest|show me|looking for|find|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|next week|esta noche|hoy|mañana|fin de semana|próxima semana|dance|music|live|party|art|food)\b/i.test(lastUserMessage);
-    
-    // Check if this is a recommendations response and enhance with Perplexity
-    if (message.includes('"recommendations"') || isRecommendationRequest) {
-      let parsed: any = null;
-      
+    // Check if this is a recommendations response
+    if (message.includes('"recommendations"')) {
       try {
         // Try to extract JSON from the message if it exists
-        if (message.includes('"recommendations"')) {
-          let jsonStr = message;
-          const jsonStart = message.indexOf('{');
-          const jsonEnd = message.lastIndexOf('}');
-          if (jsonStart !== -1 && jsonEnd !== -1) {
-            jsonStr = message.substring(jsonStart, jsonEnd + 1);
-          }
-          parsed = JSON.parse(jsonStr);
-          
-          // Track database recommendations in background
-          if (phoneNumber && parsed.recommendations && Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
-            const interactions = parsed.recommendations.map((rec: any) => ({
-              phone_number: phoneNumber,
-              item_type: rec.type,
-              item_id: rec.id,
-              interaction_type: 'recommended'
-            }));
-            supabase.from('whatsapp_user_interactions').insert(interactions).then();
-          }
+        let jsonStr = message;
+        const jsonStart = message.indexOf('{');
+        const jsonEnd = message.lastIndexOf('}');
+        if (jsonStart !== -1 && jsonEnd !== -1) {
+          jsonStr = message.substring(jsonStart, jsonEnd + 1);
         }
+        const parsed = JSON.parse(jsonStr);
         
-        // ALWAYS call Perplexity for real-time recommendations
-        const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
-        if (perplexityApiKey && perplexityApiKey.trim() !== '') {
-          console.log('Fetching real-time recommendations from Perplexity...');
+        // Track database recommendations in background
+        if (phoneNumber && parsed.recommendations && Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
+          const interactions = parsed.recommendations.map((rec: any) => ({
+            phone_number: phoneNumber,
+            item_type: rec.type,
+            item_id: rec.id,
+            interaction_type: 'recommended'
+          }));
+          supabase.from('whatsapp_user_interactions').insert(interactions).then();
           
-          try {
-            const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${perplexityApiKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                model: 'sonar',
-                messages: [
-                  {
-                    role: 'system',
-                    content: `You MUST return ONLY a valid JSON array. NO conversational text. NO explanations.
-
-Today's date: ${new Date().toISOString().split('T')[0]} (YEAR: ${new Date().getFullYear()}, MONTH: ${new Date().getMonth() + 1}, DAY: ${new Date().getDate()})
-
-CRITICAL RULES:
-1. ALWAYS try to find 2-3 recommendations - be creative and flexible with matching
-2. If no EXACT matches exist, recommend SIMILAR/RELATED events (e.g., "afrobeats" → afro-style, african music, world music, reggaeton with afro vibes)
-3. Only return [] if there are absolutely NO relevant events at all in Buenos Aires
-4. DO NOT return venues without specific dates
-5. DO NOT return past events (anything before ${new Date().toISOString().split('T')[0]})
-6. Match user's date/location requests, but be flexible with genre/vibe
-7. Return ONLY valid JSON - start with [ and end with ]
-
-FLEXIBILITY EXAMPLES:
-- "afrobeats" → african music, afro-style events, world music, reggaeton, dancehall, tropical vibes, ANY events with african/afro themes
-- "jazz" → live music, acoustic, blues, soul
-- "techno" → electronic, house, underground, dance
-- "indie" → alternative, rock, live bands, underground venues
-
-Date calculations:
-- "tonight"/"today"/"esta noche"/"hoy" = ${new Date().toISOString().split('T')[0]}
-- "tomorrow"/"mañana" = calculate next day from ${new Date().toISOString().split('T')[0]}
-- "this month" = any date in current month ${new Date().getMonth() + 1}/${new Date().getFullYear()}
-- Specific neighborhood = ONLY events in that exact neighborhood
-
-JSON format (write descriptions casual, like texting a friend):
-[
-  {
-    "title": "Event Name",
-    "description": "Location: [venue]. Date: [YYYY-MM-DD]. Time: [time]. 1-2 casual sentences about why it's cool.",
-    "why_recommended": "Direct 1-2 sentences on why this matches their vibe (mention if it's related/similar to their request).",
-    "source": "URL"
-  }
-]
-
-RESPOND WITH ONLY JSON. NO OTHER TEXT.`
-                  },
-                  {
-                    role: 'user',
-                    content: `Find 2-3 specific events in Buenos Aires for: ${lastUserMessage}. If exact matches don't exist, find similar/related events. Return ONLY JSON array, no other text.`
-                  }
-                ],
-                temperature: 0.2,
-                max_tokens: 400
-              }),
-            });
-
-            if (perplexityResponse.ok) {
-              const perplexityData = await perplexityResponse.json();
-              const perplexityText = perplexityData.choices?.[0]?.message?.content || '';
-              
-              console.log('Perplexity raw response:', perplexityText);
-              
-              // Try to parse Perplexity's response
-              try {
-                // Extract JSON from response - handle cases where there's extra text
-                let jsonText = perplexityText.trim();
-                
-                // Remove markdown code blocks if present
-                jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-                
-                // Try to find JSON array in the text
-                const arrayStart = jsonText.indexOf('[');
-                const arrayEnd = jsonText.lastIndexOf(']');
-                
-                if (arrayStart !== -1 && arrayEnd !== -1 && arrayEnd > arrayStart) {
-                  jsonText = jsonText.substring(arrayStart, arrayEnd + 1);
-                }
-                
-                let perplexityRecs = JSON.parse(jsonText);
-                
-                // Ensure it's an array
-                if (!Array.isArray(perplexityRecs)) {
-                  perplexityRecs = [perplexityRecs];
-                }
-                
-                // Convert Perplexity recommendations to our format
-                const liveRecs = perplexityRecs.map((rec: any, idx: number) => ({
-                  type: 'live',
-                  id: `perplexity-live-${idx}`,
-                  title: rec.title,
-                  description: `${rec.description}\n\n🔗 ${rec.source}`,
-                  why_recommended: rec.why_recommended || "This is a current, live recommendation happening in Buenos Aires.",
-                  image_url: null
-                }));
-                
-                // FORCE include matching database events - prioritize database over Perplexity
-                let dbRecs = parsed?.recommendations ? parsed.recommendations : [];
-                
-                // If no database recs from AI, manually create them from matching events
-                if (dbRecs.length === 0 && events.length > 0) {
-                  // Filter for today's events if user asked for "tonight" or "today"
-                  const isTodayRequest = /\b(tonight|today|esta noche|hoy)\b/i.test(lastUserMessage);
-                  const relevantEvents = isTodayRequest 
-                    ? events.filter(e => e.date === today)
-                    : events;
-                  
-                  // Take up to 3 matching database events
-                  dbRecs = relevantEvents.slice(0, 3).map(e => {
-                    let desc = `Location: ${e.location || 'TBA'}. `;
-                    if (e.address) desc += `Address: ${e.address}. `;
-                    desc += `Date: ${e.date}. Time: ${e.time || 'TBA'}. Price: ${e.price || 'TBA'}. `;
-                    if (e.music_type) desc += `Music Type: ${e.music_type}. `;
-                    if (e.venue_size) desc += `Venue Size: ${e.venue_size}. `;
-                    if (e.external_link) desc += `Instagram: ${e.external_link}. `;
-                    desc += e.description || '';
-                    
-                    return {
-                      type: 'event',
-                      id: e.id,
-                      title: e.title,
-                      description: desc,
-                      why_recommended: `This event is happening ${isTodayRequest ? 'tonight' : 'soon'} in Buenos Aires and matches your interests.`,
-                      image_url: e.image_url
-                    };
-                  });
-                  
-                  console.log(`Manually added ${dbRecs.length} database events for ${isTodayRequest ? 'tonight' : 'upcoming'}`);
-                }
-                
-                // Limit database recs to leave room for Perplexity
-                dbRecs = dbRecs.slice(0, Math.min(3, 6 - liveRecs.length));
-                
-                if (liveRecs.length > 0 || dbRecs.length > 0) {
-                  // Combine database recommendations with Perplexity recommendations (max 6 total)
-                  const finalLiveRecs = liveRecs.slice(0, 6 - dbRecs.length);
-                  const combinedRecommendations = [...dbRecs, ...finalLiveRecs].slice(0, 6);
-                  
-                  // Update intro message
-                  let updatedIntro = 'Here are some recommendations for you:';
-                  if (dbRecs.length > 0 && finalLiveRecs.length > 0) {
-                    updatedIntro = `Here are ${combinedRecommendations.length} recommendations (${dbRecs.length} from our community + ${finalLiveRecs.length} live):`;
-                  } else if (dbRecs.length > 0) {
-                    updatedIntro = `Here are ${dbRecs.length} recommendations from our community:`;
-                  } else if (finalLiveRecs.length > 0) {
-                    updatedIntro = `Here are ${finalLiveRecs.length} live recommendations for you:`;
-                  }
-                  
-                  message = JSON.stringify({
-                    intro_message: updatedIntro,
-                    recommendations: combinedRecommendations
-                  });
-                  
-                  console.log(`Combined ${dbRecs.length} database + ${liveRecs.length} Perplexity recommendations`);
-                } else {
-                  console.log('No recommendations found from either database or Perplexity');
-                }
-              } catch (e) {
-                console.log('Could not parse Perplexity response as JSON:', e);
-              }
-            } else {
-              const errorText = await perplexityResponse.text();
-              console.log('Perplexity API error:', perplexityResponse.status, errorText);
-            }
-          } catch (e) {
-            console.log('Error calling Perplexity:', e);
-          }
+          console.log(`Tracked ${parsed.recommendations.length} database event recommendations`);
         }
       } catch (e) {
-        console.log('Could not parse or enhance recommendations:', e);
+        console.log('Could not parse recommendations:', e);
       }
     }
     
