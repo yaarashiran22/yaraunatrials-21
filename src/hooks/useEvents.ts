@@ -10,6 +10,7 @@ export interface Event {
   date?: string;
   time?: string;
   location?: string;
+  venue_name?: string;
   price?: string;
   image_url?: string;
   video_url?: string;
@@ -38,6 +39,7 @@ const fetchEvents = async (eventType?: 'event' | 'meetup', filterType?: boolean,
       date,
       time,
       location,
+      venue_name,
       price,
       image_url,
       video_url,

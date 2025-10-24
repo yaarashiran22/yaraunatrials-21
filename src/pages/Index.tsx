@@ -450,7 +450,7 @@ const Index = () => {
                      image={event.image_url || communityEvent} 
                      video={(event as any).video_url} 
                      title={event.title} 
-                     subtitle={event.location || 'Tel Aviv'} 
+                     subtitle={event.venue_name ? `${event.venue_name}${event.location ? ' • ' + event.location : ''}` : (event.location || 'Tel Aviv')}
                      price={event.price} 
                      date={getRelativeDay(event.date)} 
                      type="event" 
