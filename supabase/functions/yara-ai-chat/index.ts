@@ -44,6 +44,12 @@ serve(async (req) => {
     // Helper function to format date from YYYY-MM-DD to "Month DDth"
     const formatDate = (dateStr: string): string => {
       if (!dateStr) return dateStr;
+      
+      // Handle recurring events (e.g., "every monday", "every friday")
+      if (dateStr.toLowerCase().includes('every')) {
+        return dateStr; // Return as-is for recurring events
+      }
+      
       try {
         const date = new Date(dateStr + 'T00:00:00');
         const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -58,13 +64,15 @@ serve(async (req) => {
         
         return `${month} ${day}${suffix}`;
       } catch (e) {
+        console.log('Failed to format date:', dateStr, e);
         return dateStr; // Return original if parsing fails
       }
     };
     
     // Fetch relevant data from database with image URLs
+    // Include recurring events by checking if date contains "every" OR is >= today
     const [eventsResult, itemsResult, couponsResult] = await Promise.all([
-      supabase.from('events').select('id, title, description, date, time, location, address, price, mood, music_type, venue_size, external_link, image_url').gte('date', today).order('date', { ascending: true }).limit(50),
+      supabase.from('events').select('id, title, description, date, time, location, address, price, mood, music_type, venue_size, external_link, image_url').or(`date.gte.${today},date.ilike.%every%`).order('date', { ascending: true }).limit(50),
       supabase.from('items').select('id, title, description, category, location, price, image_url').eq('status', 'active').order('created_at', { ascending: false }).limit(50),
       supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood, valid_until, image_url').eq('is_active', true).order('created_at', { ascending: false }).limit(50)
     ]);
