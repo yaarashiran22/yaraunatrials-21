@@ -210,7 +210,7 @@ REQUIRED JSON FORMAT:
       "type": "event",
       "id": "actual-event-id",
       "title": "Event Title",
-      "description": "Location: [location]. Address: [address if available]. Date: [format date as 'Month Day' e.g. 'October 24th', NOT '2025-10-24']. Time: [time]. Music Type: [music_type if available]. Instagram: [external_link if available]. Brief description.",
+      "description": "Location: [location]. Address: [address if available]. Date: [CRITICAL: You MUST convert date from '2025-10-24' format to 'October 24th' format - use full month name + day with 'st/nd/rd/th']. Time: [time]. Music Type: [music_type if available]. Instagram: [external_link if available]. Brief description.",
       "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
       "image_url": "full-image-url"
     }
@@ -218,23 +218,25 @@ REQUIRED JSON FORMAT:
 }
 
 RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
-1. **Search for keywords in event title and description first** - if user asks for "workshops", look for ANY events with "workshop" in title or description, even if just one word matches (e.g., "creative vermuth workshop" MUST match "workshops")
-2. **Single word matches count** - if the user searches for "workshops" and an event has "workshop" anywhere in title/description, it's a VALID match
-3. **Check mood field** - if event has mood field, use it for matching (e.g., "Creative" mood matches creative requests)
-4. **Use semantic matching** - "creative workshops" should match: art workshops, painting classes, craft events, DIY sessions, creative meetups
-5. **Be inclusive, not exclusive** - if user asks for a general category like "workshops" or "bars", include ALL events that contain that word, don't filter too strictly
-6. **Don't force matches only when truly unrelated** - if user asks for "jazz concerts" and there are no music events at all, DON'T recommend food events. But if they ask for "workshops" and there's a "creative workshop", ALWAYS recommend it
-7. **Exact keyword matches win** - if an event title/description contains the exact words the user used, prioritize it
+1. **CRITICAL: Search BOTH title AND description equally** - if user asks for "party", check if "party" appears in EITHER the title OR the description. Example: event with title "Night Out" and description "Join us for a party at..." MUST match "party" search
+2. **Description matching is just as important as title matching** - don't prioritize title over description, treat them equally
+3. **Single word matches count** - if the user searches for "workshops" and an event has "workshop" anywhere in title OR description, it's a VALID match
+4. **Check mood field** - if event has mood field, use it for matching (e.g., "Creative" mood matches creative requests)
+5. **Use semantic matching** - "creative workshops" should match: art workshops, painting classes, craft events, DIY sessions, creative meetups (check descriptions for these terms!)
+6. **Be inclusive, not exclusive** - if user asks for a general category like "workshops", "bars", or "party", include ALL events that contain those words in title OR description
+7. **Don't force matches only when truly unrelated** - if user asks for "jazz concerts" and there are no music events at all, DON'T recommend food events. But if they ask for "party" and an event description mentions "party", ALWAYS recommend it
+8. **Exact keyword matches win** - if an event title OR description contains the exact words the user used, prioritize it
 
 RECOMMENDATION OUTPUT RULES:
 - Return MAXIMUM 6 recommendations total from the database
 - Only include items with image_url
 - Keep description under 100 words
-- ALWAYS include in description: location, date (formatted as 'Month Day' e.g. 'October 24th'), time
+- **CRITICAL DATE FORMATTING**: You MUST convert dates from '2025-10-24' format to readable format like 'October 24th'. Example conversions: '2025-01-15' → 'January 15th', '2025-12-03' → 'December 3rd', '2025-11-21' → 'November 21st'
+- ALWAYS include in description: location, date (MUST be formatted as full month name + day with ordinal suffix), time
 - ALSO include if available: address, music_type, external_link (Instagram)
 - Format external_link as "Instagram: [link]" in the description
 - DO NOT include price or venue_size in description - these can be provided later if user asks for more details
-- ALWAYS include "why_recommended" field explaining specifically WHY this event matches their request
+- ALWAYS include "why_recommended" field explaining specifically WHY this event matches their request (e.g., "This event matches because the description mentions 'party' which you asked for")
 - Use user profile (budget, neighborhoods, interests) to further personalize
 - If no relevant database events exist, return empty array with a friendly message like "I couldn't find matching events in our database right now"
 
