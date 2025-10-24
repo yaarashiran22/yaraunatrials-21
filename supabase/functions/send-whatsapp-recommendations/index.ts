@@ -66,8 +66,8 @@ Deno.serve(async (req) => {
         
         if (introResponse.ok) {
           console.log('✅ Intro text sent successfully');
-          // Wait a moment before sending recommendations
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          // Wait a moment before sending recommendations (reduced for faster delivery)
+          await new Promise(resolve => setTimeout(resolve, 800));
         } else {
           console.error('❌ Failed to send intro text:', await introResponse.text());
         }
@@ -85,7 +85,11 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const messageBody = `*${rec.title}*\n\n${rec.description}`;
+      // Build message with why_recommended if available
+      let messageBody = `*${rec.title}*\n\n${rec.description}`;
+      if (rec.why_recommended) {
+        messageBody += `\n\n💡 ${rec.why_recommended}`;
+      }
       
       try {
         console.log(`[${i + 1}/${uniqueRecs.length}] Sending: ${rec.title}`);
@@ -127,9 +131,9 @@ Deno.serve(async (req) => {
         results.push({ success: false, title: rec.title, error: error.message });
       }
 
-      // Wait between messages to avoid rate limits
+      // Wait between messages to avoid rate limits (reduced for faster delivery)
       if (i < uniqueRecs.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 700));
       }
     }
 
