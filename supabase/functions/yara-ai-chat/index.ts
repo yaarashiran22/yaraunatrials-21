@@ -41,6 +41,27 @@ serve(async (req) => {
     // Get current date for filtering
     const today = new Date().toISOString().split('T')[0];
     
+    // Helper function to format date from YYYY-MM-DD to "Month DDth"
+    const formatDate = (dateStr: string): string => {
+      if (!dateStr) return dateStr;
+      try {
+        const date = new Date(dateStr + 'T00:00:00');
+        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const day = date.getDate();
+        const month = months[date.getMonth()];
+        
+        // Add ordinal suffix (st, nd, rd, th)
+        let suffix = 'th';
+        if (day === 1 || day === 21 || day === 31) suffix = 'st';
+        else if (day === 2 || day === 22) suffix = 'nd';
+        else if (day === 3 || day === 23) suffix = 'rd';
+        
+        return `${month} ${day}${suffix}`;
+      } catch (e) {
+        return dateStr; // Return original if parsing fails
+      }
+    };
+    
     // Fetch relevant data from database with image URLs
     const [eventsResult, itemsResult, couponsResult] = await Promise.all([
       supabase.from('events').select('id, title, description, date, time, location, address, price, mood, music_type, venue_size, external_link, image_url').gte('date', today).order('date', { ascending: true }).limit(50),
@@ -54,13 +75,13 @@ serve(async (req) => {
 
     console.log(`Fetched ${events.length} events, ${businesses.length} businesses, ${coupons.length} coupons`);
 
-    // Build context for AI - include IDs and image URLs
+    // Build context for AI - include IDs and image URLs with formatted dates
     const contextData = {
       events: events.map(e => ({
         id: e.id,
         title: e.title,
         description: e.description,
-        date: e.date,
+        date: formatDate(e.date), // Format date here before sending to AI
         time: e.time,
         location: e.location,
         address: e.address,
@@ -210,7 +231,7 @@ REQUIRED JSON FORMAT:
       "type": "event",
       "id": "actual-event-id",
       "title": "Event Title",
-      "description": "Location: [location]. Address: [address if available]. Date: [CRITICAL: You MUST convert date from '2025-10-24' format to 'October 24th' format - use full month name + day with 'st/nd/rd/th']. Time: [time]. Music Type: [music_type if available]. Instagram: [external_link if available]. Brief description.",
+      "description": "Location: [location]. Address: [address if available]. Date: [date - already formatted, use as-is]. Time: [time]. Music Type: [music_type if available]. Instagram: [external_link if available]. Brief description.",
       "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
       "image_url": "full-image-url"
     }
@@ -231,8 +252,7 @@ RECOMMENDATION OUTPUT RULES:
 - Return MAXIMUM 6 recommendations total from the database
 - Only include items with image_url
 - Keep description under 100 words
-- **CRITICAL DATE FORMATTING**: You MUST convert dates from '2025-10-24' format to readable format like 'October 24th'. Example conversions: '2025-01-15' → 'January 15th', '2025-12-03' → 'December 3rd', '2025-11-21' → 'November 21st'
-- ALWAYS include in description: location, date (MUST be formatted as full month name + day with ordinal suffix), time
+- ALWAYS include in description: location, date (already formatted as 'Month DDth', use as-is), time
 - ALSO include if available: address, music_type, external_link (Instagram)
 - Format external_link as "Instagram: [link]" in the description
 - DO NOT include price or venue_size in description - these can be provided later if user asks for more details
