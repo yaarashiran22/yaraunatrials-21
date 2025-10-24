@@ -210,7 +210,7 @@ REQUIRED JSON FORMAT:
       "type": "event",
       "id": "actual-event-id",
       "title": "Event Title",
-      "description": "Location: [location]. Address: [address if available]. Date: [date]. Time: [time]. Price: [price]. Music Type: [music_type if available]. Venue Size: [venue_size if available]. Instagram: [external_link if available]. Brief description.",
+      "description": "Location: [location]. Address: [address if available]. Date: [format date as 'Month Day' e.g. 'October 24th', NOT '2025-10-24']. Time: [time]. Music Type: [music_type if available]. Instagram: [external_link if available]. Brief description.",
       "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
       "image_url": "full-image-url"
     }
@@ -229,10 +229,11 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 RECOMMENDATION OUTPUT RULES:
 - Return MAXIMUM 6 recommendations total from the database
 - Only include items with image_url
-- Keep description under 120 words (increased to accommodate new fields)
-- ALWAYS include in description: location, date, time, price
-- ALSO include if available: address, music_type, venue_size, external_link (Instagram)
+- Keep description under 100 words
+- ALWAYS include in description: location, date (formatted as 'Month Day' e.g. 'October 24th'), time
+- ALSO include if available: address, music_type, external_link (Instagram)
 - Format external_link as "Instagram: [link]" in the description
+- DO NOT include price or venue_size in description - these can be provided later if user asks for more details
 - ALWAYS include "why_recommended" field explaining specifically WHY this event matches their request
 - Use user profile (budget, neighborhoods, interests) to further personalize
 - If no relevant database events exist, return empty array with a friendly message like "I couldn't find matching events in our database right now"
