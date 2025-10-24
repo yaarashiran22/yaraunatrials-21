@@ -147,23 +147,27 @@ const UniformCard = ({
         {/* Subtle glow border on hover */}
         <div className="absolute inset-0 rounded-3xl border-2 border-transparent group-hover:border-primary/30 transition-all duration-500"></div>
         
-        {/* Enhanced text overlay - more compact to show more image */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent p-4 transform translate-y-0 group-hover:translate-y-[-2px] transition-transform duration-300">
-          <div className="space-y-1.5">
+        {/* Top left overlay - Title and business name */}
+        <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/95 via-black/50 to-transparent p-4 transform translate-y-0 group-hover:translate-y-[-2px] transition-transform duration-300">
+          <div className="space-y-1">
             <h3 className="font-black text-white line-clamp-2 text-xl leading-tight drop-shadow-[0_3px_12px_rgba(0,0,0,0.9)] group-hover:drop-shadow-[0_4px_16px_rgba(0,0,0,1)] transition-all duration-300 font-display tracking-wide [text-shadow:_0_3px_6px_rgb(0_0_0_/_90%)]">{title}</h3>
             {subtitle && (
               <p className="text-sm font-semibold text-white line-clamp-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] transform translate-y-0 group-hover:translate-y-[-1px] transition-transform duration-300">{subtitle}</p>
             )}
-            <div className="flex items-center gap-1.5">
-              {date && (
-                <span className="text-xs font-bold px-2.5 py-1 bg-gradient-to-r from-[#E91E63] to-[#9C27B0] backdrop-blur-md rounded-full text-white border border-pink-400/40 shadow-lg transition-all duration-300 group-hover:shadow-pink-400/50 group-hover:scale-105">{date}</span>
-              )}
-              {(price || (type === 'event')) && (
-                <span className="text-xs font-bold px-2.5 py-1 bg-black backdrop-blur-md rounded-full text-white border border-black/40 shadow-lg transition-all duration-300 group-hover:bg-black/90 group-hover:scale-105">
-                  {price ? `$${price}` : 'free'}
-                </span>
-              )}
-            </div>
+          </div>
+        </div>
+
+        {/* Bottom overlay - Date and price badges */}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent p-4 transform translate-y-0 group-hover:translate-y-[-2px] transition-transform duration-300">
+          <div className="flex items-center gap-1.5">
+            {date && (
+              <span className="text-xs font-bold px-2.5 py-1 bg-gradient-to-r from-[#E91E63] to-[#9C27B0] backdrop-blur-md rounded-full text-white border border-pink-400/40 shadow-lg transition-all duration-300 group-hover:shadow-pink-400/50 group-hover:scale-105">{date}</span>
+            )}
+            {(price || (type === 'event')) && (
+              <span className="text-xs font-bold px-2.5 py-1 bg-black backdrop-blur-md rounded-full text-white border border-black/40 shadow-lg transition-all duration-300 group-hover:bg-black/90 group-hover:scale-105">
+                {price ? `$${price}` : 'free'}
+              </span>
+            )}
           </div>
         </div>
         
