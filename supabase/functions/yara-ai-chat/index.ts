@@ -70,50 +70,36 @@ serve(async (req) => {
     };
     
     // Fetch relevant data from database with image URLs
-    // Fetch all future events and recurring events (containing "every")
+    // Include recurring events by checking if date contains "every" OR is >= today
     const [eventsResult, itemsResult, couponsResult] = await Promise.all([
-      supabase.from('events').select('id, title, description, date, time, location, address, price, mood, music_type, venue_size, external_link, image_url').limit(100),
+      supabase.from('events').select('id, title, description, date, time, location, address, price, mood, music_type, venue_size, external_link, image_url').or(`date.gte.${today},date.ilike.%every%`).order('date', { ascending: true }).limit(50),
       supabase.from('items').select('id, title, description, category, location, price, image_url').eq('status', 'active').order('created_at', { ascending: false }).limit(50),
       supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood, valid_until, image_url').eq('is_active', true).order('created_at', { ascending: false }).limit(50)
     ]);
-
-    // Filter events in code to include future dates OR recurring events
-    const allEvents = eventsResult.data || [];
-    const events = allEvents.filter(e => {
-      if (!e.date) return false;
-      // Include if date contains "every" (recurring) or is >= today
-      if (e.date.toLowerCase().includes('every')) return true;
-      return e.date >= today;
-    }).slice(0, 50); // Limit to 50 events
 
     const events = eventsResult.data || [];
     const businesses = itemsResult.data || [];
     const coupons = couponsResult.data || [];
 
     console.log(`Fetched ${events.length} events, ${businesses.length} businesses, ${coupons.length} coupons`);
-    console.log('Event dates before formatting:', events.map(e => ({ title: e.title, date: e.date })));
 
     // Build context for AI - include IDs and image URLs with formatted dates
     const contextData = {
-      events: events.map(e => {
-        const formattedDate = formatDate(e.date);
-        console.log(`Formatting date: "${e.date}" -> "${formattedDate}" for event: ${e.title}`);
-        return {
-          id: e.id,
-          title: e.title,
-          description: e.description,
-          date: formattedDate, // Format date here before sending to AI
-          time: e.time,
-          location: e.location,
-          address: e.address,
-          price: e.price,
-          mood: e.mood,
-          music_type: e.music_type,
-          venue_size: e.venue_size,
-          external_link: e.external_link,
-          image_url: e.image_url
-        };
-      }),
+      events: events.map(e => ({
+        id: e.id,
+        title: e.title,
+        description: e.description,
+        date: formatDate(e.date), // Format date here before sending to AI
+        time: e.time,
+        location: e.location,
+        address: e.address,
+        price: e.price,
+        mood: e.mood,
+        music_type: e.music_type,
+        venue_size: e.venue_size,
+        external_link: e.external_link,
+        image_url: e.image_url
+      })),
       businesses: businesses.map(b => ({
         id: b.id,
         title: b.title,
