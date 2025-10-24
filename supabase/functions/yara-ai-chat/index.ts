@@ -256,7 +256,8 @@ RECOMMENDATION OUTPUT RULES:
 - ALSO include if available: address, music_type, external_link (Instagram)
 - Format external_link as "Instagram: [link]" in the description
 - DO NOT include price or venue_size in description - these can be provided later if user asks for more details
-- ALWAYS include "why_recommended" field explaining specifically WHY this event matches their request (e.g., "This event matches because the description mentions 'party' which you asked for")
+- ALWAYS include "why_recommended" field explaining specifically WHY this event matches their request
+- **CRITICAL for why_recommended**: Base your explanation on BOTH the event title AND description. If the match is in the description (e.g., user asked for "party" and event description mentions "party celebration"), explicitly mention this in your explanation: "This matches because the event description mentions '[keyword]' which you asked for"
 - Use user profile (budget, neighborhoods, interests) to further personalize
 - If no relevant database events exist, return empty array with a friendly message like "I couldn't find matching events in our database right now"
 
