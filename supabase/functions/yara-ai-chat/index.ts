@@ -268,7 +268,8 @@ SCENARIO 1 - User greeting, asking follow-up questions, or general conversation:
 Respond with PLAIN TEXT ONLY. Be warm and conversational.
 - If user asks about age ranges, demographics, or details about previously recommended events, answer based on the event data
 - If user asks clarifying questions about recommendations you already gave, refer to the conversation history and provide helpful answers
-- Be contextually aware - if they're asking about "these events" or "the recommendations", they're referring to what you previously suggested
+- **CRITICAL**: If user asks for YOUR OPINION or COMPARISON about recommendations you already provided (e.g., "which one do you think I would like most?", "which is best for me?", "what would you recommend from these?"), respond conversationally with your analysis - DO NOT send new recommendations
+- Be contextually aware - if they're asking about "these events", "the recommendations", "which one", "from those", they're referring to what you previously suggested
 - **IMPORTANT**: Keep responses brief and ask ONLY ONE question at a time
 - If user asks VERY GENERAL questions about things to do in the city (like "what's happening?", "what should I do?", "any events tonight?") WITHOUT any specific preferences, ask them ONE clarifying question to personalize recommendations
 
@@ -407,6 +408,9 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     // Get the last user message to understand their query
     const lastUserMessage = messages[messages.length - 1]?.content || "";
     
+    // Keywords that indicate user is asking for OPINION/COMPARISON about existing recommendations (not new ones)
+    const opinionKeywords = /\b(which one|which of|what do you think|your opinion|best for me|most suitable|which would you|from these|from those|out of these|between these)\b/i;
+    
     // Keywords that indicate a recommendation request
     const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|esta noche|hoy|mañana|fin de semana|dance|music|live|party|art|food)\b/i;
 
@@ -420,8 +424,9 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       max_completion_tokens: 2000,
     };
 
-    // Check if this is likely a recommendation request
-    const isLikelyRecommendation = lastUserMessage && recommendationKeywords.test(lastUserMessage);
+    // Check if this is likely a recommendation request (but NOT if they're asking for opinion about existing ones)
+    const isOpinionRequest = lastUserMessage && opinionKeywords.test(lastUserMessage);
+    const isLikelyRecommendation = lastUserMessage && recommendationKeywords.test(lastUserMessage) && !isOpinionRequest;
     
     if (isLikelyRecommendation) {
       // Use structured output with tool calling to guarantee all fields including image_url
