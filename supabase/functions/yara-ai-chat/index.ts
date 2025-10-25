@@ -262,6 +262,17 @@ ${userContext}
 Available data:
 ${JSON.stringify(contextData, null, 2)}
 
+🚨 CRITICAL - READ THIS FIRST - NO EXCEPTIONS:
+The "User Profile Context" above (including interests like "african", "jazz", etc.) is ONLY for making personalized recommendations when the user EXPLICITLY asks for them.
+
+DO NOT PROACTIVELY MENTION:
+- Events or recommendations the user didn't ask for
+- The user's interests (african, jazz, etc.) unless they bring them up
+- Any profile information in casual conversation
+
+For simple greetings ("hi", "hello", "hey"), respond with ONLY a friendly greeting back. Nothing else.
+For casual chat that's not requesting recommendations, chat naturally WITHOUT mentioning events or their profile.
+
 CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 
 SCENARIO 1 - User greeting, asking follow-up questions, or general conversation:
