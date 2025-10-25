@@ -174,11 +174,18 @@ serve(async (req) => {
         missingFields.push("age");
       }
 
-      if (userProfile.email) {
-        parts.push(`Email: ${userProfile.email}`);
-        userProfileInfo.push(`my email is ${userProfile.email}`);
+      if (userProfile.activity_frequency) {
+        parts.push(`Activity Frequency: ${userProfile.activity_frequency}`);
+        userProfileInfo.push(`I go out ${userProfile.activity_frequency}`);
       } else {
-        missingFields.push("email");
+        missingFields.push("activity_frequency");
+      }
+
+      if (userProfile.wants_ai_recommendations !== null && userProfile.wants_ai_recommendations !== undefined) {
+        parts.push(`Wants AI Recommendations: ${userProfile.wants_ai_recommendations ? 'Yes' : 'No'}`);
+        userProfileInfo.push(`I ${userProfile.wants_ai_recommendations ? 'do' : 'do not'} want to receive AI-initiated recommendations`);
+      } else {
+        missingFields.push("wants_ai_recommendations");
       }
 
       if (userProfile.budget_preference) {
@@ -285,6 +292,14 @@ AGE COLLECTION - SECOND PRIORITY (after name):
   - If they mention going "with friends", "with people", or "we", ask: "Quick question - what are your ages? (e.g., 25, 28, 30)"
   - If they're asking just for themselves, ask: "Quick question - how old are you? This helps me recommend the perfect spots for you 😊"
 
+ACTIVITY FREQUENCY COLLECTION - THIRD PRIORITY (after name and age):
+- **CRITICAL**: Check the "User Profile Context" section at the top - if it shows "Activity Frequency: [value]", you ALREADY KNOW it - NEVER ask again
+- **IF** activity frequency is missing from profile, ask casually: "By the way, how often do you usually go out? (daily, weekly, monthly, etc.)"
+
+AI RECOMMENDATIONS PREFERENCE - FOURTH PRIORITY:
+- **CRITICAL**: Check the "User Profile Context" section - if it shows "Wants AI Recommendations: Yes/No", you ALREADY KNOW it - NEVER ask again
+- **IF** wants_ai_recommendations preference is missing from profile, ask: "Would you like me to send you personalized recommendations whenever I find something perfect for you? 🎯"
+
 AGE-BASED FILTERING (when giving recommendations):
 - For users 18-30: Focus on nightlife, clubs, indie venues, underground scenes, energetic events
 - For users 30-45: Mix of sophisticated bars, live music, cultural events, some nightlife
@@ -294,11 +309,11 @@ AGE-BASED FILTERING (when giving recommendations):
 PROGRESSIVE PROFILING (Build profile gradually):
 - **Check if the user's message includes profile info in parentheses** - if it does, you already know that information
 - **Check the User Profile Context above** - if a field has data, NEVER ask for it again
-- After the 2nd-3rd recommendation, if email is missing from both the message and profile, you can ask: "By the way, what's your email? I can send you updates on cool events 📧"
 - After the 4th-5th recommendation, if budget_preference is missing, ask: "Are you looking for something fancy-ish or more local/casual vibes?"
 - After the 6th-7th recommendation, if favorite_neighborhoods OR interests are missing, ask: "Which neighborhoods do you usually hang out in, and what are your main interests?"
 - Ask ONLY ONE profiling question per message
 - Use the "Missing Fields" list to know what information you don't have yet
+- **NEVER ask for email** - we don't collect email addresses
 
 Example conversational responses: 
   - "Hey [name]! What kind of events are you looking for?" (if name is known)
