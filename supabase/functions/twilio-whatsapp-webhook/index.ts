@@ -132,6 +132,34 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Send immediate "Thinking.." feedback for non-welcome messages
+    if (!shouldSendWelcome) {
+      const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
+
+      // Send thinking message immediately via Twilio API
+      const thinkingMessage = 'Thinking..';
+      
+      try {
+        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            From: twilioWhatsAppNumber,
+            To: from,
+            Body: thinkingMessage
+          })
+        });
+        console.log('Sent "Thinking.." message');
+      } catch (error) {
+        console.error('Error sending thinking message:', error);
+      }
+    }
+
     // Detect and store user information from message
     if (whatsappUser) {
       const updates: any = {};
