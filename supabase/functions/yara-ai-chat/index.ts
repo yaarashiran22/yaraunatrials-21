@@ -197,13 +197,14 @@ serve(async (req) => {
 
       if (userProfile.interests?.length) {
         parts.push(`Interests: ${userProfile.interests.join(", ")}`);
-        userProfileInfo.push(`I'm interested in ${userProfile.interests.join(", ")}`);
+        userProfileInfo.push(`my interests are ${userProfile.interests.join(", ")}`);
       } else {
         missingFields.push("interests");
       }
 
       if (userProfile.recommendation_count !== undefined) {
         parts.push(`Recommendations given: ${userProfile.recommendation_count}`);
+        userProfileInfo.push(`you've given me ${userProfile.recommendation_count} recommendations so far`);
       }
 
       if (parts.length > 0) {
@@ -347,6 +348,7 @@ REQUIRED JSON FORMAT:
       "title": "Event Title",
       "description": "Location: [location]. Address: [address if available]. Date: [date - already formatted, use as-is]. Time: [time]. Music Type: [music_type if available]. Instagram: [external_link if available]. Brief description.",
       "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
+      "personalized_note": "CRITICAL - A custom personal message based on their profile data (age, budget, interests, neighborhoods). Examples: 'Perfect for your age group (33) and high budget preference', 'This matches your interest in jazz and is in your favorite neighborhood Palermo', 'Great for someone your age (25) looking for affordable nightlife'. ALWAYS reference specific profile data when available.",
       "image_url": "full-image-url"
     }
   ]
@@ -372,6 +374,13 @@ RECOMMENDATION OUTPUT RULES:
 - DO NOT include price or venue_size in description - these can be provided later if user asks for more details
 - ALWAYS include "why_recommended" field explaining specifically WHY this event matches their request
 - **CRITICAL for why_recommended**: Base your explanation on BOTH the event title AND description. If the match is in the description (e.g., user asked for "party" and event description mentions "party celebration"), explicitly mention this in your explanation: "This matches because the event description mentions '[keyword]' which you asked for"
+- **CRITICAL - NEW FIELD "personalized_note"**: MUST include a personalized message that references their specific profile data:
+  - If you know their age, mention it: "Perfect for your age group (${userProfile?.age})"
+  - If you know their budget preference, reference it: "Great ${userProfile?.budget_preference} budget option"
+  - If you know their interests, connect them: "Matches your interest in ${userProfile?.interests}"
+  - If you know their favorite neighborhoods, mention if event is there: "Located in your favorite area ${userProfile?.favorite_neighborhoods}"
+  - Combine multiple profile attributes when relevant: "Ideal for someone ${userProfile?.age} years old with ${userProfile?.budget_preference} budget who loves ${userProfile?.interests}"
+  - This field is MANDATORY and must be personalized based on actual profile data available
 - Use user profile (budget, neighborhoods, interests) to further personalize
 - If no relevant database events exist, return empty array with a friendly message like "I couldn't find matching events in our database right now"
 

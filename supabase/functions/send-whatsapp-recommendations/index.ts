@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Build message with why_recommended if available
+      // Build message with why_recommended and personalized_note if available
       // Make date and time bold in the description
       let formattedDescription = rec.description;
       if (formattedDescription) {
@@ -96,6 +96,12 @@ Deno.serve(async (req) => {
       }
       
       let messageBody = `*${rec.title}*\n\n${formattedDescription}`;
+      
+      // Add personalized note if available
+      if (rec.personalized_note) {
+        messageBody += `\n\n✨ *Just for you:* ${rec.personalized_note}`;
+      }
+      
       if (rec.why_recommended) {
         messageBody += `\n\n💡 ${rec.why_recommended}`;
       }
