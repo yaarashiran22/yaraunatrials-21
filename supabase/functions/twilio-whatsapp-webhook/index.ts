@@ -423,6 +423,9 @@ Deno.serve(async (req) => {
       const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
       
+      // Get recommendations array FIRST
+      const recs = parsedResponse.recommendations;
+      
       // Ensure both numbers have whatsapp: prefix
       const fromWhatsApp = twilioWhatsAppNumber.startsWith('whatsapp:') 
         ? twilioWhatsAppNumber 
@@ -432,8 +435,6 @@ Deno.serve(async (req) => {
         : `whatsapp:${from}`;
       
       console.log(`Will send ${recs.length} events from ${fromWhatsApp} to ${toWhatsApp}`);
-      
-      const recs = parsedResponse.recommendations;
       
       // Use EdgeRuntime.waitUntil for proper background execution
       EdgeRuntime.waitUntil(
