@@ -262,17 +262,6 @@ ${userContext}
 Available data:
 ${JSON.stringify(contextData, null, 2)}
 
-🚨 CRITICAL - READ THIS FIRST - NO EXCEPTIONS:
-The "User Profile Context" above (including interests like "african", "jazz", etc.) is ONLY for making personalized recommendations when the user EXPLICITLY asks for them.
-
-DO NOT PROACTIVELY MENTION:
-- Events or recommendations the user didn't ask for
-- The user's interests (african, jazz, etc.) unless they bring them up
-- Any profile information in casual conversation
-
-For simple greetings ("hi", "hello", "hey"), respond with ONLY a friendly greeting back. Nothing else.
-For casual chat that's not requesting recommendations, chat naturally WITHOUT mentioning events or their profile.
-
 CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 
 SCENARIO 1 - User greeting, asking follow-up questions, or general conversation:
@@ -378,7 +367,8 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 
 RECOMMENDATION OUTPUT RULES:
 - Return MAXIMUM 6 recommendations total from the database
-- Only include items with image_url
+- **CRITICAL**: ONLY include events/items that have an image_url field - never recommend anything without an image
+- **CRITICAL**: You MUST include the "image_url" field in EVERY recommendation in your JSON response - this is the event's photo that will be sent via WhatsApp
 - Keep description under 100 words
 - ALWAYS include in description: location, date (already formatted as 'Month DDth', use as-is), time
 - ALSO include if available: address, music_type, external_link (Instagram)
@@ -416,7 +406,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     if (!response.ok) {
       const error = await response.text();
       console.error("OpenAI API error:", response.status, error);
-      throw new Error(`OpenAI API error: ${response.status} - ${error}`);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     // Get the complete message
@@ -529,9 +519,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     );
   } catch (error) {
     console.error("Error in yara-ai-chat:", error);
-    console.error("Error details:", JSON.stringify(error, null, 2));
-    console.error("Error stack:", error.stack);
-    return new Response(JSON.stringify({ error: error.message || "Unknown error occurred" }), {
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
