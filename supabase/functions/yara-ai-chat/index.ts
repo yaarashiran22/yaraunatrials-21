@@ -493,143 +493,15 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       throw new Error(`Lovable AI error: ${response.status}`);
     }
 
-    // Get the complete message
-    const data = await response.json();
-    
-    // Check if we got a tool call response (structured recommendations)
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    let message: string;
-    
-    if (toolCall && toolCall.function?.name === "provide_recommendations") {
-      // Parse the structured output
-      const functionArgs = JSON.parse(toolCall.function.arguments);
-      message = JSON.stringify(functionArgs);
-      console.log("AI response (structured):", message);
-    } else {
-      // Regular conversational response
-      message = data.choices?.[0]?.message?.content || "";
-      console.log("AI response (conversational):", message);
-    }
-
-
-    // Check if this is a recommendations response
-    if (message.includes('"recommendations"')) {
-      try {
-        // Try to extract JSON from the message if it exists
-        let jsonStr = message;
-        const jsonStart = message.indexOf("{");
-        const jsonEnd = message.lastIndexOf("}");
-        if (jsonStart !== -1 && jsonEnd !== -1) {
-          jsonStr = message.substring(jsonStart, jsonEnd + 1);
-        }
-        const parsed = JSON.parse(jsonStr);
-
-        // CRITICAL: Filter out any recommendations without valid image_url
-        if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
-          const originalCount = parsed.recommendations.length;
-          parsed.recommendations = parsed.recommendations.filter((rec: any) => {
-            const hasValidImage = rec.image_url && rec.image_url.trim() !== '';
-            if (!hasValidImage) {
-              console.log(`⚠️ Filtering out recommendation "${rec.title}" - missing image_url`);
-            }
-            return hasValidImage;
-          });
-          
-          if (parsed.recommendations.length < originalCount) {
-            console.log(`🔍 Filtered ${originalCount - parsed.recommendations.length} recommendations without images. Keeping ${parsed.recommendations.length} with valid images.`);
-          }
-          
-          // Update the message with filtered recommendations
-          message = JSON.stringify(parsed);
-        }
-
-        // Track database recommendations in background
-        if (
-          phoneNumber &&
-          parsed.recommendations &&
-          Array.isArray(parsed.recommendations) &&
-          parsed.recommendations.length > 0
-        ) {
-          const interactions = parsed.recommendations.map((rec: any) => ({
-            phone_number: phoneNumber,
-            item_type: rec.type,
-            item_id: rec.id,
-            interaction_type: "recommended",
-          }));
-          supabase.from("whatsapp_user_interactions").insert(interactions).then();
-
-          console.log(`Tracked ${parsed.recommendations.length} database event recommendations`);
-        }
-      } catch (e) {
-        console.log("Could not parse recommendations:", e);
-      }
-    }
-
-    // Only split regular conversational text, NOT JSON recommendations
-    const MAX_CHARS = 1500;
-    let messagesToSend = [];
-
-    // Check if message contains JSON recommendations (don't split these)
-    const hasRecommendations = message.includes('"recommendations"');
-
-    if (!hasRecommendations && message.length > MAX_CHARS) {
-      // Only split regular text messages
-      console.log(`Message length ${message.length} exceeds ${MAX_CHARS}, splitting text...`);
-
-      // Split by sentences to avoid breaking mid-sentence
-      const sentences = message.match(/[^.!?]+[.!?]+/g) || [message];
-      let currentChunk = "";
-
-      for (const sentence of sentences) {
-        // Check if this sentence contains a link
-        const urlPattern = /(https?:\/\/[^\s]+)/g;
-        const hasLink = urlPattern.test(sentence);
-
-        if ((currentChunk + sentence).length > MAX_CHARS) {
-          if (currentChunk) {
-            // If the sentence contains a link, move entire sentence to next chunk
-            if (hasLink) {
-              messagesToSend.push(currentChunk.trim());
-              currentChunk = sentence;
-            } else {
-              messagesToSend.push(currentChunk.trim());
-              currentChunk = sentence;
-            }
-          } else {
-            // Single sentence is too long
-            if (hasLink) {
-              // Don't split sentences with links
-              messagesToSend.push(sentence.trim());
-              currentChunk = "";
-            } else {
-              messagesToSend.push(sentence.substring(0, MAX_CHARS).trim());
-              currentChunk = sentence.substring(MAX_CHARS);
-            }
-          }
-        } else {
-          currentChunk += sentence;
-        }
-      }
-
-      if (currentChunk) {
-        messagesToSend.push(currentChunk.trim());
-      }
-
-      console.log(`Split text into ${messagesToSend.length} messages`);
-    } else {
-      // Don't split: either it's short enough OR it contains JSON recommendations
-      messagesToSend = [message];
-    }
-
-    return new Response(
-      JSON.stringify({
-        message: messagesToSend.length === 1 ? message : messagesToSend[0],
-        messages: messagesToSend.length > 1 ? messagesToSend : undefined,
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Stream the response directly to the client
+    return new Response(response.body, {
+      headers: { 
+        ...corsHeaders, 
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive"
       },
-    );
+    });
   } catch (error) {
     console.error("Error in yara-ai-chat:", error);
     return new Response(JSON.stringify({ error: error.message }), {
