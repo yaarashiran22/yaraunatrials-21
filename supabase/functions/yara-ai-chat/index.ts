@@ -14,13 +14,10 @@ serve(async (req) => {
 
   try {
     const { messages, stream = true, userProfile = null, phoneNumber = null } = await req.json();
-    
-    // Check for Lovable AI key first
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
-    if (!lovableApiKey && !openAIApiKey) {
-      throw new Error("No API key configured (LOVABLE_API_KEY or OPENAI_API_KEY)");
+    if (!lovableApiKey) {
+      throw new Error("Lovable API key not configured");
     }
 
     // Initialize Supabase client
@@ -85,29 +82,29 @@ serve(async (req) => {
       }
     };
 
-    // Fetch relevant data from database with image URLs - LIMIT TO REDUCE AI PROCESSING TIME
+    // Fetch relevant data from database with image URLs
     // Include recurring events by checking if date contains "every" OR is >= today
     const [eventsResult, itemsResult, couponsResult] = await Promise.all([
       supabase
         .from("events")
         .select(
-          "id, title, description, date, time, location, address, music_type, image_url",
+          "id, title, description, date, time, location, address, price, mood, music_type, venue_size, external_link, image_url",
         )
         .or(`date.gte.${today},date.ilike.%every%`)
         .order("date", { ascending: true })
-        .limit(30), // Reduced from 50 for faster processing
+        .limit(50),
       supabase
         .from("items")
-        .select("id, title, description, category, location, image_url")
+        .select("id, title, description, category, location, price, image_url")
         .eq("status", "active")
         .order("created_at", { ascending: false })
-        .limit(20), // Reduced from 50
+        .limit(50),
       supabase
         .from("user_coupons")
-        .select("id, title, description, business_name, discount_amount, neighborhood, image_url")
+        .select("id, title, description, business_name, discount_amount, neighborhood, valid_until, image_url")
         .eq("is_active", true)
         .order("created_at", { ascending: false })
-        .limit(20), // Reduced from 50
+        .limit(50),
     ]);
 
     const events = eventsResult.data || [];
@@ -257,42 +254,7 @@ serve(async (req) => {
       }
     }
 
-    const systemPrompt = `You are Yara, a friendly AI assistant for Buenos Aires events and experiences.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠️ CRITICAL INSTRUCTION - READ THIS FIRST ⚠️
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-WHEN TO RETURN JSON (and ONLY JSON):
-If the user's message contains ANY of these words/phrases:
-"party", "parties", "event", "events", "bar", "bars", "club", "clubs", "workshop", "workshops", "show me", "looking for", "find", "recommend", "suggest", "what's", "any", "tonight", "today", "tomorrow", "weekend"
-
-→ YOU MUST return ONLY this JSON structure (NO other text):
-{
-  "intro_message": "Brief friendly intro",
-  "recommendations": [{
-    "type": "event",
-    "id": "event-uuid",
-    "title": "Event Name",
-    "description": "Location: X. Address: Y. Date: Z. Time: W. Brief description.",
-    "why_recommended": "Why this matches their request",
-    "personalized_note": "Personal note based on their age/interests",
-    "image_url": "https://full-image-url.jpeg"
-  }]
-}
-
-FORBIDDEN when returning recommendations:
-❌ "Here are some parties:"
-❌ Any text before the {
-❌ Any text after the }
-❌ Markdown formatting
-❌ Numbered lists
-
-WHEN TO RETURN CONVERSATIONAL TEXT:
-Only for: greetings, follow-up questions, profile questions
-→ Return friendly conversational text
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const systemPrompt = `You are Yara, a friendly AI assistant for Buenos Aires events and experiences. Use emojis naturally to add warmth (1-2 per message), but don't overdo it.
 
 Today's date is: ${today}
 ${userContext}
@@ -300,7 +262,7 @@ ${userContext}
 Available data:
 ${JSON.stringify(contextData, null, 2)}
 
-RESPONSE SCENARIOS:
+CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 
 SCENARIO 1 - User greeting, asking follow-up questions, or general conversation:
 Respond with PLAIN TEXT ONLY. Be warm and conversational.
@@ -317,13 +279,11 @@ NAME COLLECTION - FIRST PRIORITY:
 - Once they provide their name, greet them by name and continue with the conversation
 
 AGE COLLECTION - SECOND PRIORITY (after name):
-- **CRITICAL - READ THIS CAREFULLY**: Look at the VERY TOP of this prompt where it says "User Profile Context:"
-- **IF IT SHOWS "Age: 25" (or any number)** → You ALREADY KNOW their age - ABSOLUTELY DO NOT ASK FOR IT AGAIN
-- **IF the User Profile Context shows an age** → NEVER EVER ask "how old are you?" or "what's your age?" 
-- **ONLY ask for age IF**:
-  1. The "User Profile Context" section does NOT show any age, AND
-  2. They're requesting recommendations
-- If you need to ask: "Quick question - how old are you? This helps me recommend the perfect spots for you 😊"
+- **CRITICAL**: Check the "User Profile Context" section at the top - if it shows "Age: [number]", you ALREADY KNOW their age - NEVER ask for it
+- **IF** the user's message includes their age in parentheses (e.g., "I'm 33 years old"), you ALREADY KNOW their age - DO NOT ask for it
+- **IF** the User Profile Context does NOT show an age AND their message does NOT include age AND they request recommendations, ask for age:
+  - If they mention going "with friends", "with people", or "we", ask: "Quick question - what are your ages? (e.g., 25, 28, 30)"
+  - If they're asking just for themselves, ask: "Quick question - how old are you? This helps me recommend the perfect spots for you 😊"
 
 AGE-BASED FILTERING (when giving recommendations):
 - For users 18-30: Focus on nightlife, clubs, indie venues, underground scenes, energetic events
@@ -346,32 +306,18 @@ Example conversational responses:
   - "That event is in Palermo, near Plaza Serrano"
   - "I'd love to help! To give you the best recommendations - what's your vibe tonight?"
 
-SCENARIO 2 - User wants recommendations:
-**THIS IS YOUR PRIMARY FUNCTION - FOLLOW THIS EXACTLY:**
+SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, etc.):
+**ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST return PURE JSON ONLY.
 
-If user message contains ANY of these keywords, you MUST return ONLY JSON:
-- "recommendations", "recommend", "suggest", "events", "bars", "clubs", "venues", "places"
-- "show me", "looking for", "find me", "what's", "any", "some"
-- "tonight", "today", "this week", "weekend", "tomorrow", "parties", "workshops"
+DETECTION KEYWORDS FOR JSON RESPONSE (if user message contains ANY of these, return JSON):
+- "recommendations", "recommend", "suggest"
+- "events", "bars", "clubs", "venues", "places"
+- "show me", "looking for", "find me", "what's", "any"
+- "tonight", "today", "this week", "weekend", "tomorrow", "next week"
+- "dance", "music", "live", "party", "art", "food"
+- Spanish: "esta noche", "hoy", "mañana", "próxima semana", "semana que viene", "fin de semana"
 
-**YOU MUST RETURN PURE JSON - NO TEXT BEFORE OR AFTER:**
-- Start with { 
-- End with }
-- NO conversational text
-- NO markdown
-- NO explanations
-- NO "Here are some..." text
-- JUST the raw JSON object
-
-**ABSOLUTELY FORBIDDEN:**
-❌ "Here are some parties you might enjoy: {json}"
-❌ "Yes! Here are recommendations..."  
-❌ Any text before the {
-❌ Any text after the }
-❌ Markdown formatting like **bold**
-❌ Lists like "1. Event Name"
-
-**REQUIRED FORMAT - COPY THIS STRUCTURE EXACTLY:**
+**IMPORTANT**: ONLY return JSON if age is already collected. If age is missing, respond with conversational text asking for age first.
 
 **DATE FILTERING - CRITICAL:**
 You MUST calculate the correct date based on user's request and filter events accordingly.
@@ -393,21 +339,27 @@ Date calculation rules (today is ${today}):
 5. Start with { and end with }
 6. Return ONLY the raw JSON object
 
-REQUIRED JSON FORMAT:
+REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY:
 {
   "intro_message": "Here are some [type] you might like:",
   "recommendations": [
     {
       "type": "event",
-      "id": "actual-event-id",
-      "title": "Event Title",
+      "id": "actual-event-id-from-database",
+      "title": "Event Title from database",
       "description": "Location: [location]. Address: [address if available]. Date: [date - already formatted, use as-is]. Time: [time]. Music Type: [music_type if available]. Instagram: [external_link if available]. Brief description.",
       "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
       "personalized_note": "CRITICAL - A custom personal message based on their profile data (age, budget, interests, neighborhoods). Examples: 'Perfect for your age group (33) and high budget preference', 'This matches your interest in jazz and is in your favorite neighborhood Palermo', 'Great for someone your age (25) looking for affordable nightlife'. ALWAYS reference specific profile data when available.",
-      "image_url": "full-image-url"
+      "image_url": "CRITICAL - YOU MUST COPY THE EXACT image_url VALUE FROM THE DATABASE EVENT - this is the event photo URL that will be sent via WhatsApp. DO NOT omit this field or the images won't be sent!"
     }
   ]
 }
+
+**CRITICAL IMAGE_URL REQUIREMENT:**
+- The "image_url" field is MANDATORY for every recommendation
+- Copy the EXACT image_url value from the event data in the database
+- If an event has no image_url in the database, DO NOT include that event in recommendations
+- The image_url will be used to send the event photo via WhatsApp, so it MUST be present
 
 RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 1. **CRITICAL: Search BOTH title AND description equally** - if user asks for "party", check if "party" appears in EITHER the title OR the description. Example: event with title "Night Out" and description "Join us for a party at..." MUST match "party" search
@@ -418,12 +370,6 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 6. **Be inclusive, not exclusive** - if user asks for a general category like "workshops", "bars", or "party", include ALL events that contain those words in title OR description
 7. **Don't force matches only when truly unrelated** - if user asks for "jazz concerts" and there are no music events at all, DON'T recommend food events. But if they ask for "party" and an event description mentions "party", ALWAYS recommend it
 8. **Exact keyword matches win** - if an event title OR description contains the exact words the user used, prioritize it
-9. **ABSOLUTELY CRITICAL - USER INTERESTS ARE FOR PERSONALIZATION, NOT FILTERING**: 
-   - If user asks for "parties", show ALL parties from the database, NOT just parties matching their interests
-   - If user asks for "workshops", show ALL workshops, NOT just ones related to their interests
-   - User interests (like "african", "jazz", etc.) should ONLY be used to add personalized context in the "personalized_note" field
-   - NEVER filter out results because they don't match user interests - show everything that matches their query
-   - Example: User with interest "african" asks for "parties" → Show ALL parties, then in personalized_note you can mention if any happen to align with their interests
 
 RECOMMENDATION OUTPUT RULES:
 - Return MAXIMUM 6 recommendations total from the database
@@ -448,41 +394,113 @@ RECOMMENDATION OUTPUT RULES:
 
 CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.`;
 
-    // Call AI with Lovable AI Gateway (Claude for better instruction following)
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    // Get the last user message to understand their query
+    const lastUserMessage = messages[messages.length - 1]?.content || "";
     
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY not configured');
+    // Keywords that indicate a recommendation request
+    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|esta noche|hoy|mañana|fin de semana|dance|music|live|party|art|food)\b/i;
+
+    // Build request body
+    const requestBody: any = {
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...enrichedMessages,
+      ],
+      max_completion_tokens: 2000,
+    };
+
+    // Check if this is likely a recommendation request
+    const isLikelyRecommendation = lastUserMessage && recommendationKeywords.test(lastUserMessage);
+    
+    if (isLikelyRecommendation) {
+      // Use structured output with tool calling to guarantee all fields including image_url
+      requestBody.tools = [
+        {
+          type: "function",
+          function: {
+            name: "provide_recommendations",
+            description: "Provide event, business, or coupon recommendations to the user",
+            parameters: {
+              type: "object",
+              properties: {
+                intro_message: {
+                  type: "string",
+                  description: "A friendly intro message like 'Here are some events you might like:'"
+                },
+                recommendations: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      type: { type: "string", enum: ["event", "business", "coupon"] },
+                      id: { type: "string", description: "The actual ID from the database" },
+                      title: { type: "string", description: "The event/item title from the database" },
+                      description: { type: "string", description: "Location, address, date, time, and other details" },
+                      why_recommended: { type: "string", description: "Why this matches their request" },
+                      personalized_note: { type: "string", description: "Personal message based on their profile" },
+                      image_url: { type: "string", description: "REQUIRED - The exact image_url from the database event" }
+                    },
+                    required: ["type", "id", "title", "description", "why_recommended", "personalized_note", "image_url"],
+                    additionalProperties: false
+                  }
+                }
+              },
+              required: ["intro_message", "recommendations"],
+              additionalProperties: false
+            }
+          }
+        }
+      ];
+      requestBody.tool_choice = { type: "function", function: { name: "provide_recommendations" } };
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${lovableApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash", // Fast model for quick responses
-        messages: [{ role: "system", content: systemPrompt }, ...enrichedMessages],
-        max_tokens: 2000, // Increased for complete responses
-        stream: false,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("OpenAI API error:", response.status, error);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error("Lovable AI error:", response.status, error);
+      
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "AI credits exhausted. Please contact support." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      throw new Error(`Lovable AI error: ${response.status}`);
     }
 
     // Get the complete message
     const data = await response.json();
-    let message = data.choices?.[0]?.message?.content || "";
+    
+    // Check if we got a tool call response (structured recommendations)
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    let message: string;
+    
+    if (toolCall && toolCall.function?.name === "provide_recommendations") {
+      // Parse the structured output
+      const functionArgs = JSON.parse(toolCall.function.arguments);
+      message = JSON.stringify(functionArgs);
+      console.log("AI response (structured):", message);
+    } else {
+      // Regular conversational response
+      message = data.choices?.[0]?.message?.content || "";
+      console.log("AI response (conversational):", message);
+    }
 
-    console.log("AI response:", message);
-
-    // Get the last user message to understand their query
-    const lastUserMessage = messages[messages.length - 1]?.content || "";
 
     // Check if this is a recommendations response
     if (message.includes('"recommendations"')) {

@@ -417,104 +417,28 @@ Deno.serve(async (req) => {
       // Send intro via TwiML immediately
       console.log('Sending intro message via TwiML...');
       
-      // Send recommendations with images via Twilio API in background
-      console.log('Scheduling recommendations to send via Twilio API...');
-      
-      const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-      const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-      
-      // Get recommendations array FIRST
-      const recs = parsedResponse.recommendations;
-      
-      // Ensure both numbers have whatsapp: prefix
-      const fromWhatsApp = twilioWhatsAppNumber.startsWith('whatsapp:') 
-        ? twilioWhatsAppNumber 
-        : `whatsapp:${twilioWhatsAppNumber}`;
-      const toWhatsApp = from.startsWith('whatsapp:') 
-        ? from 
-        : `whatsapp:${from}`;
-      
-      console.log(`Will send ${recs.length} events from ${fromWhatsApp} to ${toWhatsApp}`);
-      
-      // Use EdgeRuntime.waitUntil for proper background execution
-      EdgeRuntime.waitUntil(
-        (async () => {
-          // Reduced delay for faster delivery
-          await new Promise(resolve => setTimeout(resolve, 300));
+      // Use EdgeRuntime.waitUntil for proper background task handling
+      console.log('Triggering send-whatsapp-recommendations function...');
+      EdgeRuntime.waitUntil((async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke('send-whatsapp-recommendations', {
+            body: {
+              recommendations: parsedResponse.recommendations,
+              toNumber: from,
+              fromNumber: twilioWhatsAppNumber,
+              introText: null // Don't send intro from background - already sent via TwiML
+            }
+          });
           
-          for (let i = 0; i < recs.length; i++) {
-            const rec = recs[i];
-            
-            if (!rec.title || !rec.description) {
-              console.log(`❌ Skipping recommendation ${i + 1}: missing title or description`);
-              continue;
-            }
-
-            // Build message with formatting
-            let formattedDescription = rec.description;
-            if (formattedDescription) {
-              formattedDescription = formattedDescription.replace(/Date: ([^\n.]+)/gi, '*Date: $1*');
-              formattedDescription = formattedDescription.replace(/Time: ([^\n.]+)/gi, '*Time: $1*');
-            }
-            
-            let messageBody = `*${rec.title}*\n\n${formattedDescription}`;
-            
-            if (rec.personalized_note) {
-              messageBody += `\n\n✨ ${rec.personalized_note}`;
-            }
-            
-            if (rec.why_recommended) {
-              messageBody += `\n\n💡 ${rec.why_recommended}`;
-            }
-            
-            try {
-              const requestBody: Record<string, string> = {
-                From: fromWhatsApp,
-                To: toWhatsApp,
-                Body: messageBody
-              };
-              
-              // CRITICAL: Add image URL as MediaUrl so it displays in WhatsApp
-              if (rec.image_url) {
-                requestBody.MediaUrl = rec.image_url;
-                console.log(`[${i + 1}/${recs.length}] 📤 Sending: ${rec.title}`);
-                console.log(`   🖼️  Image: ${rec.image_url}`);
-              } else {
-                console.log(`[${i + 1}/${recs.length}] ⚠️  Sending without image: ${rec.title}`);
-              }
-              
-              const twilioResponse = await fetch(
-                `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
-                {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                  },
-                  body: new URLSearchParams(requestBody).toString()
-                }
-              );
-
-              if (!twilioResponse.ok) {
-                const errorText = await twilioResponse.text();
-                console.error(`❌ Failed to send ${rec.title}: ${twilioResponse.status} - ${errorText}`);
-              } else {
-                const result = await twilioResponse.json();
-                console.log(`✅ Sent ${rec.title}. Message SID: ${result.sid}`);
-              }
-            } catch (error) {
-              console.error(`❌ Error sending ${rec.title}:`, error);
-            }
-
-            // Minimal delay between messages for faster delivery
-            if (i < recs.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 300));
-            }
+          if (error) {
+            console.error('Error invoking send-whatsapp-recommendations:', error);
+          } else {
+            console.log('Send-whatsapp-recommendations invoked successfully:', data);
           }
-          
-          console.log(`✅ Finished sending all ${recs.length} recommendations`);
-        })()
-      );
+        } catch (error) {
+          console.error('Failed to invoke send-whatsapp-recommendations:', error);
+        }
+      })());
 
       // Return intro message immediately via TwiML
       const introTwiml = `<?xml version="1.0" encoding="UTF-8"?>
