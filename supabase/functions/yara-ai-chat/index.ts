@@ -405,7 +405,7 @@ RECOMMENDATION MATCHING & OUTPUT RULES (for provide_recommendations tool):
               properties: {
                 intro_message: {
                   type: "string",
-                  description: "A friendly intro message like 'Here are some events you might like:'"
+                  description: "Write a contextual, personalized intro message that responds to the user's specific request. Match their tone and reference what they asked for (e.g., if they asked for 'jazz events this weekend', say something like 'Found some great jazz spots for you this weekend!' rather than a generic 'Here are some recommendations'). Be warm, enthusiastic, and specific to their query."
                 },
                 recommendations: {
                   type: "array",
