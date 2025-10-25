@@ -190,6 +190,66 @@ Deno.serve(async (req) => {
         console.log(`Detected email: ${emailMatch[0]}`);
       }
       
+      // Detect interests from what user wants to visit/attend
+      const interestPatterns = [
+        /(?:looking for|want to|interested in|like|love|into|attend|visit|go to|check out)\s+([a-zA-Z\s,&-]+?)(?:\.|!|\?|$|tonight|today|tomorrow|this|next)/gi,
+        /(?:show me|find me|any)\s+([a-zA-Z\s,&-]+?)(?:\s+(?:tonight|today|tomorrow|events?|bars?|clubs?|places?|in))/gi
+      ];
+      
+      let detectedInterests: string[] = [];
+      for (const pattern of interestPatterns) {
+        const matches = [...body.matchAll(pattern)];
+        for (const match of matches) {
+          if (match[1]) {
+            const interest = match[1].trim().toLowerCase();
+            // Filter out very short or common filler words
+            const skipWords = ['the', 'a', 'an', 'some', 'any', 'to', 'for', 'in', 'on', 'at', 'there', 'here'];
+            if (interest.length > 3 && !skipWords.includes(interest)) {
+              detectedInterests.push(interest);
+            }
+          }
+        }
+      }
+      
+      // Also detect specific interests from keywords
+      const interestKeywords = {
+        'techno': /\btechno\b/i,
+        'house music': /\bhouse\s+music\b/i,
+        'electronic': /\belectronic\b/i,
+        'live music': /\blive\s+music\b/i,
+        'jazz': /\bjazz\b/i,
+        'rock': /\brock\b/i,
+        'indie': /\bindie\b/i,
+        'art': /\b(art|arte|galleries|exhibitions)\b/i,
+        'theater': /\b(theater|theatre|teatro)\b/i,
+        'dance': /\b(dance|dancing|bailar)\b/i,
+        'food': /\b(food|dining|restaurants|comida)\b/i,
+        'bars': /\bbars?\b/i,
+        'clubs': /\bclubs?\b/i,
+        'nightlife': /\bnightlife\b/i,
+        'cultural events': /\bcultural\s+events?\b/i,
+        'workshops': /\bworkshops?\b/i,
+        'markets': /\b(markets?|feria)\b/i
+      };
+      
+      for (const [interest, regex] of Object.entries(interestKeywords)) {
+        if (regex.test(body)) {
+          detectedInterests.push(interest);
+        }
+      }
+      
+      // Remove duplicates and update interests
+      if (detectedInterests.length > 0) {
+        const uniqueInterests = [...new Set(detectedInterests)];
+        const currentInterests = whatsappUser.interests || [];
+        const mergedInterests = [...new Set([...currentInterests, ...uniqueInterests])];
+        
+        if (mergedInterests.length > currentInterests.length) {
+          updates.interests = mergedInterests;
+          console.log(`Detected interests:`, uniqueInterests, `| Total interests:`, mergedInterests);
+        }
+      }
+      
       // Update user profile if we detected any information
       if (Object.keys(updates).length > 0) {
         await supabase
