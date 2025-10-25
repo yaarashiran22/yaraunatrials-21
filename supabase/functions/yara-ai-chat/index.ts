@@ -14,10 +14,10 @@ serve(async (req) => {
 
   try {
     const { messages, stream = true, userProfile = null, phoneNumber = null } = await req.json();
-    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
-    if (!openAIApiKey) {
-      throw new Error("OpenAI API key not configured");
+    if (!lovableApiKey) {
+      throw new Error("Lovable API key not configured");
     }
 
     // Initialize Supabase client
@@ -394,35 +394,113 @@ RECOMMENDATION OUTPUT RULES:
 
 CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.`;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    // Get the last user message to understand their query
+    const lastUserMessage = messages[messages.length - 1]?.content || "";
+    
+    // Keywords that indicate a recommendation request
+    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|esta noche|hoy|mañana|fin de semana|dance|music|live|party|art|food)\b/i;
+
+    // Build request body
+    const requestBody: any = {
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...enrichedMessages,
+      ],
+      max_completion_tokens: 2000,
+    };
+
+    // Check if this is likely a recommendation request
+    const isLikelyRecommendation = lastUserMessage && recommendationKeywords.test(lastUserMessage);
+    
+    if (isLikelyRecommendation) {
+      // Use structured output with tool calling to guarantee all fields including image_url
+      requestBody.tools = [
+        {
+          type: "function",
+          function: {
+            name: "provide_recommendations",
+            description: "Provide event, business, or coupon recommendations to the user",
+            parameters: {
+              type: "object",
+              properties: {
+                intro_message: {
+                  type: "string",
+                  description: "A friendly intro message like 'Here are some events you might like:'"
+                },
+                recommendations: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      type: { type: "string", enum: ["event", "business", "coupon"] },
+                      id: { type: "string", description: "The actual ID from the database" },
+                      title: { type: "string", description: "The event/item title from the database" },
+                      description: { type: "string", description: "Location, address, date, time, and other details" },
+                      why_recommended: { type: "string", description: "Why this matches their request" },
+                      personalized_note: { type: "string", description: "Personal message based on their profile" },
+                      image_url: { type: "string", description: "REQUIRED - The exact image_url from the database event" }
+                    },
+                    required: ["type", "id", "title", "description", "why_recommended", "personalized_note", "image_url"],
+                    additionalProperties: false
+                  }
+                }
+              },
+              required: ["intro_message", "recommendations"],
+              additionalProperties: false
+            }
+          }
+        }
+      ];
+      requestBody.tool_choice = { type: "function", function: { name: "provide_recommendations" } };
+    }
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
+        Authorization: `Bearer ${lovableApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "system", content: systemPrompt }, ...enrichedMessages],
-        max_tokens: 800,
-        temperature: 0.8,
-        stream: false, // Disable streaming to get structured JSON response
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("OpenAI API error:", response.status, error);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error("Lovable AI error:", response.status, error);
+      
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "AI credits exhausted. Please contact support." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      throw new Error(`Lovable AI error: ${response.status}`);
     }
 
     // Get the complete message
     const data = await response.json();
-    let message = data.choices?.[0]?.message?.content || "";
+    
+    // Check if we got a tool call response (structured recommendations)
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    let message: string;
+    
+    if (toolCall && toolCall.function?.name === "provide_recommendations") {
+      // Parse the structured output
+      const functionArgs = JSON.parse(toolCall.function.arguments);
+      message = JSON.stringify(functionArgs);
+      console.log("AI response (structured):", message);
+    } else {
+      // Regular conversational response
+      message = data.choices?.[0]?.message?.content || "";
+      console.log("AI response (conversational):", message);
+    }
 
-    console.log("AI response:", message);
-
-    // Get the last user message to understand their query
-    const lastUserMessage = messages[messages.length - 1]?.content || "";
 
     // Check if this is a recommendations response
     if (message.includes('"recommendations"')) {
