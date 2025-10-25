@@ -14,10 +14,13 @@ serve(async (req) => {
 
   try {
     const { messages, stream = true, userProfile = null, phoneNumber = null } = await req.json();
+    
+    // Check for Lovable AI key first
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 
-    if (!openAIApiKey) {
-      throw new Error("OpenAI API key not configured");
+    if (!lovableApiKey && !openAIApiKey) {
+      throw new Error("No API key configured (LOVABLE_API_KEY or OPENAI_API_KEY)");
     }
 
     // Initialize Supabase client
@@ -256,16 +259,40 @@ serve(async (req) => {
 
     const systemPrompt = `You are Yara, a friendly AI assistant for Buenos Aires events and experiences.
 
-**CRITICAL INSTRUCTION - READ THIS FIRST:**
-When users ask for recommendations (parties, events, bars, workshops, etc.), you MUST respond with ONLY a JSON object. NO conversational text. NO markdown. JUST JSON starting with { and ending with }.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ CRITICAL INSTRUCTION - READ THIS FIRST ⚠️
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Example WRONG responses:
-❌ "Here are some parties you might like: 1. Event Name..."
-❌ "Yes! Here are some recommendations..."
-❌ Any text before or after JSON
+WHEN TO RETURN JSON (and ONLY JSON):
+If the user's message contains ANY of these words/phrases:
+"party", "parties", "event", "events", "bar", "bars", "club", "clubs", "workshop", "workshops", "show me", "looking for", "find", "recommend", "suggest", "what's", "any", "tonight", "today", "tomorrow", "weekend"
 
-Example CORRECT response:
-✅ {"intro_message":"Here are some parties!","recommendations":[...]}
+→ YOU MUST return ONLY this JSON structure (NO other text):
+{
+  "intro_message": "Brief friendly intro",
+  "recommendations": [{
+    "type": "event",
+    "id": "event-uuid",
+    "title": "Event Name",
+    "description": "Location: X. Address: Y. Date: Z. Time: W. Brief description.",
+    "why_recommended": "Why this matches their request",
+    "personalized_note": "Personal note based on their age/interests",
+    "image_url": "https://full-image-url.jpeg"
+  }]
+}
+
+FORBIDDEN when returning recommendations:
+❌ "Here are some parties:"
+❌ Any text before the {
+❌ Any text after the }
+❌ Markdown formatting
+❌ Numbered lists
+
+WHEN TO RETURN CONVERSATIONAL TEXT:
+Only for: greetings, follow-up questions, profile questions
+→ Return friendly conversational text
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Today's date is: ${today}
 ${userContext}
@@ -273,7 +300,7 @@ ${userContext}
 Available data:
 ${JSON.stringify(contextData, null, 2)}
 
-CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
+RESPONSE SCENARIOS:
 
 SCENARIO 1 - User greeting, asking follow-up questions, or general conversation:
 Respond with PLAIN TEXT ONLY. Be warm and conversational.
@@ -421,18 +448,24 @@ RECOMMENDATION OUTPUT RULES:
 
 CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.`;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    // Call AI with Lovable AI Gateway (Claude for better instruction following)
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY not configured');
+    }
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${openAIApiKey}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "google/gemini-2.5-flash",
         messages: [{ role: "system", content: systemPrompt }, ...enrichedMessages],
-        max_tokens: 800,
-        temperature: 0.8,
-        stream: false, // Disable streaming to get structured JSON response
+        max_tokens: 1500,
+        stream: false,
       }),
     });
 
