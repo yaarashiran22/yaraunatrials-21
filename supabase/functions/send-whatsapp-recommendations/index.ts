@@ -108,6 +108,7 @@ Deno.serve(async (req) => {
       
       try {
         console.log(`[${i + 1}/${uniqueRecs.length}] Sending: ${rec.title}`);
+        console.log(`Image URL: ${rec.image_url || 'MISSING'}`);
         
         // Build request body - only include MediaUrl if image exists
         const requestBody: Record<string, string> = {
@@ -118,6 +119,9 @@ Deno.serve(async (req) => {
         
         if (rec.image_url) {
           requestBody.MediaUrl = rec.image_url;
+          console.log(`✅ Including MediaUrl in request: ${rec.image_url}`);
+        } else {
+          console.log(`❌ WARNING: No image_url found for ${rec.title}`);
         }
         
         const twilioResponse = await fetch(

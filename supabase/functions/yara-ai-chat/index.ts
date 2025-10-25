@@ -472,6 +472,15 @@ RECOMMENDATION MATCHING & OUTPUT RULES (for provide_recommendations tool):
     if (toolCall && toolCall.function?.name === "provide_recommendations") {
       // Parse the structured output
       const functionArgs = JSON.parse(toolCall.function.arguments);
+      
+      // Log each recommendation's image_url for debugging
+      if (functionArgs.recommendations) {
+        console.log(`Tool call returned ${functionArgs.recommendations.length} recommendations`);
+        functionArgs.recommendations.forEach((rec: any, idx: number) => {
+          console.log(`Rec ${idx + 1}: ${rec.title} - image_url: ${rec.image_url || 'MISSING!'}`);
+        });
+      }
+      
       message = JSON.stringify(functionArgs);
       console.log("AI response (structured):", message);
     } else {
