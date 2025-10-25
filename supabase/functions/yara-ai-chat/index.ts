@@ -261,9 +261,24 @@ serve(async (req) => {
       }
     }
 
+    // Calculate date context for better AI understanding
+    const todayDate = new Date();
+    const dayOfWeek = todayDate.getDay(); // 0 = Sunday, 6 = Saturday
+    const nextSaturday = new Date(todayDate);
+    nextSaturday.setDate(todayDate.getDate() + ((6 - dayOfWeek + 7) % 7 || 7));
+    const nextSunday = new Date(nextSaturday);
+    nextSunday.setDate(nextSaturday.getDate() + 1);
+    
+    const dateContext = `
+Current Date Information:
+- Today is: ${today} (${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek]})
+- This weekend is: ${nextSaturday.toISOString().split('T')[0]} (Saturday) and ${nextSunday.toISOString().split('T')[0]} (Sunday)
+- When user says "this weekend" or "the weekend", they mean ${nextSaturday.toISOString().split('T')[0]} and ${nextSunday.toISOString().split('T')[0]}
+`;
+
     const systemPrompt = `You are Yara, a friendly AI assistant for Buenos Aires events and experiences. Use emojis naturally to add warmth (1-2 per message), but don't overdo it.
 
-Today's date is: ${today}
+${dateContext}
 ${userContext}
 
 Available data:
@@ -337,12 +352,14 @@ DETECTION KEYWORDS FOR JSON RESPONSE (if user message contains ANY of these, ret
 **DATE FILTERING - CRITICAL:**
 You MUST calculate the correct date based on user's request and filter events accordingly.
 
-Date calculation rules (today is ${today}):
-- "tonight" / "today" / "esta noche" / "hoy" → ${today}
-- "tomorrow" / "mañana" → calculate tomorrow's date (add 1 day to ${today})
-- "next week" / "próxima semana" / "semana que viene" → events between 7-14 days from ${today}
-- "this weekend" / "weekend" / "fin de semana" → calculate next Saturday and Sunday
-- Specific dates (e.g., "December 25", "25 de diciembre", "2025-12-25") → parse and use that exact date
+**DATE INTERPRETATION - USE THE DATE CONTEXT PROVIDED ABOVE:**
+- "tonight" / "today" / "esta noche" / "hoy" → Use today's date from the Date Context above
+- "tomorrow" / "mañana" → Add 1 day to today's date
+- "this weekend" / "weekend" / "fin de semana" / "the weekend" → Use the EXACT dates provided in "This weekend is:" from Date Context above
+- "next week" / "próxima semana" / "semana que viene" → Events 7-14 days from today
+- Specific dates (e.g., "December 25") → Parse and use that exact date
+
+**CRITICAL**: When user says "this weekend" or "the weekend", you ALREADY KNOW the exact dates from the Date Context section. DO NOT ask for clarification - use the dates provided in "This weekend is:" line.
 
 **IMPORTANT**: After calculating the target date, ONLY return events where the event date matches your calculated date or falls within the calculated date range. Filter events by date BEFORE selecting which ones to recommend.
 
