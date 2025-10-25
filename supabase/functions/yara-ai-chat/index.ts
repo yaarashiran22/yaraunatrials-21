@@ -405,7 +405,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     if (!response.ok) {
       const error = await response.text();
       console.error("OpenAI API error:", response.status, error);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      throw new Error(`OpenAI API error: ${response.status} - ${error}`);
     }
 
     // Get the complete message
@@ -518,7 +518,9 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     );
   } catch (error) {
     console.error("Error in yara-ai-chat:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("Error details:", JSON.stringify(error, null, 2));
+    console.error("Error stack:", error.stack);
+    return new Response(JSON.stringify({ error: error.message || "Unknown error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
