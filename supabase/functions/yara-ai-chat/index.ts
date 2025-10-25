@@ -123,17 +123,38 @@ serve(async (req) => {
 
     // Build user context for personalization
     let userContext = '';
+    let missingFields: string[] = [];
+    
     if (userProfile) {
       const parts = [];
+      
+      // Track what we know about the user
       if (userProfile.name) parts.push(`Name: ${userProfile.name}`);
+      else missingFields.push('name');
+      
       if (userProfile.age) parts.push(`Age: ${userProfile.age}`);
+      else missingFields.push('age');
+      
+      if (userProfile.email) parts.push(`Email: ${userProfile.email}`);
+      else missingFields.push('email');
+      
       if (userProfile.budget_preference) parts.push(`Budget: ${userProfile.budget_preference}`);
+      else missingFields.push('budget_preference');
+      
       if (userProfile.favorite_neighborhoods?.length) parts.push(`Neighborhoods: ${userProfile.favorite_neighborhoods.join(', ')}`);
+      else missingFields.push('favorite_neighborhoods');
+      
       if (userProfile.interests?.length) parts.push(`Interests: ${userProfile.interests.join(', ')}`);
+      else missingFields.push('interests');
+      
       if (userProfile.recommendation_count !== undefined) parts.push(`Recommendations given: ${userProfile.recommendation_count}`);
       
       if (parts.length > 0) {
-        userContext = `\n\nUser Profile:\n${parts.join('\n')}`;
+        userContext = `\n\nUser Profile (Information already known - DO NOT ask for this again):\n${parts.join('\n')}`;
+      }
+      
+      if (missingFields.length > 0) {
+        userContext += `\n\nMissing Profile Fields (only ask if relevant to current conversation): ${missingFields.join(', ')}`;
       }
     }
 
@@ -172,7 +193,9 @@ Respond with PLAIN TEXT ONLY. Be warm and conversational.
 - If user asks VERY GENERAL questions about things to do in the city (like "what's happening?", "what should I do?", "any events tonight?") WITHOUT any specific preferences, ask them ONE clarifying question to personalize recommendations
 
 AGE COLLECTION - HIGHEST PRIORITY:
-**CRITICAL - THIS IS NON-NEGOTIABLE**: If the user requests recommendations AND their age is not saved in the profile, you MUST ask for their age BEFORE giving any recommendations. DO NOT proceed with recommendations without age.
+**CRITICAL - THIS IS NON-NEGOTIABLE**: 
+- **IF AGE IS ALREADY IN THE USER PROFILE, DO NOT ASK FOR IT AGAIN. USE THE EXISTING AGE.**
+- If the user requests recommendations AND their age is NOT in the profile, you MUST ask for their age BEFORE giving any recommendations. DO NOT proceed with recommendations without age.
 - If they mention going "with friends", "with people", or "we", ask: "Quick question first - what are your ages? (e.g., 25, 28, 30)"
 - If they're asking just for themselves, ask: "Quick question first - how old are you? This helps me recommend the perfect spots for you 😊"
 - DO NOT give recommendations until you have age information
@@ -185,12 +208,15 @@ AGE-BASED FILTERING (when giving recommendations):
 - For users 45+: Cultural events, theaters, upscale dining, wine bars, art galleries
 - NEVER recommend age-inappropriate events (e.g., don't send 25-year-olds to retirement community events)
 
-PROGRESSIVE PROFILING (Build profile gradually - AFTER age is collected):
-- After the 2nd-3rd recommendation (when recommendation_count = 2 or 3), if name is missing, you MUST ask: "By the way, what's your name?"
-- After the 4th-5th recommendation (when recommendation_count = 4 or 5), if budget_preference is missing, ask: "Are you looking for something fancy-ish or more local/casual vibes?"
-- After the 6th-7th recommendation, if favorite_neighborhoods OR interests are missing, you MUST ask: "Which neighborhoods do you usually hang out in, and what are your main interests?"
-- These questions are MANDATORY and must be asked at the specified times
+PROGRESSIVE PROFILING (Build profile gradually - DO NOT ask for information already in the profile):
+- **ALWAYS check the User Profile section first before asking ANY question**
+- **IF a field already has data in the User Profile, NEVER ask for it again**
+- After the 2nd-3rd recommendation (when recommendation_count = 2 or 3), if name is missing from profile, you MUST ask: "By the way, what's your name?"
+- After the 4th-5th recommendation (when recommendation_count = 4 or 5), if budget_preference is missing from profile, ask: "Are you looking for something fancy-ish or more local/casual vibes?"
+- After the 6th-7th recommendation, if favorite_neighborhoods OR interests are missing from profile, you MUST ask: "Which neighborhoods do you usually hang out in, and what are your main interests?"
+- These questions are MANDATORY and must be asked at the specified times ONLY if the data is not already in the profile
 - Ask ONLY ONE profiling question per message
+- Use the "Missing Profile Fields" list to know what information you don't have yet
 
 Example conversational responses: 
   - "Hey! I'm Yara. What kind of events are you looking for?"
