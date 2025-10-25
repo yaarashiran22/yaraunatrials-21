@@ -14,10 +14,10 @@ serve(async (req) => {
 
   try {
     const { messages, stream = true, userProfile = null, phoneNumber = null } = await req.json();
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 
-    if (!lovableApiKey) {
-      throw new Error("Lovable API key not configured");
+    if (!openAIApiKey) {
+      throw new Error("OpenAI API key not configured");
     }
 
     // Initialize Supabase client
@@ -174,18 +174,11 @@ serve(async (req) => {
         missingFields.push("age");
       }
 
-      if (userProfile.activity_frequency) {
-        parts.push(`Activity Frequency: ${userProfile.activity_frequency}`);
-        userProfileInfo.push(`I go out ${userProfile.activity_frequency}`);
+      if (userProfile.email) {
+        parts.push(`Email: ${userProfile.email}`);
+        userProfileInfo.push(`my email is ${userProfile.email}`);
       } else {
-        missingFields.push("activity_frequency");
-      }
-
-      if (userProfile.wants_ai_recommendations !== null && userProfile.wants_ai_recommendations !== undefined) {
-        parts.push(`Wants AI Recommendations: ${userProfile.wants_ai_recommendations ? 'Yes' : 'No'}`);
-        userProfileInfo.push(`I ${userProfile.wants_ai_recommendations ? 'do' : 'do not'} want to receive AI-initiated recommendations`);
-      } else {
-        missingFields.push("wants_ai_recommendations");
+        missingFields.push("email");
       }
 
       if (userProfile.budget_preference) {
@@ -261,24 +254,9 @@ serve(async (req) => {
       }
     }
 
-    // Calculate date context for better AI understanding
-    const todayDate = new Date();
-    const dayOfWeek = todayDate.getDay(); // 0 = Sunday, 6 = Saturday
-    const nextSaturday = new Date(todayDate);
-    nextSaturday.setDate(todayDate.getDate() + ((6 - dayOfWeek + 7) % 7 || 7));
-    const nextSunday = new Date(nextSaturday);
-    nextSunday.setDate(nextSaturday.getDate() + 1);
-    
-    const dateContext = `
-Current Date Information:
-- Today is: ${today} (${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek]})
-- This weekend is: ${nextSaturday.toISOString().split('T')[0]} (Saturday) and ${nextSunday.toISOString().split('T')[0]} (Sunday)
-- When user says "this weekend" or "the weekend", they mean ${nextSaturday.toISOString().split('T')[0]} and ${nextSunday.toISOString().split('T')[0]}
-`;
-
     const systemPrompt = `You are Yara, a friendly AI assistant for Buenos Aires events and experiences. Use emojis naturally to add warmth (1-2 per message), but don't overdo it.
 
-${dateContext}
+Today's date is: ${today}
 ${userContext}
 
 Available data:
@@ -286,14 +264,13 @@ ${JSON.stringify(contextData, null, 2)}
 
 CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 
-When user asks for recommendations (events, bars, places, etc.), you will use the provide_recommendations tool.
-For all other conversations (greetings, questions, clarifications), respond with conversational text.
-
-CONVERSATIONAL RESPONSES (no tool call):
-- User greetings, follow-up questions, or general conversation
-- Questions about previously recommended events or details
-- If user asks VERY GENERAL questions without specifics, ask ONE clarifying question
+SCENARIO 1 - User greeting, asking follow-up questions, or general conversation:
+Respond with PLAIN TEXT ONLY. Be warm and conversational.
+- If user asks about age ranges, demographics, or details about previously recommended events, answer based on the event data
+- If user asks clarifying questions about recommendations you already gave, refer to the conversation history and provide helpful answers
+- Be contextually aware - if they're asking about "these events" or "the recommendations", they're referring to what you previously suggested
 - **IMPORTANT**: Keep responses brief and ask ONLY ONE question at a time
+- If user asks VERY GENERAL questions about things to do in the city (like "what's happening?", "what should I do?", "any events tonight?") WITHOUT any specific preferences, ask them ONE clarifying question to personalize recommendations
 
 NAME COLLECTION - FIRST PRIORITY:
 - **IMPORTANT**: The user's messages may include their profile information in parentheses at the start (e.g., "(By the way, my name is Matias, I'm 33 years old.)")
@@ -308,14 +285,6 @@ AGE COLLECTION - SECOND PRIORITY (after name):
   - If they mention going "with friends", "with people", or "we", ask: "Quick question - what are your ages? (e.g., 25, 28, 30)"
   - If they're asking just for themselves, ask: "Quick question - how old are you? This helps me recommend the perfect spots for you 😊"
 
-ACTIVITY FREQUENCY COLLECTION - THIRD PRIORITY (after name and age):
-- **CRITICAL**: Check the "User Profile Context" section at the top - if it shows "Activity Frequency: [value]", you ALREADY KNOW it - NEVER ask again
-- **IF** activity frequency is missing from profile, ask casually: "By the way, how often do you usually go out? (daily, weekly, monthly, etc.)"
-
-AI RECOMMENDATIONS PREFERENCE - FOURTH PRIORITY:
-- **CRITICAL**: Check the "User Profile Context" section - if it shows "Wants AI Recommendations: Yes/No", you ALREADY KNOW it - NEVER ask again
-- **IF** wants_ai_recommendations preference is missing from profile, ask: "Would you like me to send you personalized recommendations whenever I find something perfect for you? 🎯"
-
 AGE-BASED FILTERING (when giving recommendations):
 - For users 18-30: Focus on nightlife, clubs, indie venues, underground scenes, energetic events
 - For users 30-45: Mix of sophisticated bars, live music, cultural events, some nightlife
@@ -325,11 +294,11 @@ AGE-BASED FILTERING (when giving recommendations):
 PROGRESSIVE PROFILING (Build profile gradually):
 - **Check if the user's message includes profile info in parentheses** - if it does, you already know that information
 - **Check the User Profile Context above** - if a field has data, NEVER ask for it again
+- After the 2nd-3rd recommendation, if email is missing from both the message and profile, you can ask: "By the way, what's your email? I can send you updates on cool events 📧"
 - After the 4th-5th recommendation, if budget_preference is missing, ask: "Are you looking for something fancy-ish or more local/casual vibes?"
 - After the 6th-7th recommendation, if favorite_neighborhoods OR interests are missing, ask: "Which neighborhoods do you usually hang out in, and what are your main interests?"
 - Ask ONLY ONE profiling question per message
 - Use the "Missing Fields" list to know what information you don't have yet
-- **NEVER ask for email** - we don't collect email addresses
 
 Example conversational responses: 
   - "Hey [name]! What kind of events are you looking for?" (if name is known)
@@ -337,168 +306,116 @@ Example conversational responses:
   - "That event is in Palermo, near Plaza Serrano"
   - "I'd love to help! To give you the best recommendations - what's your vibe tonight?"
 
-RECOMMENDATION REQUESTS (use provide_recommendations tool):
-When user wants specific recommendations about events, bars, places, etc., you will call the provide_recommendations tool.
+SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, etc.):
+**ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST return PURE JSON ONLY.
 
-Detection keywords: "recommendations", "recommend", "suggest", "events", "bars", "clubs", "venues", "places", "show me", "looking for", "find me", "what's", "any", "tonight", "today", "this week", "weekend", "tomorrow", "next week", "dance", "music", "live", "party", "art", "food"
-Spanish: "esta noche", "hoy", "mañana", "próxima semana", "semana que viene", "fin de semana"
+DETECTION KEYWORDS FOR JSON RESPONSE (if user message contains ANY of these, return JSON):
+- "recommendations", "recommend", "suggest"
+- "events", "bars", "clubs", "venues", "places"
+- "show me", "looking for", "find me", "what's", "any"
+- "tonight", "today", "this week", "weekend", "tomorrow", "next week"
+- "dance", "music", "live", "party", "art", "food"
+- Spanish: "esta noche", "hoy", "mañana", "próxima semana", "semana que viene", "fin de semana"
 
-**IMPORTANT**: ONLY use the tool if age is already collected. If age is missing, respond with conversational text asking for age first.
+**IMPORTANT**: ONLY return JSON if age is already collected. If age is missing, respond with conversational text asking for age first.
 
-**DATE INTERPRETATION:**
-- "tonight" / "today" / "esta noche" / "hoy" → Use today's date from Date Context
-- "tomorrow" / "mañana" → Add 1 day to today's date  
-- "this weekend" / "weekend" / "fin de semana" / "the weekend" → Use the EXACT dates from "This weekend is:" in Date Context
-- "next week" → Events 7-14 days from today
-- Specific dates → Parse and use that exact date
+**DATE FILTERING - CRITICAL:**
+You MUST calculate the correct date based on user's request and filter events accordingly.
 
-**CRITICAL**: When user says "this weekend", use the exact dates provided in Date Context. DO NOT ask for clarification.
+Date calculation rules (today is ${today}):
+- "tonight" / "today" / "esta noche" / "hoy" → ${today}
+- "tomorrow" / "mañana" → calculate tomorrow's date (add 1 day to ${today})
+- "next week" / "próxima semana" / "semana que viene" → events between 7-14 days from ${today}
+- "this weekend" / "weekend" / "fin de semana" → calculate next Saturday and Sunday
+- Specific dates (e.g., "December 25", "25 de diciembre", "2025-12-25") → parse and use that exact date
 
-**CRITICAL IMAGE_URL REQUIREMENT:**
-- The image_url field is MANDATORY for every recommendation
-- Copy the EXACT image_url value from the event data
-- If an event has no image_url, DO NOT include that event
-- Images are sent via WhatsApp, so image_url MUST be present
+**IMPORTANT**: After calculating the target date, ONLY return events where the event date matches your calculated date or falls within the calculated date range. Filter events by date BEFORE selecting which ones to recommend.
 
-RECOMMENDATION MATCHING & OUTPUT RULES (for provide_recommendations tool):
-1. Search BOTH title AND description equally for keywords
-2. Use semantic matching (e.g., "creative workshops" matches art/craft/DIY events)
-3. Check mood field for matching vibes
-4. Prioritize exact keyword matches in title or description
-5. Return MAXIMUM 6 recommendations
-6. ONLY include items that have an image_url field
-7. Filter by date BEFORE recommending
-8. Personalize using user profile (age, budget, interests, neighborhoods)
-9. If no matches exist, return empty array
+**JSON-ONLY RULES - ENFORCE STRICTLY:**
+1. NO conversational text whatsoever
+2. NO markdown formatting
+3. NO code blocks or json wrappers
+4. NO explanatory text before or after the JSON
+5. Start with { and end with }
+6. Return ONLY the raw JSON object
 
-**CRITICAL**: The provide_recommendations tool enforces that image_url is included for every recommendation.`;
-
-    // Get the last user message to understand their query
-    const lastUserMessage = messages[messages.length - 1]?.content || "";
-    
-    // Keywords that indicate a recommendation request
-    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|esta noche|hoy|mañana|fin de semana|dance|music|live|party|art|food)\b/i;
-
-    // Build request body
-    const requestBody: any = {
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...enrichedMessages,
-      ],
-      max_completion_tokens: 2000,
-    };
-
-    // Check if this is likely a recommendation request
-    const isLikelyRecommendation = lastUserMessage && recommendationKeywords.test(lastUserMessage);
-    
-    if (isLikelyRecommendation) {
-      // Use structured output with tool calling to guarantee all fields including image_url
-      requestBody.tools = [
-        {
-          type: "function",
-          function: {
-            name: "provide_recommendations",
-            description: "Provide event, business, or coupon recommendations to the user",
-            parameters: {
-              type: "object",
-              properties: {
-                intro_message: {
-                  type: "string",
-                  description: "A friendly intro message like 'Here are some events you might like:'"
-                },
-                recommendations: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      type: { type: "string", enum: ["event", "business", "coupon"] },
-                      id: { type: "string", description: "The actual ID from the database" },
-                      title: { type: "string", description: "The event/item title from the database" },
-                      description: { type: "string", description: "Location, address, date, time, and other details" },
-                      why_recommended: { type: "string", description: "Why this matches their request" },
-                      personalized_note: { type: "string", description: "Personal message based on their profile" },
-                      image_url: { type: "string", description: "REQUIRED - The exact image_url from the database event" }
-                    },
-                    required: ["type", "id", "title", "description", "why_recommended", "personalized_note", "image_url"],
-                    additionalProperties: false
-                  }
-                }
-              },
-              required: ["intro_message", "recommendations"],
-              additionalProperties: false
-            }
-          }
-        }
-      ];
-      requestBody.tool_choice = { type: "function", function: { name: "provide_recommendations" } };
+REQUIRED JSON FORMAT:
+{
+  "intro_message": "Here are some [type] you might like:",
+  "recommendations": [
+    {
+      "type": "event",
+      "id": "actual-event-id",
+      "title": "Event Title",
+      "description": "Location: [location]. Address: [address if available]. Date: [date - already formatted, use as-is]. Time: [time]. Music Type: [music_type if available]. Instagram: [external_link if available]. Brief description.",
+      "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
+      "personalized_note": "CRITICAL - A custom personal message based on their profile data (age, budget, interests, neighborhoods). Examples: 'Perfect for your age group (33) and high budget preference', 'This matches your interest in jazz and is in your favorite neighborhood Palermo', 'Great for someone your age (25) looking for affordable nightlife'. ALWAYS reference specific profile data when available.",
+      "image_url": "full-image-url"
     }
+  ]
+}
 
-    console.log("Request body tools:", JSON.stringify(requestBody.tools?.length ? "ENABLED" : "DISABLED"));
-    console.log("Tool choice:", JSON.stringify(requestBody.tool_choice || "NONE"));
-    
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
+1. **CRITICAL: Search BOTH title AND description equally** - if user asks for "party", check if "party" appears in EITHER the title OR the description. Example: event with title "Night Out" and description "Join us for a party at..." MUST match "party" search
+2. **Description matching is just as important as title matching** - don't prioritize title over description, treat them equally
+3. **Single word matches count** - if the user searches for "workshops" and an event has "workshop" anywhere in title OR description, it's a VALID match
+4. **Check mood field** - if event has mood field, use it for matching (e.g., "Creative" mood matches creative requests)
+5. **Use semantic matching** - "creative workshops" should match: art workshops, painting classes, craft events, DIY sessions, creative meetups (check descriptions for these terms!)
+6. **Be inclusive, not exclusive** - if user asks for a general category like "workshops", "bars", or "party", include ALL events that contain those words in title OR description
+7. **Don't force matches only when truly unrelated** - if user asks for "jazz concerts" and there are no music events at all, DON'T recommend food events. But if they ask for "party" and an event description mentions "party", ALWAYS recommend it
+8. **Exact keyword matches win** - if an event title OR description contains the exact words the user used, prioritize it
+
+RECOMMENDATION OUTPUT RULES:
+- Return MAXIMUM 6 recommendations total from the database
+- Only include items with image_url
+- Keep description under 100 words
+- ALWAYS include in description: location, date (already formatted as 'Month DDth', use as-is), time
+- ALSO include if available: address, music_type, external_link (Instagram)
+- Format external_link as "Instagram: [link]" in the description
+- DO NOT include price or venue_size in description - these can be provided later if user asks for more details
+- ALWAYS include "why_recommended" field explaining specifically WHY this event matches their request
+- **CRITICAL for why_recommended**: Base your explanation on BOTH the event title AND description. If the match is in the description (e.g., user asked for "party" and event description mentions "party celebration"), explicitly mention this in your explanation: "This matches because the event description mentions '[keyword]' which you asked for"
+- **CRITICAL - NEW FIELD "personalized_note"**: MUST include a personalized message that references their specific profile data:
+  - If you know their age, mention it: "Perfect for your age group (${userProfile?.age})"
+  - If you know their budget preference, reference it: "Great ${userProfile?.budget_preference} budget option"
+  - If you know their interests, connect them: "Matches your interest in ${userProfile?.interests}"
+  - If you know their favorite neighborhoods, mention if event is there: "Located in your favorite area ${userProfile?.favorite_neighborhoods}"
+  - Combine multiple profile attributes when relevant: "Ideal for someone ${userProfile?.age} years old with ${userProfile?.budget_preference} budget who loves ${userProfile?.interests}"
+  - This field is MANDATORY and must be personalized based on actual profile data available
+- Use user profile (budget, neighborhoods, interests) to further personalize
+- If no relevant database events exist, return empty array with a friendly message like "I couldn't find matching events in our database right now"
+
+CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.`;
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
+        Authorization: `Bearer ${openAIApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "system", content: systemPrompt }, ...enrichedMessages],
+        max_tokens: 800,
+        temperature: 0.8,
+        stream: false, // Disable streaming to get structured JSON response
+      }),
     });
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("Lovable AI error:", response.status, error);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please contact support." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      throw new Error(`Lovable AI error: ${response.status}`);
+      console.error("OpenAI API error:", response.status, error);
+      throw new Error(`OpenAI API error: ${response.status} - ${error}`);
     }
 
     // Get the complete message
     const data = await response.json();
-    console.log("API Response structure:", JSON.stringify({
-      hasChoices: !!data.choices,
-      choicesLength: data.choices?.length,
-      hasToolCalls: !!data.choices?.[0]?.message?.tool_calls,
-      toolCallsLength: data.choices?.[0]?.message?.tool_calls?.length,
-      hasContent: !!data.choices?.[0]?.message?.content
-    }));
-    
-    // Check if we got a tool call response (structured recommendations)
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    let message: string;
-    
-    if (toolCall && toolCall.function?.name === "provide_recommendations") {
-      // Parse the structured output
-      const functionArgs = JSON.parse(toolCall.function.arguments);
-      
-      // Log each recommendation's image_url for debugging
-      if (functionArgs.recommendations) {
-        console.log(`Tool call returned ${functionArgs.recommendations.length} recommendations`);
-        functionArgs.recommendations.forEach((rec: any, idx: number) => {
-          console.log(`Rec ${idx + 1}: ${rec.title} - image_url: ${rec.image_url || 'MISSING!'}`);
-        });
-      }
-      
-      message = JSON.stringify(functionArgs);
-      console.log("AI response (structured):", message);
-    } else {
-      // Regular conversational response
-      message = data.choices?.[0]?.message?.content || "";
-      console.log("AI response (conversational):", message);
-    }
+    let message = data.choices?.[0]?.message?.content || "";
 
+    console.log("AI response:", message);
+
+    // Get the last user message to understand their query
+    const lastUserMessage = messages[messages.length - 1]?.content || "";
 
     // Check if this is a recommendations response
     if (message.includes('"recommendations"')) {
@@ -601,7 +518,9 @@ RECOMMENDATION MATCHING & OUTPUT RULES (for provide_recommendations tool):
     );
   } catch (error) {
     console.error("Error in yara-ai-chat:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("Error details:", JSON.stringify(error, null, 2));
+    console.error("Error stack:", error.stack);
+    return new Response(JSON.stringify({ error: error.message || "Unknown error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
