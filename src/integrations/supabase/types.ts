@@ -686,10 +686,10 @@ export type Database = {
       }
       whatsapp_users: {
         Row: {
-          activity_frequency: string | null
           age: number | null
           budget_preference: string | null
           created_at: string
+          email: string | null
           favorite_neighborhoods: string[] | null
           id: string
           interests: string[] | null
@@ -697,13 +697,12 @@ export type Database = {
           phone_number: string
           recommendation_count: number
           updated_at: string
-          wants_ai_recommendations: boolean | null
         }
         Insert: {
-          activity_frequency?: string | null
           age?: number | null
           budget_preference?: string | null
           created_at?: string
+          email?: string | null
           favorite_neighborhoods?: string[] | null
           id?: string
           interests?: string[] | null
@@ -711,13 +710,12 @@ export type Database = {
           phone_number: string
           recommendation_count?: number
           updated_at?: string
-          wants_ai_recommendations?: boolean | null
         }
         Update: {
-          activity_frequency?: string | null
           age?: number | null
           budget_preference?: string | null
           created_at?: string
+          email?: string | null
           favorite_neighborhoods?: string[] | null
           id?: string
           interests?: string[] | null
@@ -725,7 +723,6 @@ export type Database = {
           phone_number?: string
           recommendation_count?: number
           updated_at?: string
-          wants_ai_recommendations?: boolean | null
         }
         Relationships: []
       }
