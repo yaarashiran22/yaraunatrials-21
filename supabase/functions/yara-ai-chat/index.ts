@@ -336,67 +336,16 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       }
     }
     
-    // Smart message splitting for Twilio (1500 char limit)
+    // Only split regular conversational text, NOT JSON recommendations
     const MAX_CHARS = 1500;
     let messagesToSend = [];
     
-    // Check if message is JSON (recommendations)
-    const isJsonMessage = message.trim().startsWith('{') && message.includes('"recommendations"');
+    // Check if message contains JSON recommendations (don't split these)
+    const hasRecommendations = message.includes('"recommendations"');
     
-    if (isJsonMessage) {
-      try {
-        // Parse JSON
-        const parsed = JSON.parse(message);
-        
-        // If we have recommendations, split them into batches if needed
-        if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
-          const recommendations = parsed.recommendations;
-          const batches = [];
-          let currentBatch: any[] = [];
-          
-          for (const rec of recommendations) {
-            // Create a test JSON with current batch + new recommendation
-            const testJson = JSON.stringify({
-              intro_message: parsed.intro_message,
-              recommendations: [...currentBatch, rec]
-            });
-            
-            // If adding this recommendation would exceed limit, start new batch
-            if (testJson.length > MAX_CHARS && currentBatch.length > 0) {
-              batches.push({
-                intro_message: parsed.intro_message,
-                recommendations: currentBatch
-              });
-              currentBatch = [rec];
-            } else {
-              currentBatch.push(rec);
-            }
-          }
-          
-          // Add remaining batch
-          if (currentBatch.length > 0) {
-            batches.push({
-              intro_message: parsed.intro_message,
-              recommendations: currentBatch
-            });
-          }
-          
-          // Convert batches to JSON strings
-          messagesToSend = batches.map(batch => JSON.stringify(batch));
-          
-          if (batches.length > 1) {
-            console.log(`Split ${recommendations.length} recommendations into ${batches.length} JSON messages`);
-          }
-        } else {
-          messagesToSend = [message];
-        }
-      } catch (e) {
-        console.log('Error parsing JSON for splitting, using as-is:', e);
-        messagesToSend = [message];
-      }
-    } else if (message.length > MAX_CHARS) {
-      // Regular text message splitting with link preservation
-      console.log(`Message length ${message.length} exceeds ${MAX_CHARS}, splitting...`);
+    if (!hasRecommendations && message.length > MAX_CHARS) {
+      // Only split regular text messages
+      console.log(`Message length ${message.length} exceeds ${MAX_CHARS}, splitting text...`);
       
       // Split by sentences to avoid breaking mid-sentence
       const sentences = message.match(/[^.!?]+[.!?]+/g) || [message];
@@ -409,7 +358,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         
         if ((currentChunk + sentence).length > MAX_CHARS) {
           if (currentChunk) {
-            // If the sentence we're about to split contains a link, move entire sentence to next chunk
+            // If the sentence contains a link, move entire sentence to next chunk
             if (hasLink) {
               messagesToSend.push(currentChunk.trim());
               currentChunk = sentence;
@@ -418,9 +367,9 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
               currentChunk = sentence;
             }
           } else {
-            // Single sentence is too long, split by characters (but avoid splitting URLs)
+            // Single sentence is too long
             if (hasLink) {
-              // Don't split sentences with links, just add as-is
+              // Don't split sentences with links
               messagesToSend.push(sentence.trim());
               currentChunk = '';
             } else {
@@ -437,8 +386,9 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         messagesToSend.push(currentChunk.trim());
       }
       
-      console.log(`Split into ${messagesToSend.length} messages`);
+      console.log(`Split text into ${messagesToSend.length} messages`);
     } else {
+      // Don't split: either it's short enough OR it contains JSON recommendations
       messagesToSend = [message];
     }
     
