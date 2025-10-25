@@ -434,6 +434,9 @@ RECOMMENDATION MATCHING & OUTPUT RULES (for provide_recommendations tool):
       requestBody.tool_choice = { type: "function", function: { name: "provide_recommendations" } };
     }
 
+    console.log("Request body tools:", JSON.stringify(requestBody.tools?.length ? "ENABLED" : "DISABLED"));
+    console.log("Tool choice:", JSON.stringify(requestBody.tool_choice || "NONE"));
+    
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -464,6 +467,13 @@ RECOMMENDATION MATCHING & OUTPUT RULES (for provide_recommendations tool):
 
     // Get the complete message
     const data = await response.json();
+    console.log("API Response structure:", JSON.stringify({
+      hasChoices: !!data.choices,
+      choicesLength: data.choices?.length,
+      hasToolCalls: !!data.choices?.[0]?.message?.tool_calls,
+      toolCallsLength: data.choices?.[0]?.message?.tool_calls?.length,
+      hasContent: !!data.choices?.[0]?.message?.content
+    }));
     
     // Check if we got a tool call response (structured recommendations)
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
