@@ -14,10 +14,10 @@ serve(async (req) => {
 
   try {
     const { messages, stream = true, userProfile = null, phoneNumber = null } = await req.json();
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 
-    if (!lovableApiKey) {
-      throw new Error("Lovable API key not configured");
+    if (!openAIApiKey) {
+      throw new Error("OpenAI API key not configured");
     }
 
     // Initialize Supabase client
@@ -268,8 +268,7 @@ SCENARIO 1 - User greeting, asking follow-up questions, or general conversation:
 Respond with PLAIN TEXT ONLY. Be warm and conversational.
 - If user asks about age ranges, demographics, or details about previously recommended events, answer based on the event data
 - If user asks clarifying questions about recommendations you already gave, refer to the conversation history and provide helpful answers
-- **CRITICAL**: If user asks for YOUR OPINION or COMPARISON about recommendations you already provided (e.g., "which one do you think I would like most?", "which is best for me?", "what would you recommend from these?"), respond conversationally with your analysis - DO NOT send new recommendations
-- Be contextually aware - if they're asking about "these events", "the recommendations", "which one", "from those", they're referring to what you previously suggested
+- Be contextually aware - if they're asking about "these events" or "the recommendations", they're referring to what you previously suggested
 - **IMPORTANT**: Keep responses brief and ask ONLY ONE question at a time
 - If user asks VERY GENERAL questions about things to do in the city (like "what's happening?", "what should I do?", "any events tonight?") WITHOUT any specific preferences, ask them ONE clarifying question to personalize recommendations
 
@@ -308,7 +307,7 @@ Example conversational responses:
   - "I'd love to help! To give you the best recommendations - what's your vibe tonight?"
 
 SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, etc.):
-**ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST use the provide_recommendations tool.
+**ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST return PURE JSON ONLY.
 
 DETECTION KEYWORDS FOR JSON RESPONSE (if user message contains ANY of these, return JSON):
 - "recommendations", "recommend", "suggest"
@@ -318,13 +317,7 @@ DETECTION KEYWORDS FOR JSON RESPONSE (if user message contains ANY of these, ret
 - "dance", "music", "live", "party", "art", "food"
 - Spanish: "esta noche", "hoy", "mañana", "próxima semana", "semana que viene", "fin de semana"
 
-**CRITICAL - EMPTY RESULTS HANDLING:**
-- If you cannot find ANY events that match the user's request (e.g., no indie events, no techno events), DO NOT return an empty recommendations array
-- Instead, respond with CONVERSATIONAL TEXT explaining that you couldn't find specific matches and asking if they'd like to see similar options or events in general
-- Example: "I couldn't find any indie events coming up this month 😕 Would you like me to show you alternative music events or parties that might have a similar vibe?"
-- NEVER send {"recommendations": []} - always explain why there are no matches
-
-**IMPORTANT**: ONLY return JSON if age is already collected AND you found at least one matching event. If age is missing OR no matches found, respond with conversational text.
+**IMPORTANT**: ONLY return JSON if age is already collected. If age is missing, respond with conversational text asking for age first.
 
 **DATE FILTERING - CRITICAL:**
 You MUST calculate the correct date based on user's request and filter events accordingly.
@@ -346,31 +339,21 @@ Date calculation rules (today is ${today}):
 5. Start with { and end with }
 6. Return ONLY the raw JSON object
 
-REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY:
+REQUIRED JSON FORMAT:
 {
   "intro_message": "Here are some [type] you might like:",
   "recommendations": [
     {
       "type": "event",
-      "id": "actual-event-id-from-database",
-      "title": "Event Title from database",
+      "id": "actual-event-id",
+      "title": "Event Title",
       "description": "Location: [location]. Address: [address if available]. Date: [date - already formatted, use as-is]. Time: [time]. Music Type: [music_type if available]. Instagram: [external_link if available]. Brief description.",
       "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
       "personalized_note": "CRITICAL - A custom personal message based on their profile data (age, budget, interests, neighborhoods). Examples: 'Perfect for your age group (33) and high budget preference', 'This matches your interest in jazz and is in your favorite neighborhood Palermo', 'Great for someone your age (25) looking for affordable nightlife'. ALWAYS reference specific profile data when available.",
-      "image_url": "CRITICAL - YOU MUST COPY THE EXACT image_url VALUE FROM THE DATABASE EVENT - this is the event photo URL that will be sent via WhatsApp. DO NOT omit this field or the images won't be sent!"
+      "image_url": "full-image-url"
     }
   ]
 }
-
-**CRITICAL IMAGE_URL REQUIREMENT - ABSOLUTELY MANDATORY:**
-- The "image_url" field is REQUIRED and MUST NOT BE NULL, EMPTY, or UNDEFINED for EVERY recommendation
-- You MUST copy the EXACT image_url value from the event data provided in the Available data section
-- BEFORE including any event in your recommendations, CHECK that it has a valid image_url field
-- If an event has no image_url or image_url is null in the database, DO NOT INCLUDE that event in recommendations AT ALL
-- The image_url will be sent via WhatsApp to show event photos - without it, the recommendation is INCOMPLETE and will be rejected
-- Example of CORRECT image_url: "https://example.com/image.jpg" or full URL
-- Example of INVALID (DO NOT INCLUDE): null, "", undefined, or missing field
-- VERIFY each recommendation has image_url before adding it to your response
 
 RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 1. **CRITICAL: Search BOTH title AND description equally** - if user asks for "party", check if "party" appears in EITHER the title OR the description. Example: event with title "Night Out" and description "Join us for a party at..." MUST match "party" search
@@ -384,8 +367,7 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 
 RECOMMENDATION OUTPUT RULES:
 - Return MAXIMUM 6 recommendations total from the database
-- **CRITICAL**: ONLY include events/items that have an image_url field - never recommend anything without an image
-- **CRITICAL**: You MUST include the "image_url" field in EVERY recommendation in your JSON response - this is the event's photo that will be sent via WhatsApp
+- Only include items with image_url
 - Keep description under 100 words
 - ALWAYS include in description: location, date (already formatted as 'Month DDth', use as-is), time
 - ALSO include if available: address, music_type, external_link (Instagram)
@@ -405,117 +387,35 @@ RECOMMENDATION OUTPUT RULES:
 
 CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.`;
 
-    // Get the last user message to understand their query
-    const lastUserMessage = messages[messages.length - 1]?.content || "";
-    
-    // Keywords that indicate user is asking for OPINION/COMPARISON about existing recommendations (not new ones)
-    const opinionKeywords = /\b(which one|which of|what do you think|your opinion|best for me|most suitable|which would you|from these|from those|out of these|between these)\b/i;
-    
-    // Keywords that indicate a recommendation request
-    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|esta noche|hoy|mañana|fin de semana|dance|music|live|party|art|food)\b/i;
-
-    // Build request body
-    const requestBody: any = {
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...enrichedMessages,
-      ],
-      max_completion_tokens: 2000,
-    };
-
-    // Check if this is likely a recommendation request (but NOT if they're asking for opinion about existing ones)
-    const isOpinionRequest = lastUserMessage && opinionKeywords.test(lastUserMessage);
-    const isLikelyRecommendation = lastUserMessage && recommendationKeywords.test(lastUserMessage) && !isOpinionRequest;
-    
-    if (isLikelyRecommendation) {
-      // Use structured output with tool calling to guarantee all fields including image_url
-      requestBody.tools = [
-        {
-          type: "function",
-          function: {
-            name: "provide_recommendations",
-            description: "Provide event, business, or coupon recommendations to the user",
-            parameters: {
-              type: "object",
-              properties: {
-                intro_message: {
-                  type: "string",
-                  description: "A friendly intro message like 'Here are some events you might like:'"
-                },
-                recommendations: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      type: { type: "string", enum: ["event", "business", "coupon"] },
-                      id: { type: "string", description: "The actual ID from the database" },
-                      title: { type: "string", description: "The event/item title from the database" },
-                      description: { type: "string", description: "Location, address, date, time, and other details" },
-                      why_recommended: { type: "string", description: "Why this matches their request" },
-                      personalized_note: { type: "string", description: "Personal message based on their profile" },
-                      image_url: { type: "string", description: "REQUIRED - The exact image_url from the database event" }
-                    },
-                    required: ["type", "id", "title", "description", "why_recommended", "personalized_note", "image_url"],
-                    additionalProperties: false
-                  }
-                }
-              },
-              required: ["intro_message", "recommendations"],
-              additionalProperties: false
-            }
-          }
-        }
-      ];
-      requestBody.tool_choice = { type: "function", function: { name: "provide_recommendations" } };
-    }
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
+        Authorization: `Bearer ${openAIApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "system", content: systemPrompt }, ...enrichedMessages],
+        max_tokens: 800,
+        temperature: 0.8,
+        stream: false, // Disable streaming to get structured JSON response
+      }),
     });
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("Lovable AI error:", response.status, error);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please contact support." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      throw new Error(`Lovable AI error: ${response.status}`);
+      console.error("OpenAI API error:", response.status, error);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     // Get the complete message
     const data = await response.json();
-    
-    // Check if we got a tool call response (structured recommendations)
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    let message: string;
-    
-    if (toolCall && toolCall.function?.name === "provide_recommendations") {
-      // Parse the structured output
-      const functionArgs = JSON.parse(toolCall.function.arguments);
-      message = JSON.stringify(functionArgs);
-      console.log("AI response (structured):", message);
-    } else {
-      // Regular conversational response
-      message = data.choices?.[0]?.message?.content || "";
-      console.log("AI response (conversational):", message);
-    }
+    let message = data.choices?.[0]?.message?.content || "";
 
+    console.log("AI response:", message);
+
+    // Get the last user message to understand their query
+    const lastUserMessage = messages[messages.length - 1]?.content || "";
 
     // Check if this is a recommendations response
     if (message.includes('"recommendations"')) {
@@ -528,25 +428,6 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
           jsonStr = message.substring(jsonStart, jsonEnd + 1);
         }
         const parsed = JSON.parse(jsonStr);
-
-        // CRITICAL: Filter out any recommendations without valid image_url
-        if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
-          const originalCount = parsed.recommendations.length;
-          parsed.recommendations = parsed.recommendations.filter((rec: any) => {
-            const hasValidImage = rec.image_url && rec.image_url.trim() !== '';
-            if (!hasValidImage) {
-              console.log(`⚠️ Filtering out recommendation "${rec.title}" - missing image_url`);
-            }
-            return hasValidImage;
-          });
-          
-          if (parsed.recommendations.length < originalCount) {
-            console.log(`🔍 Filtered ${originalCount - parsed.recommendations.length} recommendations without images. Keeping ${parsed.recommendations.length} with valid images.`);
-          }
-          
-          // Update the message with filtered recommendations
-          message = JSON.stringify(parsed);
-        }
 
         // Track database recommendations in background
         if (
