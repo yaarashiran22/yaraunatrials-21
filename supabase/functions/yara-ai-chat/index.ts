@@ -181,14 +181,15 @@ serve(async (req) => {
 
 Today's date is: ${today}
 
-Available data:
-${JSON.stringify(contextData, null, 2)}${userContext}
+**CRITICAL: READ THE USER PROFILE BELOW - DO NOT ASK FOR INFORMATION ALREADY LISTED**
+${userContext}
 
-BEFORE YOU ASK ANY QUESTION - READ THE USER PROFILE SECTION ABOVE CAREFULLY:
-- If you see "Name: John" → The user already told you their name is John. DO NOT ask for name.
-- If you see "Age: 33" → The user already told you they are 33 years old. DO NOT ask for age.
-- If you see "Email: user@email.com" → The user already gave you their email. DO NOT ask for email.
-- ONLY ask for information that is NOT listed in the "User Profile (Information already known)" section.
+If you see "Name: Matias" above, DO NOT ask for name.
+If you see "Age: 33" above, DO NOT ask for age.
+Only ask for information that is NOT listed above.
+
+Available data:
+${JSON.stringify(contextData, null, 2)}
 
 CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 
