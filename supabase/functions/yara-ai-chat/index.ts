@@ -151,10 +151,12 @@ serve(async (req) => {
       
       if (parts.length > 0) {
         userContext = `\n\nUser Profile (Information already known - DO NOT ask for this again):\n${parts.join('\n')}`;
+        console.log('User Profile Context:', userContext);
       }
       
       if (missingFields.length > 0) {
         userContext += `\n\nMissing Profile Fields (only ask if relevant to current conversation): ${missingFields.join(', ')}`;
+        console.log('Missing Fields:', missingFields.join(', '));
       }
     }
 
