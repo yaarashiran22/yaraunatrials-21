@@ -376,8 +376,9 @@ RECOMMENDATION MATCHING & OUTPUT RULES (for provide_recommendations tool):
     // Get the last user message to understand their query
     const lastUserMessage = messages[messages.length - 1]?.content || "";
     
-    // Keywords that indicate a recommendation request
-    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|esta noche|hoy|mañana|fin de semana|dance|music|live|party|art|food)\b/i;
+    // Much more specific detection - only trigger on clear recommendation requests
+    // Must have an explicit request verb + target or time phrase
+    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|search for|need|want|whats on|what is on|events? for|bars? for|places? for|eventos?|lugares?|bares?|recomienda|suger[ií]|busco|quiero)\b/i;
 
     // Build request body
     const requestBody: any = {
