@@ -336,11 +336,66 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       }
     }
     
-    // Split message if it exceeds 1500 characters for Twilio
+    // Smart message splitting for Twilio (1500 char limit)
     const MAX_CHARS = 1500;
     let messagesToSend = [];
     
-    if (message.length > MAX_CHARS) {
+    // Check if message is JSON (recommendations)
+    const isJsonMessage = message.trim().startsWith('{') && message.includes('"recommendations"');
+    
+    if (isJsonMessage) {
+      try {
+        // Parse JSON
+        const parsed = JSON.parse(message);
+        
+        // If we have recommendations, split them into batches if needed
+        if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
+          const recommendations = parsed.recommendations;
+          const batches = [];
+          let currentBatch: any[] = [];
+          
+          for (const rec of recommendations) {
+            // Create a test JSON with current batch + new recommendation
+            const testJson = JSON.stringify({
+              intro_message: parsed.intro_message,
+              recommendations: [...currentBatch, rec]
+            });
+            
+            // If adding this recommendation would exceed limit, start new batch
+            if (testJson.length > MAX_CHARS && currentBatch.length > 0) {
+              batches.push({
+                intro_message: parsed.intro_message,
+                recommendations: currentBatch
+              });
+              currentBatch = [rec];
+            } else {
+              currentBatch.push(rec);
+            }
+          }
+          
+          // Add remaining batch
+          if (currentBatch.length > 0) {
+            batches.push({
+              intro_message: parsed.intro_message,
+              recommendations: currentBatch
+            });
+          }
+          
+          // Convert batches to JSON strings
+          messagesToSend = batches.map(batch => JSON.stringify(batch));
+          
+          if (batches.length > 1) {
+            console.log(`Split ${recommendations.length} recommendations into ${batches.length} JSON messages`);
+          }
+        } else {
+          messagesToSend = [message];
+        }
+      } catch (e) {
+        console.log('Error parsing JSON for splitting, using as-is:', e);
+        messagesToSend = [message];
+      }
+    } else if (message.length > MAX_CHARS) {
+      // Regular text message splitting with link preservation
       console.log(`Message length ${message.length} exceeds ${MAX_CHARS}, splitting...`);
       
       // Split by sentences to avoid breaking mid-sentence
@@ -348,14 +403,30 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       let currentChunk = '';
       
       for (const sentence of sentences) {
+        // Check if this sentence contains a link
+        const urlPattern = /(https?:\/\/[^\s]+)/g;
+        const hasLink = urlPattern.test(sentence);
+        
         if ((currentChunk + sentence).length > MAX_CHARS) {
           if (currentChunk) {
-            messagesToSend.push(currentChunk.trim());
-            currentChunk = sentence;
+            // If the sentence we're about to split contains a link, move entire sentence to next chunk
+            if (hasLink) {
+              messagesToSend.push(currentChunk.trim());
+              currentChunk = sentence;
+            } else {
+              messagesToSend.push(currentChunk.trim());
+              currentChunk = sentence;
+            }
           } else {
-            // Single sentence is too long, split by characters
-            messagesToSend.push(sentence.substring(0, MAX_CHARS).trim());
-            currentChunk = sentence.substring(MAX_CHARS);
+            // Single sentence is too long, split by characters (but avoid splitting URLs)
+            if (hasLink) {
+              // Don't split sentences with links, just add as-is
+              messagesToSend.push(sentence.trim());
+              currentChunk = '';
+            } else {
+              messagesToSend.push(sentence.substring(0, MAX_CHARS).trim());
+              currentChunk = sentence.substring(MAX_CHARS);
+            }
           }
         } else {
           currentChunk += sentence;
