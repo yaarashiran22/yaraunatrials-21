@@ -434,8 +434,9 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     // Get the last user message to understand their query
     const lastUserMessage = messages[messages.length - 1]?.content || "";
     
-    // Keywords that indicate a recommendation request
-    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|esta noche|hoy|mañana|fin de semana|dance|music|live|party|art|food)\b/i;
+    // Keywords that indicate an EXPLICIT recommendation request
+    // Only trigger on phrases that clearly ask for recommendations
+    const recommendationKeywords = /\b(recommend|suggest|show me (events?|bars?|clubs?)|find me (events?|bars?)|looking for (events?|bars?|clubs?)|what (events?|bars?|clubs?) (are|is)|where should i go|what should i do)\b/i;
 
     // Build request body
     const requestBody: any = {
