@@ -104,6 +104,8 @@ Deno.serve(async (req) => {
       
       try {
         console.log(`[${i + 1}/${uniqueRecs.length}] Sending: ${rec.title}`);
+        console.log(`Message body length: ${messageBody.length} chars`);
+        console.log(`Has image: ${!!rec.image_url}`);
         
         // Build request body - only include MediaUrl if image exists
         const requestBody: Record<string, string> = {
@@ -113,6 +115,7 @@ Deno.serve(async (req) => {
         };
         
         if (rec.image_url) {
+          console.log(`Image URL: ${rec.image_url}`);
           requestBody.MediaUrl = rec.image_url;
         }
         
@@ -131,14 +134,16 @@ Deno.serve(async (req) => {
         if (!twilioResponse.ok) {
           const errorText = await twilioResponse.text();
           console.error(`❌ Failed to send ${rec.title}: ${twilioResponse.status} - ${errorText}`);
+          console.error(`Full error response:`, errorText);
           results.push({ success: false, title: rec.title, error: errorText });
         } else {
           const result = await twilioResponse.json();
-          console.log(`✅ Sent ${rec.title}. SID: ${result.sid}`);
+          console.log(`✅ Sent ${rec.title}. SID: ${result.sid}, Status: ${result.status}`);
           results.push({ success: true, title: rec.title, sid: result.sid });
         }
       } catch (error) {
         console.error(`❌ Error sending ${rec.title}:`, error);
+        console.error(`Error details:`, error.message, error.stack);
         results.push({ success: false, title: rec.title, error: error.message });
       }
 

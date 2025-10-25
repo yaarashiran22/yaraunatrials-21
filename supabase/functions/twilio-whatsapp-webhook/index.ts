@@ -417,28 +417,26 @@ Deno.serve(async (req) => {
       // Send intro via TwiML immediately
       console.log('Sending intro message via TwiML...');
       
-      // Use EdgeRuntime.waitUntil for proper background task handling
+      // Call send-whatsapp-recommendations and WAIT for it to complete
       console.log('Triggering send-whatsapp-recommendations function...');
-      EdgeRuntime.waitUntil((async () => {
-        try {
-          const { data, error } = await supabase.functions.invoke('send-whatsapp-recommendations', {
-            body: {
-              recommendations: parsedResponse.recommendations,
-              toNumber: from,
-              fromNumber: twilioWhatsAppNumber,
-              introText: null // Don't send intro from background - already sent via TwiML
-            }
-          });
-          
-          if (error) {
-            console.error('Error invoking send-whatsapp-recommendations:', error);
-          } else {
-            console.log('Send-whatsapp-recommendations invoked successfully:', data);
+      try {
+        const { data, error } = await supabase.functions.invoke('send-whatsapp-recommendations', {
+          body: {
+            recommendations: parsedResponse.recommendations,
+            toNumber: from,
+            fromNumber: twilioWhatsAppNumber,
+            introText: null // Don't send intro from background - already sent via TwiML
           }
-        } catch (error) {
-          console.error('Failed to invoke send-whatsapp-recommendations:', error);
+        });
+        
+        if (error) {
+          console.error('Error invoking send-whatsapp-recommendations:', error);
+        } else {
+          console.log('Send-whatsapp-recommendations completed successfully:', data);
         }
-      })());
+      } catch (error) {
+        console.error('Failed to invoke send-whatsapp-recommendations:', error);
+      }
 
       // Return intro message immediately via TwiML
       const introTwiml = `<?xml version="1.0" encoding="UTF-8"?>
