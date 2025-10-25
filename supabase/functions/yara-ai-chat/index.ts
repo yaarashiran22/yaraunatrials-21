@@ -364,6 +364,12 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 6. **Be inclusive, not exclusive** - if user asks for a general category like "workshops", "bars", or "party", include ALL events that contain those words in title OR description
 7. **Don't force matches only when truly unrelated** - if user asks for "jazz concerts" and there are no music events at all, DON'T recommend food events. But if they ask for "party" and an event description mentions "party", ALWAYS recommend it
 8. **Exact keyword matches win** - if an event title OR description contains the exact words the user used, prioritize it
+9. **ABSOLUTELY CRITICAL - USER INTERESTS ARE FOR PERSONALIZATION, NOT FILTERING**: 
+   - If user asks for "parties", show ALL parties from the database, NOT just parties matching their interests
+   - If user asks for "workshops", show ALL workshops, NOT just ones related to their interests
+   - User interests (like "african", "jazz", etc.) should ONLY be used to add personalized context in the "personalized_note" field
+   - NEVER filter out results because they don't match user interests - show everything that matches their query
+   - Example: User with interest "african" asks for "parties" → Show ALL parties, then in personalized_note you can mention if any happen to align with their interests
 
 RECOMMENDATION OUTPUT RULES:
 - Return MAXIMUM 6 recommendations total from the database
