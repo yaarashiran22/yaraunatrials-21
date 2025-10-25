@@ -174,11 +174,18 @@ serve(async (req) => {
         missingFields.push("age");
       }
 
-      if (userProfile.email) {
-        parts.push(`Email: ${userProfile.email}`);
-        userProfileInfo.push(`my email is ${userProfile.email}`);
+      if (userProfile.activity_frequency) {
+        parts.push(`Activity Frequency: ${userProfile.activity_frequency}`);
+        userProfileInfo.push(`I go out ${userProfile.activity_frequency}`);
       } else {
-        missingFields.push("email");
+        missingFields.push("activity_frequency");
+      }
+
+      if (userProfile.wants_ai_recommendations !== null && userProfile.wants_ai_recommendations !== undefined) {
+        parts.push(`Wants AI Recommendations: ${userProfile.wants_ai_recommendations ? 'Yes' : 'No'}`);
+        userProfileInfo.push(`I ${userProfile.wants_ai_recommendations ? 'do' : 'do not'} want to receive AI-initiated recommendations`);
+      } else {
+        missingFields.push("wants_ai_recommendations");
       }
 
       if (userProfile.budget_preference) {
@@ -254,9 +261,24 @@ serve(async (req) => {
       }
     }
 
+    // Calculate date context for better AI understanding
+    const todayDate = new Date();
+    const dayOfWeek = todayDate.getDay(); // 0 = Sunday, 6 = Saturday
+    const nextSaturday = new Date(todayDate);
+    nextSaturday.setDate(todayDate.getDate() + ((6 - dayOfWeek + 7) % 7 || 7));
+    const nextSunday = new Date(nextSaturday);
+    nextSunday.setDate(nextSaturday.getDate() + 1);
+    
+    const dateContext = `
+Current Date Information:
+- Today is: ${today} (${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek]})
+- This weekend is: ${nextSaturday.toISOString().split('T')[0]} (Saturday) and ${nextSunday.toISOString().split('T')[0]} (Sunday)
+- When user says "this weekend" or "the weekend", they mean ${nextSaturday.toISOString().split('T')[0]} and ${nextSunday.toISOString().split('T')[0]}
+`;
+
     const systemPrompt = `You are Yara, a friendly AI assistant for Buenos Aires events and experiences. Use emojis naturally to add warmth (1-2 per message), but don't overdo it.
 
-Today's date is: ${today}
+${dateContext}
 ${userContext}
 
 Available data:
@@ -285,6 +307,14 @@ AGE COLLECTION - SECOND PRIORITY (after name):
   - If they mention going "with friends", "with people", or "we", ask: "Quick question - what are your ages? (e.g., 25, 28, 30)"
   - If they're asking just for themselves, ask: "Quick question - how old are you? This helps me recommend the perfect spots for you 😊"
 
+ACTIVITY FREQUENCY COLLECTION - THIRD PRIORITY (after name and age):
+- **CRITICAL**: Check the "User Profile Context" section at the top - if it shows "Activity Frequency: [value]", you ALREADY KNOW it - NEVER ask again
+- **IF** activity frequency is missing from profile, ask casually: "By the way, how often do you usually go out? (daily, weekly, monthly, etc.)"
+
+AI RECOMMENDATIONS PREFERENCE - FOURTH PRIORITY:
+- **CRITICAL**: Check the "User Profile Context" section - if it shows "Wants AI Recommendations: Yes/No", you ALREADY KNOW it - NEVER ask again
+- **IF** wants_ai_recommendations preference is missing from profile, ask: "Would you like me to send you personalized recommendations whenever I find something perfect for you? 🎯"
+
 AGE-BASED FILTERING (when giving recommendations):
 - For users 18-30: Focus on nightlife, clubs, indie venues, underground scenes, energetic events
 - For users 30-45: Mix of sophisticated bars, live music, cultural events, some nightlife
@@ -294,11 +324,11 @@ AGE-BASED FILTERING (when giving recommendations):
 PROGRESSIVE PROFILING (Build profile gradually):
 - **Check if the user's message includes profile info in parentheses** - if it does, you already know that information
 - **Check the User Profile Context above** - if a field has data, NEVER ask for it again
-- After the 2nd-3rd recommendation, if email is missing from both the message and profile, you can ask: "By the way, what's your email? I can send you updates on cool events 📧"
 - After the 4th-5th recommendation, if budget_preference is missing, ask: "Are you looking for something fancy-ish or more local/casual vibes?"
 - After the 6th-7th recommendation, if favorite_neighborhoods OR interests are missing, ask: "Which neighborhoods do you usually hang out in, and what are your main interests?"
 - Ask ONLY ONE profiling question per message
 - Use the "Missing Fields" list to know what information you don't have yet
+- **NEVER ask for email** - we don't collect email addresses
 
 Example conversational responses: 
   - "Hey [name]! What kind of events are you looking for?" (if name is known)
@@ -322,12 +352,14 @@ DETECTION KEYWORDS FOR JSON RESPONSE (if user message contains ANY of these, ret
 **DATE FILTERING - CRITICAL:**
 You MUST calculate the correct date based on user's request and filter events accordingly.
 
-Date calculation rules (today is ${today}):
-- "tonight" / "today" / "esta noche" / "hoy" → ${today}
-- "tomorrow" / "mañana" → calculate tomorrow's date (add 1 day to ${today})
-- "next week" / "próxima semana" / "semana que viene" → events between 7-14 days from ${today}
-- "this weekend" / "weekend" / "fin de semana" → calculate next Saturday and Sunday
-- Specific dates (e.g., "December 25", "25 de diciembre", "2025-12-25") → parse and use that exact date
+**DATE INTERPRETATION - USE THE DATE CONTEXT PROVIDED ABOVE:**
+- "tonight" / "today" / "esta noche" / "hoy" → Use today's date from the Date Context above
+- "tomorrow" / "mañana" → Add 1 day to today's date
+- "this weekend" / "weekend" / "fin de semana" / "the weekend" → Use the EXACT dates provided in "This weekend is:" from Date Context above
+- "next week" / "próxima semana" / "semana que viene" → Events 7-14 days from today
+- Specific dates (e.g., "December 25") → Parse and use that exact date
+
+**CRITICAL**: When user says "this weekend" or "the weekend", you ALREADY KNOW the exact dates from the Date Context section. DO NOT ask for clarification - use the dates provided in "This weekend is:" line.
 
 **IMPORTANT**: After calculating the target date, ONLY return events where the event date matches your calculated date or falls within the calculated date range. Filter events by date BEFORE selecting which ones to recommend.
 
