@@ -417,86 +417,91 @@ Deno.serve(async (req) => {
       // Send intro via TwiML immediately
       console.log('Sending intro message via TwiML...');
       
-      // Send recommendations directly via Twilio API with images
-      console.log('Sending recommendations with images via Twilio API...');
+      // Send recommendations with images via Twilio API in background
+      console.log('Scheduling recommendations to send via Twilio API...');
       
       const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      const fromWhatsApp = twilioWhatsAppNumber;
+      const toWhatsApp = from;
+      const recs = parsedResponse.recommendations;
       
-      // Send each recommendation as a separate message with its image
-      (async () => {
-        // Small delay to ensure intro is received first
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        for (let i = 0; i < parsedResponse.recommendations.length; i++) {
-          const rec = parsedResponse.recommendations[i];
+      // Use EdgeRuntime.waitUntil for proper background execution
+      EdgeRuntime.waitUntil(
+        (async () => {
+          // Small delay to ensure intro is received first
+          await new Promise(resolve => setTimeout(resolve, 800));
           
-          if (!rec.title || !rec.description) {
-            console.log(`Skipping recommendation ${i + 1}: missing title or description`);
-            continue;
-          }
+          for (let i = 0; i < recs.length; i++) {
+            const rec = recs[i];
+            
+            if (!rec.title || !rec.description) {
+              console.log(`Skipping recommendation ${i + 1}: missing title or description`);
+              continue;
+            }
 
-          // Build message with formatting
-          let formattedDescription = rec.description;
-          if (formattedDescription) {
-            formattedDescription = formattedDescription.replace(/Date: ([^\n.]+)/gi, '*Date: $1*');
-            formattedDescription = formattedDescription.replace(/Time: ([^\n.]+)/gi, '*Time: $1*');
-          }
-          
-          let messageBody = `*${rec.title}*\n\n${formattedDescription}`;
-          
-          if (rec.personalized_note) {
-            messageBody += `\n\n✨ *Just for you:* ${rec.personalized_note}`;
-          }
-          
-          if (rec.why_recommended) {
-            messageBody += `\n\n💡 ${rec.why_recommended}`;
-          }
-          
-          try {
-            console.log(`[${i + 1}/${parsedResponse.recommendations.length}] Sending: ${rec.title} with image: ${rec.image_url}`);
-            
-            const requestBody: Record<string, string> = {
-              From: twilioWhatsAppNumber,
-              To: from,
-              Body: messageBody
-            };
-            
-            if (rec.image_url) {
-              requestBody.MediaUrl = rec.image_url;
+            // Build message with formatting
+            let formattedDescription = rec.description;
+            if (formattedDescription) {
+              formattedDescription = formattedDescription.replace(/Date: ([^\n.]+)/gi, '*Date: $1*');
+              formattedDescription = formattedDescription.replace(/Time: ([^\n.]+)/gi, '*Time: $1*');
             }
             
-            const twilioResponse = await fetch(
-              `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
-              {
-                method: 'POST',
-                headers: {
-                  'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
-                  'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams(requestBody).toString()
+            let messageBody = `*${rec.title}*\n\n${formattedDescription}`;
+            
+            if (rec.personalized_note) {
+              messageBody += `\n\n✨ *Just for you:* ${rec.personalized_note}`;
+            }
+            
+            if (rec.why_recommended) {
+              messageBody += `\n\n💡 ${rec.why_recommended}`;
+            }
+            
+            try {
+              console.log(`[${i + 1}/${recs.length}] Sending: ${rec.title} with image: ${rec.image_url || 'no image'}`);
+              
+              const requestBody: Record<string, string> = {
+                From: fromWhatsApp,
+                To: toWhatsApp,
+                Body: messageBody
+              };
+              
+              if (rec.image_url) {
+                requestBody.MediaUrl = rec.image_url;
               }
-            );
+              
+              const twilioResponse = await fetch(
+                `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                  },
+                  body: new URLSearchParams(requestBody).toString()
+                }
+              );
 
-            if (!twilioResponse.ok) {
-              const errorText = await twilioResponse.text();
-              console.error(`❌ Failed to send ${rec.title}: ${twilioResponse.status} - ${errorText}`);
-            } else {
-              const result = await twilioResponse.json();
-              console.log(`✅ Sent ${rec.title}. SID: ${result.sid}`);
+              if (!twilioResponse.ok) {
+                const errorText = await twilioResponse.text();
+                console.error(`❌ Failed to send ${rec.title}: ${twilioResponse.status} - ${errorText}`);
+              } else {
+                const result = await twilioResponse.json();
+                console.log(`✅ Sent ${rec.title}. SID: ${result.sid}`);
+              }
+            } catch (error) {
+              console.error(`❌ Error sending ${rec.title}:`, error);
             }
-          } catch (error) {
-            console.error(`❌ Error sending ${rec.title}:`, error);
-          }
 
-          // Delay between messages
-          if (i < parsedResponse.recommendations.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 400));
+            // Delay between messages
+            if (i < recs.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
           }
-        }
-        
-        console.log('✅ Finished sending all recommendations');
-      })().catch(err => console.error('Error in background send:', err));
+          
+          console.log('✅ Finished sending all recommendations');
+        })()
+      );
 
       // Return intro message immediately via TwiML
       const introTwiml = `<?xml version="1.0" encoding="UTF-8"?>
