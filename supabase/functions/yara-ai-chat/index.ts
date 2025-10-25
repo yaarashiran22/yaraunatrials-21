@@ -1,80 +1,110 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { messages, stream = true, userProfile = null, phoneNumber = null } = await req.json();
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    
+    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+      throw new Error("OpenAI API key not configured");
     }
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Fetch user's interaction history for behavioral learning
     let interactionHistory: any[] = [];
     if (phoneNumber) {
       const { data: interactions } = await supabase
-        .from('whatsapp_user_interactions')
-        .select('item_type, item_id, interaction_type, created_at')
-        .eq('phone_number', phoneNumber)
-        .order('created_at', { ascending: false })
+        .from("whatsapp_user_interactions")
+        .select("item_type, item_id, interaction_type, created_at")
+        .eq("phone_number", phoneNumber)
+        .order("created_at", { ascending: false })
         .limit(50);
-      
+
       interactionHistory = interactions || [];
     }
 
     // Get current date for filtering
-    const today = new Date().toISOString().split('T')[0];
-    
+    const today = new Date().toISOString().split("T")[0];
+
     // Helper function to format date from YYYY-MM-DD to "Month DDth"
     const formatDate = (dateStr: string): string => {
       if (!dateStr) return dateStr;
-      
+
       // Handle recurring events (e.g., "every monday", "every friday")
-      if (dateStr.toLowerCase().includes('every')) {
+      if (dateStr.toLowerCase().includes("every")) {
         return dateStr; // Return as-is for recurring events
       }
-      
+
       try {
-        const date = new Date(dateStr + 'T00:00:00');
-        const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const date = new Date(dateStr + "T00:00:00");
+        const months = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
         const day = date.getDate();
         const month = months[date.getMonth()];
-        
+
         // Add ordinal suffix (st, nd, rd, th)
-        let suffix = 'th';
-        if (day === 1 || day === 21 || day === 31) suffix = 'st';
-        else if (day === 2 || day === 22) suffix = 'nd';
-        else if (day === 3 || day === 23) suffix = 'rd';
-        
+        let suffix = "th";
+        if (day === 1 || day === 21 || day === 31) suffix = "st";
+        else if (day === 2 || day === 22) suffix = "nd";
+        else if (day === 3 || day === 23) suffix = "rd";
+
         return `${month} ${day}${suffix}`;
       } catch (e) {
-        console.log('Failed to format date:', dateStr, e);
+        console.log("Failed to format date:", dateStr, e);
         return dateStr; // Return original if parsing fails
       }
     };
-    
+
     // Fetch relevant data from database with image URLs
     // Include recurring events by checking if date contains "every" OR is >= today
     const [eventsResult, itemsResult, couponsResult] = await Promise.all([
-      supabase.from('events').select('id, title, description, date, time, location, address, price, mood, music_type, venue_size, external_link, image_url').or(`date.gte.${today},date.ilike.%every%`).order('date', { ascending: true }).limit(50),
-      supabase.from('items').select('id, title, description, category, location, price, image_url').eq('status', 'active').order('created_at', { ascending: false }).limit(50),
-      supabase.from('user_coupons').select('id, title, description, business_name, discount_amount, neighborhood, valid_until, image_url').eq('is_active', true).order('created_at', { ascending: false }).limit(50)
+      supabase
+        .from("events")
+        .select(
+          "id, title, description, date, time, location, address, price, mood, music_type, venue_size, external_link, image_url",
+        )
+        .or(`date.gte.${today},date.ilike.%every%`)
+        .order("date", { ascending: true })
+        .limit(50),
+      supabase
+        .from("items")
+        .select("id, title, description, category, location, price, image_url")
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("user_coupons")
+        .select("id, title, description, business_name, discount_amount, neighborhood, valid_until, image_url")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(50),
     ]);
 
     const events = eventsResult.data || [];
@@ -85,7 +115,7 @@ serve(async (req) => {
 
     // Build context for AI - include IDs and image URLs with formatted dates
     const contextData = {
-      events: events.map(e => ({
+      events: events.map((e) => ({
         id: e.id,
         title: e.title,
         description: e.description,
@@ -98,18 +128,18 @@ serve(async (req) => {
         music_type: e.music_type,
         venue_size: e.venue_size,
         external_link: e.external_link,
-        image_url: e.image_url
+        image_url: e.image_url,
       })),
-      businesses: businesses.map(b => ({
+      businesses: businesses.map((b) => ({
         id: b.id,
         title: b.title,
         description: b.description,
         category: b.category,
         location: b.location,
         price: b.price,
-        image_url: b.image_url
+        image_url: b.image_url,
       })),
-      coupons: coupons.map(c => ({
+      coupons: coupons.map((c) => ({
         id: c.id,
         title: c.title,
         description: c.description,
@@ -117,63 +147,69 @@ serve(async (req) => {
         discount_amount: c.discount_amount,
         neighborhood: c.neighborhood,
         valid_until: c.valid_until,
-        image_url: c.image_url
-      }))
+        image_url: c.image_url,
+      })),
     };
 
     // Build user context for personalization
-    let userContext = '';
+    let userContext = "";
     let missingFields: string[] = [];
-    
+
     if (userProfile) {
       const parts = [];
-      
+
       // Track what we know about the user
       if (userProfile.name) parts.push(`Name: ${userProfile.name}`);
-      else missingFields.push('name');
-      
+      else missingFields.push("name");
+
       if (userProfile.age) parts.push(`Age: ${userProfile.age}`);
-      else missingFields.push('age');
-      
+      else missingFields.push("age");
+
       if (userProfile.email) parts.push(`Email: ${userProfile.email}`);
-      else missingFields.push('email');
-      
+      else missingFields.push("email");
+
       if (userProfile.budget_preference) parts.push(`Budget: ${userProfile.budget_preference}`);
-      else missingFields.push('budget_preference');
-      
-      if (userProfile.favorite_neighborhoods?.length) parts.push(`Neighborhoods: ${userProfile.favorite_neighborhoods.join(', ')}`);
-      else missingFields.push('favorite_neighborhoods');
-      
-      if (userProfile.interests?.length) parts.push(`Interests: ${userProfile.interests.join(', ')}`);
-      else missingFields.push('interests');
-      
-      if (userProfile.recommendation_count !== undefined) parts.push(`Recommendations given: ${userProfile.recommendation_count}`);
-      
+      else missingFields.push("budget_preference");
+
+      if (userProfile.favorite_neighborhoods?.length)
+        parts.push(`Neighborhoods: ${userProfile.favorite_neighborhoods.join(", ")}`);
+      else missingFields.push("favorite_neighborhoods");
+
+      if (userProfile.interests?.length) parts.push(`Interests: ${userProfile.interests.join(", ")}`);
+      else missingFields.push("interests");
+
+      if (userProfile.recommendation_count !== undefined)
+        parts.push(`Recommendations given: ${userProfile.recommendation_count}`);
+
       if (parts.length > 0) {
-        userContext = `\n\nUser Profile (Information already known - DO NOT ask for this again):\n${parts.join('\n')}`;
-        console.log('User Profile Context:', userContext);
+        userContext = `\n\nUser Profile (Information already known - DO NOT ask for this again):\n${parts.join("\n")}`;
+        console.log("User Profile Context:", userContext);
       }
-      
+
       if (missingFields.length > 0) {
-        userContext += `\n\nMissing Profile Fields (only ask if relevant to current conversation): ${missingFields.join(', ')}`;
-        console.log('Missing Fields:', missingFields.join(', '));
+        userContext += `\n\nMissing Profile Fields (only ask if relevant to current conversation): ${missingFields.join(", ")}`;
+        console.log("Missing Fields:", missingFields.join(", "));
       }
     }
 
     // Add behavioral history for smarter recommendations
     if (interactionHistory.length > 0) {
-      const engagedEvents = interactionHistory.filter(i => i.item_type === 'event' && i.interaction_type !== 'recommended');
-      const engagedBusinesses = interactionHistory.filter(i => i.item_type === 'business' && i.interaction_type !== 'recommended');
-      
+      const engagedEvents = interactionHistory.filter(
+        (i) => i.item_type === "event" && i.interaction_type !== "recommended",
+      );
+      const engagedBusinesses = interactionHistory.filter(
+        (i) => i.item_type === "business" && i.interaction_type !== "recommended",
+      );
+
       if (engagedEvents.length > 0 || engagedBusinesses.length > 0) {
-        userContext += '\n\nBehavioral History (what they actually engaged with):';
+        userContext += "\n\nBehavioral History (what they actually engaged with):";
         if (engagedEvents.length > 0) {
-          userContext += `\n- Asked about ${engagedEvents.length} events (IDs: ${engagedEvents.map(e => e.item_id).join(', ')})`;
+          userContext += `\n- Asked about ${engagedEvents.length} events (IDs: ${engagedEvents.map((e) => e.item_id).join(", ")})`;
         }
         if (engagedBusinesses.length > 0) {
           userContext += `\n- Showed interest in ${engagedBusinesses.length} businesses/items`;
         }
-        userContext += '\n- PRIORITIZE recommendations similar to these based on mood, location, category, and vibe';
+        userContext += "\n- PRIORITIZE recommendations similar to these based on mood, location, category, and vibe";
       }
     }
 
@@ -184,9 +220,7 @@ Today's date is: ${today}
 **CRITICAL: READ THE USER PROFILE BELOW - DO NOT ASK FOR INFORMATION ALREADY LISTED**
 ${userContext}
 
-If you see "Name: Matias" above, DO NOT ask for name.
-If you see "Age: 33" above, DO NOT ask for age.
-Only ask for information that is NOT listed above.
+DO NOT ask for information that is provided above unless its part of the "Missing Profile Fields" section, and use "Information already known" to come up with the recommendations for the users
 
 Available data:
 ${JSON.stringify(contextData, null, 2)}
@@ -218,8 +252,6 @@ AGE COLLECTION - SECOND PRIORITY (after name):
 - IF the user requests recommendations AND you don't see "Age:" in the User Profile section, ask for age
 - If they mention going "with friends", "with people", or "we", ask: "Quick question - what are your ages? (e.g., 25, 28, 30)"
 - If they're asking just for themselves, ask: "Quick question - how old are you? This helps me recommend the perfect spots for you 😊"
-
-**IMPORTANT**: Do not give recommendations without knowing age. But if you already see "Age:" in the User Profile, you already know it!
 
 AGE-BASED FILTERING (when giving recommendations):
 - For users 18-30: Focus on nightlife, clubs, indie venues, underground scenes, energetic events
@@ -316,91 +348,90 @@ RECOMMENDATION OUTPUT RULES:
 
 CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.`;
 
-
-
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${openAIApiKey}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages
-        ],
+        model: "gpt-4o-mini",
+        messages: [{ role: "system", content: systemPrompt }, ...messages],
         max_tokens: 800,
         temperature: 0.8,
-        stream: false  // Disable streaming to get structured JSON response
+        stream: false, // Disable streaming to get structured JSON response
       }),
     });
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('OpenAI API error:', response.status, error);
+      console.error("OpenAI API error:", response.status, error);
       throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     // Get the complete message
     const data = await response.json();
-    let message = data.choices?.[0]?.message?.content || '';
-    
-    console.log('AI response:', message);
-    
+    let message = data.choices?.[0]?.message?.content || "";
+
+    console.log("AI response:", message);
+
     // Get the last user message to understand their query
-    const lastUserMessage = messages[messages.length - 1]?.content || '';
-    
+    const lastUserMessage = messages[messages.length - 1]?.content || "";
+
     // Check if this is a recommendations response
     if (message.includes('"recommendations"')) {
       try {
         // Try to extract JSON from the message if it exists
         let jsonStr = message;
-        const jsonStart = message.indexOf('{');
-        const jsonEnd = message.lastIndexOf('}');
+        const jsonStart = message.indexOf("{");
+        const jsonEnd = message.lastIndexOf("}");
         if (jsonStart !== -1 && jsonEnd !== -1) {
           jsonStr = message.substring(jsonStart, jsonEnd + 1);
         }
         const parsed = JSON.parse(jsonStr);
-        
+
         // Track database recommendations in background
-        if (phoneNumber && parsed.recommendations && Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
+        if (
+          phoneNumber &&
+          parsed.recommendations &&
+          Array.isArray(parsed.recommendations) &&
+          parsed.recommendations.length > 0
+        ) {
           const interactions = parsed.recommendations.map((rec: any) => ({
             phone_number: phoneNumber,
             item_type: rec.type,
             item_id: rec.id,
-            interaction_type: 'recommended'
+            interaction_type: "recommended",
           }));
-          supabase.from('whatsapp_user_interactions').insert(interactions).then();
-          
+          supabase.from("whatsapp_user_interactions").insert(interactions).then();
+
           console.log(`Tracked ${parsed.recommendations.length} database event recommendations`);
         }
       } catch (e) {
-        console.log('Could not parse recommendations:', e);
+        console.log("Could not parse recommendations:", e);
       }
     }
-    
+
     // Only split regular conversational text, NOT JSON recommendations
     const MAX_CHARS = 1500;
     let messagesToSend = [];
-    
+
     // Check if message contains JSON recommendations (don't split these)
     const hasRecommendations = message.includes('"recommendations"');
-    
+
     if (!hasRecommendations && message.length > MAX_CHARS) {
       // Only split regular text messages
       console.log(`Message length ${message.length} exceeds ${MAX_CHARS}, splitting text...`);
-      
+
       // Split by sentences to avoid breaking mid-sentence
       const sentences = message.match(/[^.!?]+[.!?]+/g) || [message];
-      let currentChunk = '';
-      
+      let currentChunk = "";
+
       for (const sentence of sentences) {
         // Check if this sentence contains a link
         const urlPattern = /(https?:\/\/[^\s]+)/g;
         const hasLink = urlPattern.test(sentence);
-        
+
         if ((currentChunk + sentence).length > MAX_CHARS) {
           if (currentChunk) {
             // If the sentence contains a link, move entire sentence to next chunk
@@ -416,7 +447,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
             if (hasLink) {
               // Don't split sentences with links
               messagesToSend.push(sentence.trim());
-              currentChunk = '';
+              currentChunk = "";
             } else {
               messagesToSend.push(sentence.substring(0, MAX_CHARS).trim());
               currentChunk = sentence.substring(MAX_CHARS);
@@ -426,35 +457,31 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
           currentChunk += sentence;
         }
       }
-      
+
       if (currentChunk) {
         messagesToSend.push(currentChunk.trim());
       }
-      
+
       console.log(`Split text into ${messagesToSend.length} messages`);
     } else {
       // Don't split: either it's short enough OR it contains JSON recommendations
       messagesToSend = [message];
     }
-    
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         message: messagesToSend.length === 1 ? message : messagesToSend[0],
-        messages: messagesToSend.length > 1 ? messagesToSend : undefined
+        messages: messagesToSend.length > 1 ? messagesToSend : undefined,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
-
   } catch (error) {
-    console.error('Error in yara-ai-chat:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    console.error("Error in yara-ai-chat:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
