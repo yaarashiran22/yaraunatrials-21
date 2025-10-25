@@ -376,9 +376,8 @@ RECOMMENDATION MATCHING & OUTPUT RULES (for provide_recommendations tool):
     // Get the last user message to understand their query
     const lastUserMessage = messages[messages.length - 1]?.content || "";
     
-    // Much more specific detection - only trigger on clear recommendation requests
-    // Must have an explicit request verb + target or time phrase
-    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|search for|need|want|whats on|what is on|events? for|bars? for|places? for|eventos?|lugares?|bares?|recomienda|suger[ií]|busco|quiero)\b/i;
+    // Keywords that indicate a recommendation request
+    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|esta noche|hoy|mañana|fin de semana|dance|music|live|party|art|food)\b/i;
 
     // Build request body
     const requestBody: any = {
@@ -406,7 +405,7 @@ RECOMMENDATION MATCHING & OUTPUT RULES (for provide_recommendations tool):
               properties: {
                 intro_message: {
                   type: "string",
-                  description: "Write a contextual, personalized intro message that responds to the user's specific request. Match their tone and reference what they asked for (e.g., if they asked for 'jazz events this weekend', say something like 'Found some great jazz spots for you this weekend!' rather than a generic 'Here are some recommendations'). Be warm, enthusiastic, and specific to their query."
+                  description: "A friendly intro message like 'Here are some events you might like:'"
                 },
                 recommendations: {
                   type: "array",
