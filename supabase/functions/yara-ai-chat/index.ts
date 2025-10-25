@@ -367,7 +367,8 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 
 RECOMMENDATION OUTPUT RULES:
 - Return MAXIMUM 6 recommendations total from the database
-- Only include items with image_url
+- **CRITICAL**: ONLY include events/items that have an image_url field - never recommend anything without an image
+- **CRITICAL**: You MUST include the "image_url" field in EVERY recommendation in your JSON response - this is the event's photo that will be sent via WhatsApp
 - Keep description under 100 words
 - ALWAYS include in description: location, date (already formatted as 'Month DDth', use as-is), time
 - ALSO include if available: address, music_type, external_link (Instagram)
