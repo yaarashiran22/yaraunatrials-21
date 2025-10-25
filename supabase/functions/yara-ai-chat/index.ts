@@ -329,7 +329,17 @@ Date calculation rules (today is ${today}):
 - "this weekend" / "weekend" / "fin de semana" → calculate next Saturday and Sunday
 - Specific dates (e.g., "December 25", "25 de diciembre", "2025-12-25") → parse and use that exact date
 
-**IMPORTANT**: After calculating the target date, ONLY return events where the event date matches your calculated date or falls within the calculated date range. Filter events by date BEFORE selecting which ones to recommend.
+**RECURRING EVENTS - CRITICAL:**
+- Events with dates like "every friday", "every tuesday", "every monday", etc. are RECURRING EVENTS
+- When a user asks for events "in [month]" or "this month" or "next month", ALWAYS include recurring events that match their other criteria (music type, vibe, etc.)
+- Example: User asks for "jazz events in November" → include "every friday" jazz events because they occur in November
+- Only filter by specific dates when user asks for "tonight", "tomorrow", "this weekend", or a specific date
+- For broader time requests (weeks, months, or general "events"), include ALL recurring events that match the user's other criteria
+
+**IMPORTANT**: After calculating the target date, filter events appropriately:
+- For specific date requests (tonight, tomorrow, specific date): Only return events with that exact date
+- For time period requests (this month, next month, this week): Include both events in that period AND recurring events
+- Filter events by date BEFORE selecting which ones to recommend.
 
 **JSON-ONLY RULES - ENFORCE STRICTLY:**
 1. NO conversational text whatsoever
