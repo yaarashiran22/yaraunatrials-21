@@ -102,10 +102,6 @@ Deno.serve(async (req) => {
         messageBody += `\n\n✨ *Just for you:* ${rec.personalized_note}`;
       }
       
-      if (rec.why_recommended) {
-        messageBody += `\n\n💡 ${rec.why_recommended}`;
-      }
-      
       try {
         console.log(`[${i + 1}/${uniqueRecs.length}] Sending: ${rec.title}`);
         

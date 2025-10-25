@@ -309,13 +309,19 @@ Example conversational responses:
 SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, etc.):
 **ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST return PURE JSON ONLY.
 
-DETECTION KEYWORDS FOR JSON RESPONSE (if user message contains ANY of these, return JSON):
-- "recommendations", "recommend", "suggest"
-- "events", "bars", "clubs", "venues", "places"
-- "show me", "looking for", "find me", "what's", "any"
-- "tonight", "today", "this week", "weekend", "tomorrow", "next week"
-- "dance", "music", "live", "party", "art", "food"
-- Spanish: "esta noche", "hoy", "mañana", "próxima semana", "semana que viene", "fin de semana"
+**CRITICAL - ONLY USE JSON TOOL FOR EXPLICIT RECOMMENDATION REQUESTS:**
+- Use the recommendations tool ONLY when user is EXPLICITLY asking for suggestions/recommendations
+- **DO NOT** use the tool when user is asking QUESTIONS about previously recommended events (e.g., "what age groups attend?", "is it expensive?", "where is it?")
+- **DO NOT** use the tool when user is having follow-up conversation about recommendations you already gave
+
+DETECTION KEYWORDS FOR JSON RESPONSE (user must use these specific phrases):
+- "recommend me", "suggest", "show me", "find me", "looking for", "I want", "I need"
+- "gimme", "dame" (Spanish for give me)
+- Combined with: "events", "bars", "clubs", "venues", "places", "tonight", "today", etc.
+
+**QUESTIONS ABOUT EVENTS = CONVERSATIONAL TEXT (NOT JSON):**
+- "what age groups", "how much", "where is", "when is", "tell me more", "is it", "are they"
+- Any follow-up questions about events you already recommended
 
 **IMPORTANT**: ONLY return JSON if age is already collected. If age is missing, respond with conversational text asking for age first.
 
@@ -407,8 +413,8 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     // Get the last user message to understand their query
     const lastUserMessage = messages[messages.length - 1]?.content || "";
     
-    // Keywords that indicate a recommendation request
-    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|esta noche|hoy|mañana|fin de semana|dance|music|live|party|art|food)\b/i;
+    // Keywords that indicate an EXPLICIT recommendation request (more specific to avoid false positives)
+    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|i want|i need|can you find|help me find|gimme|dame)\b/i;
 
     // Build request body
     const requestBody: any = {
