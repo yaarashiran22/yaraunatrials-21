@@ -339,21 +339,27 @@ Date calculation rules (today is ${today}):
 5. Start with { and end with }
 6. Return ONLY the raw JSON object
 
-REQUIRED JSON FORMAT:
+REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY:
 {
   "intro_message": "Here are some [type] you might like:",
   "recommendations": [
     {
       "type": "event",
-      "id": "actual-event-id",
-      "title": "Event Title",
+      "id": "actual-event-id-from-database",
+      "title": "Event Title from database",
       "description": "Location: [location]. Address: [address if available]. Date: [date - already formatted, use as-is]. Time: [time]. Music Type: [music_type if available]. Instagram: [external_link if available]. Brief description.",
       "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
       "personalized_note": "CRITICAL - A custom personal message based on their profile data (age, budget, interests, neighborhoods). Examples: 'Perfect for your age group (33) and high budget preference', 'This matches your interest in jazz and is in your favorite neighborhood Palermo', 'Great for someone your age (25) looking for affordable nightlife'. ALWAYS reference specific profile data when available.",
-      "image_url": "full-image-url"
+      "image_url": "CRITICAL - YOU MUST COPY THE EXACT image_url VALUE FROM THE DATABASE EVENT - this is the event photo URL that will be sent via WhatsApp. DO NOT omit this field or the images won't be sent!"
     }
   ]
 }
+
+**CRITICAL IMAGE_URL REQUIREMENT:**
+- The "image_url" field is MANDATORY for every recommendation
+- Copy the EXACT image_url value from the event data in the database
+- If an event has no image_url in the database, DO NOT include that event in recommendations
+- The image_url will be used to send the event photo via WhatsApp, so it MUST be present
 
 RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 1. **CRITICAL: Search BOTH title AND description equally** - if user asks for "party", check if "party" appears in EITHER the title OR the description. Example: event with title "Night Out" and description "Join us for a party at..." MUST match "party" search
