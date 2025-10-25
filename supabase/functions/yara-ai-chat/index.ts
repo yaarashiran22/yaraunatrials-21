@@ -151,43 +151,68 @@ serve(async (req) => {
       })),
     };
 
-    // Build user context for personalization
+    // Build user context - we'll inject this directly into the conversation
+    let userProfileInfo: string[] = [];
     let userContext = "";
     let missingFields: string[] = [];
 
     if (userProfile) {
       const parts = [];
 
-      // Track what we know about the user
-      if (userProfile.name) parts.push(`Name: ${userProfile.name}`);
-      else missingFields.push("name");
+      // Track what we know about the user for context display
+      if (userProfile.name) {
+        parts.push(`Name: ${userProfile.name}`);
+        userProfileInfo.push(`my name is ${userProfile.name}`);
+      } else {
+        missingFields.push("name");
+      }
 
-      if (userProfile.age) parts.push(`Age: ${userProfile.age}`);
-      else missingFields.push("age");
+      if (userProfile.age) {
+        parts.push(`Age: ${userProfile.age}`);
+        userProfileInfo.push(`I'm ${userProfile.age} years old`);
+      } else {
+        missingFields.push("age");
+      }
 
-      if (userProfile.email) parts.push(`Email: ${userProfile.email}`);
-      else missingFields.push("email");
+      if (userProfile.email) {
+        parts.push(`Email: ${userProfile.email}`);
+        userProfileInfo.push(`my email is ${userProfile.email}`);
+      } else {
+        missingFields.push("email");
+      }
 
-      if (userProfile.budget_preference) parts.push(`Budget: ${userProfile.budget_preference}`);
-      else missingFields.push("budget_preference");
+      if (userProfile.budget_preference) {
+        parts.push(`Budget: ${userProfile.budget_preference}`);
+        userProfileInfo.push(`my budget preference is ${userProfile.budget_preference}`);
+      } else {
+        missingFields.push("budget_preference");
+      }
 
-      if (userProfile.favorite_neighborhoods?.length)
+      if (userProfile.favorite_neighborhoods?.length) {
         parts.push(`Neighborhoods: ${userProfile.favorite_neighborhoods.join(", ")}`);
-      else missingFields.push("favorite_neighborhoods");
+        userProfileInfo.push(`my favorite neighborhoods are ${userProfile.favorite_neighborhoods.join(", ")}`);
+      } else {
+        missingFields.push("favorite_neighborhoods");
+      }
 
-      if (userProfile.interests?.length) parts.push(`Interests: ${userProfile.interests.join(", ")}`);
-      else missingFields.push("interests");
+      if (userProfile.interests?.length) {
+        parts.push(`Interests: ${userProfile.interests.join(", ")}`);
+        userProfileInfo.push(`I'm interested in ${userProfile.interests.join(", ")}`);
+      } else {
+        missingFields.push("interests");
+      }
 
-      if (userProfile.recommendation_count !== undefined)
+      if (userProfile.recommendation_count !== undefined) {
         parts.push(`Recommendations given: ${userProfile.recommendation_count}`);
+      }
 
       if (parts.length > 0) {
-        userContext = `\n\nUser Profile (Information already known - DO NOT ask for this again):\n${parts.join("\n")}`;
+        userContext = `\n\nUser Profile Context:\n${parts.join("\n")}`;
         console.log("User Profile Context:", userContext);
       }
 
       if (missingFields.length > 0) {
-        userContext += `\n\nMissing Profile Fields (only ask if relevant to current conversation): ${missingFields.join(", ")}`;
+        userContext += `\n\nMissing Fields: ${missingFields.join(", ")}`;
         console.log("Missing Fields:", missingFields.join(", "));
       }
     }
@@ -213,14 +238,25 @@ serve(async (req) => {
       }
     }
 
+    // Inject user profile into the first user message to ensure AI sees it
+    const enrichedMessages = [...messages];
+    
+    // If this is the first user message and we have profile info, prepend it
+    if (userProfileInfo.length > 0 && enrichedMessages.length > 0) {
+      const firstUserMsgIndex = enrichedMessages.findIndex(m => m.role === 'user');
+      if (firstUserMsgIndex !== -1) {
+        const profilePrefix = `(By the way, ${userProfileInfo.join(", ")}.) `;
+        enrichedMessages[firstUserMsgIndex] = {
+          ...enrichedMessages[firstUserMsgIndex],
+          content: profilePrefix + enrichedMessages[firstUserMsgIndex].content
+        };
+      }
+    }
+
     const systemPrompt = `You are Yara, a friendly AI assistant for Buenos Aires events and experiences. Use emojis naturally to add warmth (1-2 per message), but don't overdo it.
 
 Today's date is: ${today}
-
-**CRITICAL: READ THE USER PROFILE BELOW - DO NOT ASK FOR INFORMATION ALREADY LISTED**
 ${userContext}
-
-DO NOT ask for information that is provided above unless its part of the "Missing Profile Fields" section, and use "Information already known" to come up with the recommendations for the users
 
 Available data:
 ${JSON.stringify(contextData, null, 2)}
@@ -236,22 +272,16 @@ Respond with PLAIN TEXT ONLY. Be warm and conversational.
 - If user asks VERY GENERAL questions about things to do in the city (like "what's happening?", "what should I do?", "any events tonight?") WITHOUT any specific preferences, ask them ONE clarifying question to personalize recommendations
 
 NAME COLLECTION - FIRST PRIORITY:
-**CRITICAL - CHECK THE "User Profile (Information already known)" SECTION ABOVE FIRST**:
-- **LOOK AT THE USER PROFILE ABOVE: If you see "Name: [some name]" in the User Profile section, the user already told you their name. Use it and DO NOT ask for it again.**
-- **IF NAME IS MISSING from the User Profile section, ask for it immediately after the first greeting**: "Hey! Before I help you discover Buenos Aires - what's your name?"
-- DO NOT proceed with other questions or recommendations until you have their name
-- Once they provide their name, greet them by name and then continue with the conversation
+- **IMPORTANT**: The user's messages may include their profile information in parentheses at the start (e.g., "(By the way, my name is Matias, I'm 33 years old.)")
+- **IF** you see this information in their message, you ALREADY KNOW it - use their name and DO NOT ask for it again
+- **IF** the user's message does NOT include their name, ask for it after the first greeting: "Hey! Before I help you discover Buenos Aires - what's your name?"
+- Once they provide their name, greet them by name and continue with the conversation
 
 AGE COLLECTION - SECOND PRIORITY (after name):
-**STEP 1: CHECK THE USER PROFILE SECTION ABOVE**
-- Look for the line that says "Age: [number]"
-- If you see "Age: 25" or "Age: 33" or any age number, that means you ALREADY KNOW their age
-- DO NOT ask for age if you see this line
-
-**STEP 2: ONLY IF Age is NOT in the User Profile**:
-- IF the user requests recommendations AND you don't see "Age:" in the User Profile section, ask for age
-- If they mention going "with friends", "with people", or "we", ask: "Quick question - what are your ages? (e.g., 25, 28, 30)"
-- If they're asking just for themselves, ask: "Quick question - how old are you? This helps me recommend the perfect spots for you 😊"
+- **IF** the user's message includes their age in parentheses (e.g., "I'm 33 years old"), you ALREADY KNOW their age - DO NOT ask for it
+- **IF** their message does NOT include age AND they request recommendations, ask for age:
+  - If they mention going "with friends", "with people", or "we", ask: "Quick question - what are your ages? (e.g., 25, 28, 30)"
+  - If they're asking just for themselves, ask: "Quick question - how old are you? This helps me recommend the perfect spots for you 😊"
 
 AGE-BASED FILTERING (when giving recommendations):
 - For users 18-30: Focus on nightlife, clubs, indie venues, underground scenes, energetic events
@@ -259,15 +289,14 @@ AGE-BASED FILTERING (when giving recommendations):
 - For users 45+: Cultural events, theaters, upscale dining, wine bars, art galleries
 - NEVER recommend age-inappropriate events (e.g., don't send 25-year-olds to retirement community events)
 
-PROGRESSIVE PROFILING (Build profile gradually - DO NOT ask for information already in the profile):
-- **ALWAYS check the User Profile section first before asking ANY question**
-- **IF a field already has data in the User Profile, NEVER ask for it again**
-- After the 2nd-3rd recommendation (when recommendation_count = 2 or 3), if email is missing from profile, you can casually ask: "By the way, what's your email? I can send you updates on cool events 📧"
-- After the 4th-5th recommendation (when recommendation_count = 4 or 5), if budget_preference is missing from profile, ask: "Are you looking for something fancy-ish or more local/casual vibes?"
-- After the 6th-7th recommendation, if favorite_neighborhoods OR interests are missing from profile, you MUST ask: "Which neighborhoods do you usually hang out in, and what are your main interests?"
-- These questions are MANDATORY and must be asked at the specified times ONLY if the data is not already in the profile
+PROGRESSIVE PROFILING (Build profile gradually):
+- **Check if the user's message includes profile info in parentheses** - if it does, you already know that information
+- **Check the User Profile Context above** - if a field has data, NEVER ask for it again
+- After the 2nd-3rd recommendation, if email is missing from both the message and profile, you can ask: "By the way, what's your email? I can send you updates on cool events 📧"
+- After the 4th-5th recommendation, if budget_preference is missing, ask: "Are you looking for something fancy-ish or more local/casual vibes?"
+- After the 6th-7th recommendation, if favorite_neighborhoods OR interests are missing, ask: "Which neighborhoods do you usually hang out in, and what are your main interests?"
 - Ask ONLY ONE profiling question per message
-- Use the "Missing Profile Fields" list to know what information you don't have yet
+- Use the "Missing Fields" list to know what information you don't have yet
 
 Example conversational responses: 
   - "Hey [name]! What kind of events are you looking for?" (if name is known)
@@ -356,7 +385,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
-        messages: [{ role: "system", content: systemPrompt }, ...messages],
+        messages: [{ role: "system", content: systemPrompt }, ...enrichedMessages],
         max_tokens: 800,
         temperature: 0.8,
         stream: false, // Disable streaming to get structured JSON response
