@@ -485,6 +485,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
 
     // Get the complete message
     const data = await response.json();
+    console.log("Full AI response:", JSON.stringify(data, null, 2));
     
     // Check if we got a tool call response (structured recommendations)
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
@@ -499,6 +500,10 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       // Regular conversational response
       message = data.choices?.[0]?.message?.content || "";
       console.log("AI response (conversational):", message);
+      
+      if (!message) {
+        console.error("AI returned empty content. Full message object:", JSON.stringify(data.choices?.[0]?.message, null, 2));
+      }
     }
 
 
