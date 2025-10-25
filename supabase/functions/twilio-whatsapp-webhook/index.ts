@@ -136,30 +136,33 @@ Deno.serve(async (req) => {
     if (whatsappUser) {
       const updates: any = {};
       
+      // Common words to exclude from name detection
+      const commonWords = ['there', 'here', 'thanks', 'thank', 'please', 'hello', 'sorry', 'okay', 'yes', 'yeah'];
+      
       // Detect name - check multiple patterns
       if (!whatsappUser.name) {
-        // Pattern 1: "My name is John" or "I'm John"
+        // Pattern 1: "My name is John" or "I'm John" or "Me llamo Juan"
         const namePattern1 = /(?:my name is|i'm|i am|me llamo)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i;
         const nameMatch1 = body.match(namePattern1);
         
         // Pattern 2: Just a capitalized name on its own (likely response to "what's your name?")
-        const namePattern2 = /^([A-Z][a-z]{1,15})$/;
+        // Only match if message is very short (2-20 chars) and is just one or two words
+        const namePattern2 = /^([A-Z][a-z]{2,15})(?:\s+[A-Z][a-z]{2,15})?$/;
         const nameMatch2 = body.match(namePattern2);
         
-        // Pattern 3: Simple greeting with name "Hi, I'm John" or "Hello, John here"
-        const namePattern3 = /(?:hi|hello|hey),?\s+(?:i'm|im|i am)?\s*([A-Z][a-z]+)/i;
-        const nameMatch3 = body.match(namePattern3);
-        
         if (nameMatch1) {
-          updates.name = nameMatch1[1];
-          console.log(`Detected name (pattern 1): ${nameMatch1[1]}`);
-        } else if (nameMatch2 && body.trim().length < 20) {
-          // Only match single word if message is short
-          updates.name = nameMatch2[1];
-          console.log(`Detected name (pattern 2): ${nameMatch2[1]}`);
-        } else if (nameMatch3) {
-          updates.name = nameMatch3[1];
-          console.log(`Detected name (pattern 3): ${nameMatch3[1]}`);
+          const detectedName = nameMatch1[1].trim();
+          if (!commonWords.includes(detectedName.toLowerCase())) {
+            updates.name = detectedName;
+            console.log(`Detected name (pattern 1): ${detectedName}`);
+          }
+        } else if (nameMatch2 && body.trim().length >= 2 && body.trim().length <= 30) {
+          // Only match single/double word if message is short and not a common word
+          const detectedName = nameMatch2[1].trim();
+          if (!commonWords.includes(detectedName.toLowerCase())) {
+            updates.name = detectedName;
+            console.log(`Detected name (pattern 2): ${detectedName}`);
+          }
         }
       }
       
