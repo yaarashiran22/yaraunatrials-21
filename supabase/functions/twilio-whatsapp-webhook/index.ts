@@ -82,14 +82,22 @@ Deno.serve(async (req) => {
 
     console.log('WhatsApp user:', whatsappUser ? `Found user ${whatsappUser.name || 'unnamed'}` : 'No user found');
 
-    // If it's a greeting/conversation starter AND a new conversation, OR it's a conversation starter regardless of history, send welcome
+    // Determine if we should send welcome
+    // For known users with names, send "Welcome back [name]" on greetings
+    // For new users or unnamed users, send full welcome message
     const shouldSendWelcome = (isGreeting && isNewConversation) || isConversationStarter;
     
     let welcomeMessageSent = false;
     if (shouldSendWelcome) {
       console.log('Sending welcome message - new conversation or conversation starter detected');
       
-      const welcomeMessage = "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?";
+      // Personalized welcome for known users
+      let welcomeMessage;
+      if (whatsappUser?.name) {
+        welcomeMessage = `Welcome back ${whatsappUser.name}! 👋`;
+      } else {
+        welcomeMessage = "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?";
+      }
       
       // Store welcome response
       await supabase.from('whatsapp_conversations').insert({
@@ -399,7 +407,11 @@ Deno.serve(async (req) => {
       const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
 
       // Prepare the intro message - send this first before recommendations
-      const welcomeText = welcomeMessageSent ? "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
+      const welcomeText = welcomeMessageSent 
+        ? (whatsappUser?.name 
+          ? `Welcome back ${whatsappUser.name}! 👋\n\n` 
+          : "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n")
+        : "";
       const introMessage = welcomeText + "Yes! Sending you the recommendations in just a minute! 🎯";
       
       // Send intro via TwiML immediately
@@ -451,7 +463,11 @@ Deno.serve(async (req) => {
       content: multipleMessages ? multipleMessages.join('\n\n') : assistantMessage
     });
 
-    const welcomeText = welcomeMessageSent ? "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
+    const welcomeText = welcomeMessageSent 
+      ? (whatsappUser?.name 
+        ? `Welcome back ${whatsappUser.name}! 👋\n\n` 
+        : "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n")
+      : "";
     
     // If message was split, send multiple TwiML messages
     if (multipleMessages && multipleMessages.length > 1) {
