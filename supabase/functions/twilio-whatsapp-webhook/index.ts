@@ -184,11 +184,17 @@ Deno.serve(async (req) => {
 
     // Extract AI response
     let assistantMessage = '';
+    let multipleMessages: string[] | undefined;
+    
     if (aiResponse) {
       assistantMessage = aiResponse.message || 'Sorry, I encountered an error processing your request.';
+      multipleMessages = aiResponse.messages; // Array of messages if split
     }
 
     console.log('Yara AI raw response:', assistantMessage);
+    if (multipleMessages) {
+      console.log(`Response split into ${multipleMessages.length} messages for Twilio`);
+    }
 
     // Try to parse as JSON - extract JSON from text if needed
     let cleanedMessage = assistantMessage.trim();
@@ -305,10 +311,30 @@ Deno.serve(async (req) => {
     await supabase.from('whatsapp_conversations').insert({
       phone_number: from,
       role: 'assistant',
-      content: assistantMessage
+      content: multipleMessages ? multipleMessages.join('\n\n') : assistantMessage
     });
 
     const welcomeText = welcomeMessageSent ? "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n" : "";
+    
+    // If message was split, send multiple TwiML messages
+    if (multipleMessages && multipleMessages.length > 1) {
+      console.log(`Sending ${multipleMessages.length} TwiML messages`);
+      
+      const twimlMessages = multipleMessages.map((msg, idx) => {
+        const prefix = idx === 0 && welcomeText ? welcomeText : '';
+        return `  <Message>${prefix}${msg}</Message>`;
+      }).join('\n');
+      
+      const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+${twimlMessages}
+</Response>`;
+      
+      return new Response(twimlResponse, {
+        headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+        status: 200
+      });
+    }
     
     const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>

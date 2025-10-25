@@ -336,8 +336,46 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       }
     }
     
+    // Split message if it exceeds 1500 characters for Twilio
+    const MAX_CHARS = 1500;
+    let messagesToSend = [];
+    
+    if (message.length > MAX_CHARS) {
+      console.log(`Message length ${message.length} exceeds ${MAX_CHARS}, splitting...`);
+      
+      // Split by sentences to avoid breaking mid-sentence
+      const sentences = message.match(/[^.!?]+[.!?]+/g) || [message];
+      let currentChunk = '';
+      
+      for (const sentence of sentences) {
+        if ((currentChunk + sentence).length > MAX_CHARS) {
+          if (currentChunk) {
+            messagesToSend.push(currentChunk.trim());
+            currentChunk = sentence;
+          } else {
+            // Single sentence is too long, split by characters
+            messagesToSend.push(sentence.substring(0, MAX_CHARS).trim());
+            currentChunk = sentence.substring(MAX_CHARS);
+          }
+        } else {
+          currentChunk += sentence;
+        }
+      }
+      
+      if (currentChunk) {
+        messagesToSend.push(currentChunk.trim());
+      }
+      
+      console.log(`Split into ${messagesToSend.length} messages`);
+    } else {
+      messagesToSend = [message];
+    }
+    
     return new Response(
-      JSON.stringify({ message }),
+      JSON.stringify({ 
+        message: messagesToSend.length === 1 ? message : messagesToSend[0],
+        messages: messagesToSend.length > 1 ? messagesToSend : undefined
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
