@@ -132,9 +132,36 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Detect and save user information from message
+    // Detect and store user information from message
     if (whatsappUser) {
       const updates: any = {};
+      
+      // Detect name - check multiple patterns
+      if (!whatsappUser.name) {
+        // Pattern 1: "My name is John" or "I'm John"
+        const namePattern1 = /(?:my name is|i'm|i am|me llamo)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i;
+        const nameMatch1 = body.match(namePattern1);
+        
+        // Pattern 2: Just a capitalized name on its own (likely response to "what's your name?")
+        const namePattern2 = /^([A-Z][a-z]{1,15})$/;
+        const nameMatch2 = body.match(namePattern2);
+        
+        // Pattern 3: Simple greeting with name "Hi, I'm John" or "Hello, John here"
+        const namePattern3 = /(?:hi|hello|hey),?\s+(?:i'm|im|i am)?\s*([A-Z][a-z]+)/i;
+        const nameMatch3 = body.match(namePattern3);
+        
+        if (nameMatch1) {
+          updates.name = nameMatch1[1];
+          console.log(`Detected name (pattern 1): ${nameMatch1[1]}`);
+        } else if (nameMatch2 && body.trim().length < 20) {
+          // Only match single word if message is short
+          updates.name = nameMatch2[1];
+          console.log(`Detected name (pattern 2): ${nameMatch2[1]}`);
+        } else if (nameMatch3) {
+          updates.name = nameMatch3[1];
+          console.log(`Detected name (pattern 3): ${nameMatch3[1]}`);
+        }
+      }
       
       // Detect age from user message
       const agePattern = /\b(\d{1,2})\b/g;
@@ -158,14 +185,6 @@ Deno.serve(async (req) => {
       if (emailMatch && !whatsappUser.email) {
         updates.email = emailMatch[0];
         console.log(`Detected email: ${emailMatch[0]}`);
-      }
-      
-      // Detect name if message contains patterns like "my name is" or "I'm [Name]"
-      const namePattern = /(?:my name is|i'm|i am|me llamo)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i;
-      const nameMatch = body.match(namePattern);
-      if (nameMatch && !whatsappUser.name) {
-        updates.name = nameMatch[1];
-        console.log(`Detected name: ${nameMatch[1]}`);
       }
       
       // Update user profile if we detected any information
