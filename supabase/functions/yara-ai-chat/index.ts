@@ -339,13 +339,18 @@ Example conversational responses:
 SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, etc.):
 **ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST return PURE JSON ONLY.
 
-DETECTION KEYWORDS FOR JSON RESPONSE (if user message contains ANY of these, return JSON):
-- "recommendations", "recommend", "suggest"
-- "events", "bars", "clubs", "venues", "places"
-- "show me", "looking for", "find me", "what's", "any"
-- "tonight", "today", "this week", "weekend", "tomorrow", "next week"
-- "dance", "music", "live", "party", "art", "food"
-- Spanish: "esta noche", "hoy", "mañana", "próxima semana", "semana que viene", "fin de semana"
+DETECTION KEYWORDS FOR JSON RESPONSE (MUST be explicit recommendation request):
+**CRITICAL**: ONLY trigger JSON response if user message contains EXPLICIT phrases like:
+- "recommend me", "give me recommendations", "suggest", "send me"
+- "show me events", "find me events", "looking for events"
+- "what events", "any events", "events for"
+- "where should I go", "what should I do"
+Combined with time words: "tonight", "today", "this week", "weekend", "tomorrow"
+
+**DO NOT trigger on**:
+- General conversation mentioning "events", "music", "party" etc.
+- Questions like "what's up", "any news"
+- Statements like "I like music", "there are events"
 
 **IMPORTANT**: ONLY return JSON if age is already collected. If age is missing, respond with conversational text asking for age first.
 
