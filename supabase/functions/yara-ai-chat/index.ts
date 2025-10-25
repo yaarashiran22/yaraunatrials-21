@@ -85,29 +85,29 @@ serve(async (req) => {
       }
     };
 
-    // Fetch relevant data from database with image URLs
+    // Fetch relevant data from database with image URLs - LIMIT TO REDUCE AI PROCESSING TIME
     // Include recurring events by checking if date contains "every" OR is >= today
     const [eventsResult, itemsResult, couponsResult] = await Promise.all([
       supabase
         .from("events")
         .select(
-          "id, title, description, date, time, location, address, price, mood, music_type, venue_size, external_link, image_url",
+          "id, title, description, date, time, location, address, music_type, image_url",
         )
         .or(`date.gte.${today},date.ilike.%every%`)
         .order("date", { ascending: true })
-        .limit(50),
+        .limit(30), // Reduced from 50 for faster processing
       supabase
         .from("items")
-        .select("id, title, description, category, location, price, image_url")
+        .select("id, title, description, category, location, image_url")
         .eq("status", "active")
         .order("created_at", { ascending: false })
-        .limit(50),
+        .limit(20), // Reduced from 50
       supabase
         .from("user_coupons")
-        .select("id, title, description, business_name, discount_amount, neighborhood, valid_until, image_url")
+        .select("id, title, description, business_name, discount_amount, neighborhood, image_url")
         .eq("is_active", true)
         .order("created_at", { ascending: false })
-        .limit(50),
+        .limit(20), // Reduced from 50
     ]);
 
     const events = eventsResult.data || [];
@@ -462,9 +462,9 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-flash", // Fast model for quick responses
         messages: [{ role: "system", content: systemPrompt }, ...enrichedMessages],
-        max_tokens: 1500,
+        max_tokens: 2000, // Increased for complete responses
         stream: false,
       }),
     });

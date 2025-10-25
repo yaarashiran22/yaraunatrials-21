@@ -431,21 +431,21 @@ Deno.serve(async (req) => {
         ? from 
         : `whatsapp:${from}`;
       
-      console.log(`Will send from ${fromWhatsApp} to ${toWhatsApp}`);
+      console.log(`Will send ${recs.length} events from ${fromWhatsApp} to ${toWhatsApp}`);
       
       const recs = parsedResponse.recommendations;
       
       // Use EdgeRuntime.waitUntil for proper background execution
       EdgeRuntime.waitUntil(
         (async () => {
-          // Small delay to ensure intro is received first
-          await new Promise(resolve => setTimeout(resolve, 800));
+          // Reduced delay for faster delivery
+          await new Promise(resolve => setTimeout(resolve, 300));
           
           for (let i = 0; i < recs.length; i++) {
             const rec = recs[i];
             
             if (!rec.title || !rec.description) {
-              console.log(`Skipping recommendation ${i + 1}: missing title or description`);
+              console.log(`❌ Skipping recommendation ${i + 1}: missing title or description`);
               continue;
             }
 
@@ -459,7 +459,7 @@ Deno.serve(async (req) => {
             let messageBody = `*${rec.title}*\n\n${formattedDescription}`;
             
             if (rec.personalized_note) {
-              messageBody += `\n\n✨ *Just for you:* ${rec.personalized_note}`;
+              messageBody += `\n\n✨ ${rec.personalized_note}`;
             }
             
             if (rec.why_recommended) {
@@ -467,16 +467,19 @@ Deno.serve(async (req) => {
             }
             
             try {
-              console.log(`[${i + 1}/${recs.length}] Sending: ${rec.title} with image: ${rec.image_url || 'no image'}`);
-              
               const requestBody: Record<string, string> = {
                 From: fromWhatsApp,
                 To: toWhatsApp,
                 Body: messageBody
               };
               
+              // CRITICAL: Add image URL as MediaUrl so it displays in WhatsApp
               if (rec.image_url) {
                 requestBody.MediaUrl = rec.image_url;
+                console.log(`[${i + 1}/${recs.length}] 📤 Sending: ${rec.title}`);
+                console.log(`   🖼️  Image: ${rec.image_url}`);
+              } else {
+                console.log(`[${i + 1}/${recs.length}] ⚠️  Sending without image: ${rec.title}`);
               }
               
               const twilioResponse = await fetch(
@@ -496,19 +499,19 @@ Deno.serve(async (req) => {
                 console.error(`❌ Failed to send ${rec.title}: ${twilioResponse.status} - ${errorText}`);
               } else {
                 const result = await twilioResponse.json();
-                console.log(`✅ Sent ${rec.title}. SID: ${result.sid}`);
+                console.log(`✅ Sent ${rec.title}. Message SID: ${result.sid}`);
               }
             } catch (error) {
               console.error(`❌ Error sending ${rec.title}:`, error);
             }
 
-            // Delay between messages
+            // Minimal delay between messages for faster delivery
             if (i < recs.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 500));
+              await new Promise(resolve => setTimeout(resolve, 300));
             }
           }
           
-          console.log('✅ Finished sending all recommendations');
+          console.log(`✅ Finished sending all ${recs.length} recommendations`);
         })()
       );
 
