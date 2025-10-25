@@ -689,6 +689,7 @@ export type Database = {
           age: number | null
           budget_preference: string | null
           created_at: string
+          email: string | null
           favorite_neighborhoods: string[] | null
           id: string
           interests: string[] | null
@@ -701,6 +702,7 @@ export type Database = {
           age?: number | null
           budget_preference?: string | null
           created_at?: string
+          email?: string | null
           favorite_neighborhoods?: string[] | null
           id?: string
           interests?: string[] | null
@@ -713,6 +715,7 @@ export type Database = {
           age?: number | null
           budget_preference?: string | null
           created_at?: string
+          email?: string | null
           favorite_neighborhoods?: string[] | null
           id?: string
           interests?: string[] | null

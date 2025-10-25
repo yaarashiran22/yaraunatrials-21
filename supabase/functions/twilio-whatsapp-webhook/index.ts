@@ -132,25 +132,52 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Detect and save age from user message
-    const agePattern = /\b(\d{1,2})\b/g;
-    const ageMatches = body.match(agePattern);
-    if (ageMatches && whatsappUser && !whatsappUser.age) {
-      // Check if the context suggests they're providing age
-      const ageContextPatterns = /(i'm|im|i am|we're|were|we are|age|years? old|año|años)/i;
-      if (ageContextPatterns.test(body) || body.trim().length < 20) {
-        // Take the first reasonable age (between 10 and 99)
-        const ages = ageMatches.map(m => parseInt(m)).filter(a => a >= 10 && a <= 99);
-        if (ages.length > 0) {
-          console.log(`Detected age(s): ${ages.join(', ')} - saving first age: ${ages[0]}`);
-          await supabase
-            .from('whatsapp_users')
-            .update({ age: ages[0] })
-            .eq('id', whatsappUser.id);
-          
-          // Update local whatsappUser object so AI has the latest data
-          whatsappUser.age = ages[0];
+    // Detect and save user information from message
+    if (whatsappUser) {
+      const updates: any = {};
+      
+      // Detect age from user message
+      const agePattern = /\b(\d{1,2})\b/g;
+      const ageMatches = body.match(agePattern);
+      if (ageMatches && !whatsappUser.age) {
+        // Check if the context suggests they're providing age
+        const ageContextPatterns = /(i'm|im|i am|we're|were|we are|age|years? old|año|años)/i;
+        if (ageContextPatterns.test(body) || body.trim().length < 20) {
+          // Take the first reasonable age (between 10 and 99)
+          const ages = ageMatches.map(m => parseInt(m)).filter(a => a >= 10 && a <= 99);
+          if (ages.length > 0) {
+            updates.age = ages[0];
+            console.log(`Detected age: ${ages[0]}`);
+          }
         }
+      }
+      
+      // Detect email
+      const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
+      const emailMatch = body.match(emailPattern);
+      if (emailMatch && !whatsappUser.email) {
+        updates.email = emailMatch[0];
+        console.log(`Detected email: ${emailMatch[0]}`);
+      }
+      
+      // Detect name if message contains patterns like "my name is" or "I'm [Name]"
+      const namePattern = /(?:my name is|i'm|i am|me llamo)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i;
+      const nameMatch = body.match(namePattern);
+      if (nameMatch && !whatsappUser.name) {
+        updates.name = nameMatch[1];
+        console.log(`Detected name: ${nameMatch[1]}`);
+      }
+      
+      // Update user profile if we detected any information
+      if (Object.keys(updates).length > 0) {
+        await supabase
+          .from('whatsapp_users')
+          .update(updates)
+          .eq('id', whatsappUser.id);
+        
+        // Update local whatsappUser object so AI has the latest data
+        Object.assign(whatsappUser, updates);
+        console.log(`Updated user info:`, updates);
       }
     }
 
