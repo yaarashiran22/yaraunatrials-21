@@ -526,34 +526,32 @@ Deno.serve(async (req) => {
       // Send intro via TwiML immediately
       console.log('Sending intro message via TwiML...');
       
-      // Call send-whatsapp-recommendations and WAIT for it to complete
-      console.log('Triggering send-whatsapp-recommendations function...');
-      try {
-        const { data, error } = await supabase.functions.invoke('send-whatsapp-recommendations', {
-          body: {
-            recommendations: parsedResponse.recommendations,
-            toNumber: from,
-            fromNumber: twilioWhatsAppNumber,
-            introText: null // Don't send intro from background - already sent via TwiML
-          }
-        });
-        
+      // Trigger send-whatsapp-recommendations in the background (don't wait for it)
+      console.log('Triggering send-whatsapp-recommendations function in background...');
+      supabase.functions.invoke('send-whatsapp-recommendations', {
+        body: {
+          recommendations: parsedResponse.recommendations,
+          toNumber: from,
+          fromNumber: twilioWhatsAppNumber,
+          introText: null // Don't send intro from background - already sent via TwiML
+        }
+      }).then(({ data, error }) => {
         if (error) {
           console.error('Error invoking send-whatsapp-recommendations:', error);
         } else {
           console.log('Send-whatsapp-recommendations completed successfully:', data);
         }
-      } catch (error) {
+      }).catch(error => {
         console.error('Failed to invoke send-whatsapp-recommendations:', error);
-      }
+      });
 
-      // Return intro message immediately via TwiML
+      // Return intro message immediately via TwiML (don't wait for recommendations)
       const introTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>${introMessage}</Message>
 </Response>`;
 
-      console.log('Returning intro TwiML response');
+      console.log('Returning intro TwiML response immediately');
       return new Response(introTwiml, {
         headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
         status: 200
