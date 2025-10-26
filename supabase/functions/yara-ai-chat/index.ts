@@ -471,25 +471,28 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       requestBody.tool_choice = { type: "function", function: { name: "provide_recommendations" } };
     }
 
-    // Retry logic for API calls
+    // Retry logic with model fallback
     let response;
     let retryCount = 0;
-    const maxRetries = 3;
+    const maxRetries = 2; // Reduced for faster fallback
+    let currentModel = requestBody.model;
     
     while (retryCount < maxRetries) {
       try {
+        console.log(`Calling AI with ${currentModel} (attempt ${retryCount + 1}/${maxRetries})...`);
+        
         response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${lovableApiKey}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(requestBody),
+          body: JSON.stringify({ ...requestBody, model: currentModel }),
         });
 
         if (!response.ok) {
           const error = await response.text();
-          console.error(`Lovable AI error (attempt ${retryCount + 1}):`, response.status, error);
+          console.error(`AI error with ${currentModel} (attempt ${retryCount + 1}):`, response.status, error);
           
           if (response.status === 429) {
             return new Response(
@@ -504,26 +507,45 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
             );
           }
           
-          // For 502 errors, retry
-          if (response.status === 502 && retryCount < maxRetries - 1) {
+          // For 502 errors with Gemini, immediately switch to GPT-5
+          if (response.status === 502 && currentModel.includes("gemini")) {
+            console.log("⚠️ Gemini 502 error - switching to GPT-5-mini for faster response");
+            currentModel = "openai/gpt-5-mini";
             retryCount++;
-            console.log(`Retrying due to 502 error... (attempt ${retryCount + 1}/${maxRetries})`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+            await new Promise(resolve => setTimeout(resolve, 500));
             continue;
           }
           
-          throw new Error(`Lovable AI error: ${response.status}`);
+          // For other errors, retry
+          if (retryCount < maxRetries - 1) {
+            retryCount++;
+            console.log(`Retrying... (attempt ${retryCount + 1}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+            continue;
+          }
+          
+          throw new Error(`AI error: ${response.status}`);
         }
         
-        // Success - break out of retry loop
+        // Success
+        console.log(`✓ AI succeeded with ${currentModel}`);
         break;
         
       } catch (error) {
-        console.error(`Error calling AI (attempt ${retryCount + 1}):`, error);
+        console.error(`Error with ${currentModel} (attempt ${retryCount + 1}):`, error);
+        
+        // Switch to GPT-5 on first Gemini failure
+        if (currentModel.includes("gemini") && retryCount === 0) {
+          console.log("Gemini failed - switching to GPT-5-mini");
+          currentModel = "openai/gpt-5-mini";
+          retryCount++;
+          await new Promise(resolve => setTimeout(resolve, 500));
+          continue;
+        }
+        
         if (retryCount < maxRetries - 1) {
           retryCount++;
-          console.log(`Retrying... (attempt ${retryCount + 1}/${maxRetries})`);
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
         } else {
           throw error;
         }
