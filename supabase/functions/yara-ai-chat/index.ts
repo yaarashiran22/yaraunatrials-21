@@ -423,7 +423,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         { role: "system", content: systemPrompt },
         ...enrichedMessages,
       ],
-      max_completion_tokens: 4000, // Increased for longer responses
+      max_completion_tokens: 2000,
     };
 
     // Check if this is likely a recommendation request
@@ -471,101 +471,37 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       requestBody.tool_choice = { type: "function", function: { name: "provide_recommendations" } };
     }
 
-    // Retry logic with model fallback
-    let response;
-    let retryCount = 0;
-    const maxRetries = 2; // Reduced for faster fallback
-    let currentModel = requestBody.model;
-    
-    while (retryCount < maxRetries) {
-      try {
-        console.log(`Calling AI with ${currentModel} (attempt ${retryCount + 1}/${maxRetries})...`);
-        
-        response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${lovableApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ ...requestBody, model: currentModel }),
-        });
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovableApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
 
-        if (!response.ok) {
-          const error = await response.text();
-          console.error(`AI error with ${currentModel} (attempt ${retryCount + 1}):`, response.status, error);
-          
-          if (response.status === 429) {
-            return new Response(
-              JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-              { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-          if (response.status === 402) {
-            return new Response(
-              JSON.stringify({ error: "AI credits exhausted. Please contact support." }),
-              { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-          
-          // For 502 errors with Gemini, immediately switch to GPT-5
-          if (response.status === 502 && currentModel.includes("gemini")) {
-            console.log("⚠️ Gemini 502 error - switching to GPT-5-mini for faster response");
-            currentModel = "openai/gpt-5-mini";
-            retryCount++;
-            await new Promise(resolve => setTimeout(resolve, 500));
-            continue;
-          }
-          
-          // For other errors, retry
-          if (retryCount < maxRetries - 1) {
-            retryCount++;
-            console.log(`Retrying... (attempt ${retryCount + 1}/${maxRetries})`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-            continue;
-          }
-          
-          throw new Error(`AI error: ${response.status}`);
-        }
-        
-        // Success
-        console.log(`✓ AI succeeded with ${currentModel}`);
-        break;
-        
-      } catch (error) {
-        console.error(`Error with ${currentModel} (attempt ${retryCount + 1}):`, error);
-        
-        // Switch to GPT-5 on first Gemini failure
-        if (currentModel.includes("gemini") && retryCount === 0) {
-          console.log("Gemini failed - switching to GPT-5-mini");
-          currentModel = "openai/gpt-5-mini";
-          retryCount++;
-          await new Promise(resolve => setTimeout(resolve, 500));
-          continue;
-        }
-        
-        if (retryCount < maxRetries - 1) {
-          retryCount++;
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-        } else {
-          throw error;
-        }
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("Lovable AI error:", response.status, error);
+      
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "AI credits exhausted. Please contact support." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      throw new Error(`Lovable AI error: ${response.status}`);
     }
 
     // Get the complete message
     const data = await response.json();
     console.log("Full AI response:", JSON.stringify(data, null, 2));
-    
-    // Check for error in response
-    if (data.error) {
-      console.error("AI returned error:", data.error);
-      return new Response(
-        JSON.stringify({ 
-          message: "I'm having trouble connecting to my AI brain right now. Please try again in a moment! 🔄" 
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
     
     // Check if we got a tool call response (structured recommendations)
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
@@ -583,12 +519,6 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       
       if (!message) {
         console.error("AI returned empty content. Full message object:", JSON.stringify(data.choices?.[0]?.message, null, 2));
-        return new Response(
-          JSON.stringify({ 
-            message: "I'm having trouble processing that right now. Could you try asking in a different way? 🤔" 
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
       }
     }
 
