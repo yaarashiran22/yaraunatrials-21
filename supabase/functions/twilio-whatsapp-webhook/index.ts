@@ -465,8 +465,8 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/x-www-form-urlencoded',
           },
           body: new URLSearchParams({
-            From: twilioWhatsAppNumber,
-            To: from,
+            From: from,
+            To: twilioWhatsAppNumber,
             Body: contextualIntro
           })
         });
