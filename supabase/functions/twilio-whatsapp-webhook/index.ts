@@ -140,8 +140,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Send immediate "Thinking.." feedback for non-welcome messages
-    if (!shouldSendWelcome) {
+    // Send immediate "Thinking.." feedback for non-welcome, non-recommendation messages
+    const recommendationKeywordsCheck = /\b(recommend|suggest|show me|find me|looking for|i'm looking for|im looking for|i want|i need|can you find|help me find|gimme|dame|any.*(?:events?|bars?|clubs?|places?|spots?))\b/i;
+    const isRecommendationCheck = recommendationKeywordsCheck.test(body);
+    
+    if (!shouldSendWelcome && !isRecommendationCheck) {
       const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
       const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
       const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
