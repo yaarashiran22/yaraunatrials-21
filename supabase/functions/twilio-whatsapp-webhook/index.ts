@@ -82,90 +82,76 @@ Deno.serve(async (req) => {
 
     console.log('WhatsApp user:', whatsappUser ? `Found user ${whatsappUser.name || 'unnamed'}` : 'No user found');
 
-    // Determine if we should send welcome
-    // For known users with names, send "Welcome back [name]" on greetings
-    // For new users or unnamed users, send full welcome message
-    const shouldSendWelcome = (isGreeting && isNewConversation) || isConversationStarter;
-    
-    let welcomeMessageSent = false;
-    if (shouldSendWelcome) {
-      console.log('Sending welcome message - new conversation or conversation starter detected');
+    // Handle greetings - respond immediately without calling AI
+    // For ALL greetings (new or existing conversations), just send a friendly response
+    if (isGreeting && !isConversationStarter) {
+      console.log('Detected greeting - responding directly without AI');
       
-      // Personalized welcome for known users
-      let welcomeMessage;
-      if (whatsappUser?.name) {
-        welcomeMessage = `Welcome back ${whatsappUser.name}! 👋`;
-      } else {
-        welcomeMessage = "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?";
-      }
-      
-      // Store welcome response
-      await supabase.from('whatsapp_conversations').insert({
-        phone_number: from,
-        role: 'assistant',
-        content: welcomeMessage
-      });
-
-      welcomeMessageSent = true;
-      
-      // For conversation starters, continue to AI processing
-      // For greetings only, return welcome and wait for next message
-      if (isGreeting && !isConversationStarter) {
-        // Store user message
-        await supabase.from('whatsapp_conversations').insert({
-          phone_number: from,
-          role: 'user',
-          content: body
-        });
-
-        // Return TwiML response with just welcome
-        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${welcomeMessage}</Message>
-</Response>`;
-
-        return new Response(twimlResponse, {
-          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
-          status: 200
-        });
-      }
-    }
-
-    // Store user message (if not already stored)
-    if (!welcomeMessageSent || !isGreeting) {
+      // Store user message
       await supabase.from('whatsapp_conversations').insert({
         phone_number: from,
         role: 'user',
         content: body
       });
+
+      // Personalized greeting for known users
+      let greetingMessage;
+      if (whatsappUser?.name) {
+        greetingMessage = `Hey ${whatsappUser.name}! 👋 What are you looking for today?`;
+      } else {
+        greetingMessage = "Hey there! 👋 What can I help you find in Buenos Aires?";
+      }
+      
+      // Store greeting response
+      await supabase.from('whatsapp_conversations').insert({
+        phone_number: from,
+        role: 'assistant',
+        content: greetingMessage
+      });
+
+      // Return TwiML response with just greeting
+      const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${greetingMessage}</Message>
+</Response>`;
+
+      return new Response(twimlResponse, {
+        headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+        status: 200
+      });
     }
 
-    // Send immediate "Thinking.." feedback for non-welcome messages
-    if (!shouldSendWelcome) {
-      const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-      const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-      const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
+    // Store user message
+    await supabase.from('whatsapp_conversations').insert({
+      phone_number: from,
+      role: 'user',
+      content: body
+    });
 
-      // Send thinking message immediately via Twilio API
-      const thinkingMessage = 'Thinking..';
-      
-      try {
-        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            From: twilioWhatsAppNumber,
-            To: from,
-            Body: thinkingMessage
-          })
-        });
-        console.log('Sent "Thinking.." message');
-      } catch (error) {
-        console.error('Error sending thinking message:', error);
-      }
+    // Send immediate "Thinking.." feedback
+    const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+    const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+    const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
+
+    // Send thinking message immediately via Twilio API
+    const thinkingMessage = 'Thinking..';
+    
+    try {
+      await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          From: twilioWhatsAppNumber,
+          To: from,
+          Body: thinkingMessage
+        })
+      });
+      console.log('Sent "Thinking.." message');
+    } catch (error) {
+      console.error('Error sending thinking message:', error);
     }
 
     // Detect and store user information from message
@@ -588,20 +574,13 @@ Deno.serve(async (req) => {
       role: 'assistant',
       content: multipleMessages ? multipleMessages.join('\n\n') : assistantMessage
     });
-
-    const welcomeText = welcomeMessageSent 
-      ? (whatsappUser?.name 
-        ? `Welcome back ${whatsappUser.name}! 👋\n\n` 
-        : "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n")
-      : "";
     
     // If message was split, send multiple TwiML messages
     if (multipleMessages && multipleMessages.length > 1) {
       console.log(`Sending ${multipleMessages.length} TwiML messages`);
       
-      const twimlMessages = multipleMessages.map((msg, idx) => {
-        const prefix = idx === 0 && welcomeText ? welcomeText : '';
-        return `  <Message>${prefix}${msg}</Message>`;
+      const twimlMessages = multipleMessages.map((msg) => {
+        return `  <Message>${msg}</Message>`;
       }).join('\n');
       
       const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
@@ -617,7 +596,7 @@ ${twimlMessages}
     
     const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>${welcomeText}${assistantMessage}</Message>
+  <Message>${assistantMessage}</Message>
 </Response>`;
 
     console.log('Sending TwiML response');
