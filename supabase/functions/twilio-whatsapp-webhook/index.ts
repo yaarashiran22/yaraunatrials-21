@@ -474,6 +474,10 @@ Deno.serve(async (req) => {
         if (introResponse.ok) {
           const introResult = await introResponse.json();
           console.log('Sent contextual intro message:', contextualIntro, '| SID:', introResult.sid);
+          
+          // Wait 2 seconds to ensure intro arrives before recommendations
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          console.log('Waited 2s for intro message to be delivered');
         } else {
           const errorText = await introResponse.text();
           console.error('Failed to send intro message:', introResponse.status, errorText);
