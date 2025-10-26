@@ -241,15 +241,15 @@ serve(async (req) => {
 
     // Inject user profile into the first user message to ensure AI sees it
     const enrichedMessages = [...messages];
-    
+
     // If this is the first user message and we have profile info, prepend it
     if (userProfileInfo.length > 0 && enrichedMessages.length > 0) {
-      const firstUserMsgIndex = enrichedMessages.findIndex(m => m.role === 'user');
+      const firstUserMsgIndex = enrichedMessages.findIndex((m) => m.role === "user");
       if (firstUserMsgIndex !== -1) {
         const profilePrefix = `(By the way, ${userProfileInfo.join(", ")}.) `;
         enrichedMessages[firstUserMsgIndex] = {
           ...enrichedMessages[firstUserMsgIndex],
-          content: profilePrefix + enrichedMessages[firstUserMsgIndex].content
+          content: profilePrefix + enrichedMessages[firstUserMsgIndex].content,
         };
       }
     }
@@ -413,29 +413,27 @@ RECOMMENDATION OUTPUT RULES:
   - Combine multiple profile attributes when relevant: "Ideal for someone ${userProfile?.age} years old with ${userProfile?.budget_preference} budget who loves ${userProfile?.interests}"
   - This field is MANDATORY and must be personalized based on actual profile data available
 - Use user profile (budget, neighborhoods, interests) to further personalize
-- If no relevant database events exist, return empty array with a friendly message like "I couldn't find matching events in our database right now"
+- If no relevant database events exist, return empty array with a friendly message like "Sorry, I couldn't find matching events right now"
 
 CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.`;
 
     // Get the last user message to understand their query
     const lastUserMessage = messages[messages.length - 1]?.content || "";
-    
+
     // Keywords that indicate an EXPLICIT recommendation request (more specific to avoid false positives)
-    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|i want|i need|can you find|help me find|gimme|dame)\b/i;
+    const recommendationKeywords =
+      /\b(recommend|suggest|show me|find me|looking for|i want|i need|can you find|help me find|gimme|dame)\b/i;
 
     // Build request body
     const requestBody: any = {
       model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...enrichedMessages,
-      ],
+      messages: [{ role: "system", content: systemPrompt }, ...enrichedMessages],
       max_completion_tokens: 4000,
     };
 
     // Check if this is likely a recommendation request
     const isLikelyRecommendation = lastUserMessage && recommendationKeywords.test(lastUserMessage);
-    
+
     if (isLikelyRecommendation) {
       // Use structured output with tool calling to guarantee all fields including image_url
       requestBody.tools = [
@@ -449,7 +447,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
               properties: {
                 intro_message: {
                   type: "string",
-                  description: "A friendly intro message like 'Here are some events you might like:'"
+                  description: "A friendly intro message like 'Here are some events you might like:'",
                 },
                 recommendations: {
                   type: "array",
@@ -462,18 +460,29 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                       description: { type: "string", description: "Location, address, date, time, and other details" },
                       why_recommended: { type: "string", description: "Why this matches their request" },
                       personalized_note: { type: "string", description: "Personal message based on their profile" },
-                      image_url: { type: "string", description: "REQUIRED - The exact image_url from the database event" }
+                      image_url: {
+                        type: "string",
+                        description: "REQUIRED - The exact image_url from the database event",
+                      },
                     },
-                    required: ["type", "id", "title", "description", "why_recommended", "personalized_note", "image_url"],
-                    additionalProperties: false
-                  }
-                }
+                    required: [
+                      "type",
+                      "id",
+                      "title",
+                      "description",
+                      "why_recommended",
+                      "personalized_note",
+                      "image_url",
+                    ],
+                    additionalProperties: false,
+                  },
+                },
               },
               required: ["intro_message", "recommendations"],
-              additionalProperties: false
-            }
-          }
-        }
+              additionalProperties: false,
+            },
+          },
+        },
       ];
       requestBody.tool_choice = { type: "function", function: { name: "provide_recommendations" } };
     }
@@ -490,18 +499,18 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     if (!response.ok) {
       const error = await response.text();
       console.error("Lovable AI error:", response.status, error);
-      
+
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please contact support." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please contact support." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       throw new Error(`Lovable AI error: ${response.status}`);
     }
@@ -509,11 +518,11 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     // Get the complete message
     const data = await response.json();
     console.log("Full AI response:", JSON.stringify(data, null, 2));
-    
+
     // Check if we got a tool call response (structured recommendations)
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     let message: string;
-    
+
     if (toolCall && toolCall.function?.name === "provide_recommendations") {
       // Parse the structured output
       const functionArgs = JSON.parse(toolCall.function.arguments);
@@ -523,12 +532,14 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       // Regular conversational response
       message = data.choices?.[0]?.message?.content || "";
       console.log("AI response (conversational):", message);
-      
+
       if (!message) {
-        console.error("AI returned empty content. Full message object:", JSON.stringify(data.choices?.[0]?.message, null, 2));
+        console.error(
+          "AI returned empty content. Full message object:",
+          JSON.stringify(data.choices?.[0]?.message, null, 2),
+        );
       }
     }
-
 
     // Check if this is a recommendations response
     if (message.includes('"recommendations"')) {
