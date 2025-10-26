@@ -328,7 +328,7 @@ Deno.serve(async (req) => {
     }
 
     // Detect if this is a recommendation request
-    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|i'm looking for|im looking for|i want|i need|can you find|help me find|gimme|dame|any.*(?:events?|bars?|clubs?|places?|spots?))\b/i;
+    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|i'm looking for|im looking for|i want|i need|can you find|help me find|gimme|dame)\b/i;
     const isRecommendationRequest = recommendationKeywords.test(body);
 
     // Progressive profiling: Ask for name and age before first recommendations
