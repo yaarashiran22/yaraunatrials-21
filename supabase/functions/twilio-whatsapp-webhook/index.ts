@@ -431,6 +431,44 @@ Deno.serve(async (req) => {
         }
         // If neighborhood is mentioned, continue to process the recommendation
       }
+      
+      // Send immediate contextual intro for recommendation requests
+      const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
+      
+      // Create a contextual intro message based on what they asked
+      let contextualIntro = "On it! ";
+      
+      // Extract what they're looking for from their message
+      const eventTypes = ['indie', 'techno', 'house', 'jazz', 'rock', 'electronic', 'live music', 'art', 'dance', 'african'];
+      const foundType = eventTypes.find(type => bodyLower.includes(type));
+      
+      if (foundType) {
+        contextualIntro += `Looking for ${foundType} events for you. `;
+      } else {
+        contextualIntro += "Searching for events that match what you're looking for. ";
+      }
+      
+      contextualIntro += "Give me a moment to find the best recommendations - they'll start coming through shortly! 🎯";
+      
+      try {
+        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            From: twilioWhatsAppNumber,
+            To: from,
+            Body: contextualIntro
+          })
+        });
+        console.log('Sent contextual intro message:', contextualIntro);
+      } catch (error) {
+        console.error('Error sending contextual intro:', error);
+      }
     }
 
     // Build conversation history for AI
@@ -534,16 +572,10 @@ Deno.serve(async (req) => {
       // Get Twilio WhatsApp number
       const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
 
-      // Prepare the intro message - send this first before recommendations
-      const welcomeText = welcomeMessageSent 
-        ? (whatsappUser?.name 
-          ? `Welcome back ${whatsappUser.name}! 👋\n\n` 
-          : "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n")
-        : "";
-      const introMessage = welcomeText + "Yes! Sending you the recommendations in just a minute! 🎯";
+      // Don't send intro via TwiML - already sent immediately after detection
       
-      // Send intro via TwiML immediately
-      console.log('Sending intro message via TwiML...');
+      // Process recommendations
+      console.log('Processing recommendations...');
       
       // Call send-whatsapp-recommendations and WAIT for it to complete
       console.log('Triggering send-whatsapp-recommendations function...');
@@ -566,14 +598,12 @@ Deno.serve(async (req) => {
         console.error('Failed to invoke send-whatsapp-recommendations:', error);
       }
 
-      // Return intro message immediately via TwiML
-      const introTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${introMessage}</Message>
-</Response>`;
+      // Return empty TwiML - messages already sent via API
+      const emptyTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response></Response>`;
 
-      console.log('Returning intro TwiML response');
-      return new Response(introTwiml, {
+      console.log('Returning empty TwiML response - recommendations sent');
+      return new Response(emptyTwiml, {
         headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
         status: 200
       });
