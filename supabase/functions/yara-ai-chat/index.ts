@@ -413,7 +413,7 @@ RECOMMENDATION OUTPUT RULES:
   - Combine multiple profile attributes when relevant: "Ideal for someone ${userProfile?.age} years old with ${userProfile?.budget_preference} budget who loves ${userProfile?.interests}"
   - This field is MANDATORY and must be personalized based on actual profile data available
 - Use user profile (budget, neighborhoods, interests) to further personalize
-- If no relevant database events exist, return empty array with a friendly message like "Sorry, I couldn't find matching events right now"
+- If no relevant database events exist, return empty array with a friendly message like "Sorry, I couldn't find any matching events"
 
 CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.`;
 
