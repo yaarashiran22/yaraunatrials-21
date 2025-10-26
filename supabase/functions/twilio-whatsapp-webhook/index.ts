@@ -158,33 +158,15 @@ Deno.serve(async (req) => {
     if (whatsappUser) {
       const updates: any = {};
       
-      // Common words to exclude from name detection
-      const commonWords = ['there', 'here', 'thanks', 'thank', 'please', 'hello', 'sorry', 'okay', 'yes', 'yeah'];
-      
-      // Detect name - check multiple patterns
+      // Detect name only from explicit statements like "My name is John" or "I'm John"
       if (!whatsappUser.name) {
-        // Pattern 1: "My name is John" or "I'm John" or "Me llamo Juan"
-        const namePattern1 = /(?:my name is|i'm|i am|me llamo)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i;
-        const nameMatch1 = body.match(namePattern1);
+        const namePattern = /(?:my name is|i'm|i am|me llamo|call me)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i;
+        const nameMatch = body.match(namePattern);
         
-        // Pattern 2: Just a capitalized name on its own (likely response to "what's your name?")
-        // Only match if message is very short (2-20 chars) and is just one or two words
-        const namePattern2 = /^([A-Z][a-z]{2,15})(?:\s+[A-Z][a-z]{2,15})?$/;
-        const nameMatch2 = body.match(namePattern2);
-        
-        if (nameMatch1) {
-          const detectedName = nameMatch1[1].trim();
-          if (!commonWords.includes(detectedName.toLowerCase())) {
-            updates.name = detectedName;
-            console.log(`Detected name (pattern 1): ${detectedName}`);
-          }
-        } else if (nameMatch2 && body.trim().length >= 2 && body.trim().length <= 30) {
-          // Only match single/double word if message is short and not a common word
-          const detectedName = nameMatch2[1].trim();
-          if (!commonWords.includes(detectedName.toLowerCase())) {
-            updates.name = detectedName;
-            console.log(`Detected name (pattern 2): ${detectedName}`);
-          }
+        if (nameMatch) {
+          const detectedName = nameMatch[1].trim();
+          updates.name = detectedName;
+          console.log(`Detected name from explicit statement: ${detectedName}`);
         }
       }
       
@@ -311,6 +293,27 @@ Deno.serve(async (req) => {
         Object.assign(whatsappUser, updates);
         console.log(`Updated user info:`, updates);
       }
+    }
+
+    // Ask for name proactively after first non-greeting message
+    if (whatsappUser && !whatsappUser.name && conversationHistory.length >= 2 && !isGreeting) {
+      const askNameMessage = "By the way, can I ask what your name is? 😊";
+      
+      await supabase.from('whatsapp_conversations').insert({
+        phone_number: from,
+        role: 'assistant',
+        content: askNameMessage
+      });
+      
+      const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${askNameMessage}</Message>
+</Response>`;
+      
+      return new Response(twimlResponse, {
+        headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+        status: 200
+      });
     }
 
     // Detect if this is a recommendation request
