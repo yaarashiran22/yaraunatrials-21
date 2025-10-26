@@ -456,8 +456,9 @@ Deno.serve(async (req) => {
       
       contextualIntro += "Give me a moment to find the best recommendations - they'll start coming through shortly! 🎯";
       
+      
       try {
-        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+        const introResponse = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
           method: 'POST',
           headers: {
             'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
@@ -469,7 +470,14 @@ Deno.serve(async (req) => {
             Body: contextualIntro
           })
         });
-        console.log('Sent contextual intro message:', contextualIntro);
+        
+        if (introResponse.ok) {
+          const introResult = await introResponse.json();
+          console.log('Sent contextual intro message:', contextualIntro, '| SID:', introResult.sid);
+        } else {
+          const errorText = await introResponse.text();
+          console.error('Failed to send intro message:', introResponse.status, errorText);
+        }
       } catch (error) {
         console.error('Error sending contextual intro:', error);
       }
