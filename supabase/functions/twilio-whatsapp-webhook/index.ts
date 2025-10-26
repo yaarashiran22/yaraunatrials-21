@@ -441,6 +441,7 @@ Deno.serve(async (req) => {
       let contextualIntro = "On it! ";
       
       // Extract what they're looking for from their message
+      const bodyLower = body.toLowerCase();
       const eventTypes = ['indie', 'techno', 'house', 'jazz', 'rock', 'electronic', 'live music', 'art', 'dance', 'african'];
       const foundType = eventTypes.find(type => bodyLower.includes(type));
       
