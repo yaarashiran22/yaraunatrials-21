@@ -218,6 +218,34 @@ Deno.serve(async (req) => {
         }
       }
       
+      // Detect neighborhood from user message
+      const neighborhoodKeywords = [
+        'palermo', 'palermo soho', 'palermo hollywood', 'villa crespo', 'san telmo', 
+        'recoleta', 'belgrano', 'caballito', 'almagro', 'chacarita', 'colegiales',
+        'puerto madero', 'barracas', 'la boca', 'retiro', 'microcentro', 'monserrat',
+        'boedo', 'flores', 'parque patricios', 'constitución', 'balvanera', 'once',
+        'núñez', 'saavedra', 'villa urquiza', 'villa del parque', 'versalles'
+      ];
+      
+      const bodyLower = body.toLowerCase();
+      const detectedNeighborhoods: string[] = [];
+      
+      for (const neighborhood of neighborhoodKeywords) {
+        if (bodyLower.includes(neighborhood)) {
+          detectedNeighborhoods.push(neighborhood);
+        }
+      }
+      
+      if (detectedNeighborhoods.length > 0) {
+        const currentNeighborhoods = whatsappUser.favorite_neighborhoods || [];
+        const mergedNeighborhoods = [...new Set([...currentNeighborhoods, ...detectedNeighborhoods])];
+        
+        if (mergedNeighborhoods.length > currentNeighborhoods.length) {
+          updates.favorite_neighborhoods = mergedNeighborhoods;
+          console.log(`Detected neighborhoods:`, detectedNeighborhoods, `| Total neighborhoods:`, mergedNeighborhoods);
+        }
+      }
+      
       // Detect email
       const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
       const emailMatch = body.match(emailPattern);
@@ -300,10 +328,94 @@ Deno.serve(async (req) => {
     }
 
     // Detect if this is a recommendation request
-    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|what's|any|events?|bars?|clubs?|venues?|places?|tonight|today|tomorrow|weekend|esta noche|hoy|mañana|fin de semana|dance|music|live|party|art|food)\b/i;
+    const recommendationKeywords = /\b(recommend|suggest|show me|find me|looking for|i'm looking for|im looking for|i want|i need|can you find|help me find|gimme|dame)\b/i;
     const isRecommendationRequest = recommendationKeywords.test(body);
 
-    // Note: We'll send intro message later with recommendations instead of acknowledgment
+    // Progressive profiling: Ask for name and age before first recommendations
+    if (isRecommendationRequest && whatsappUser) {
+      const recCount = whatsappUser.recommendation_count || 0;
+      
+      // First recommendation request: Ask for name if missing
+      if (recCount === 0 && !whatsappUser.name) {
+        const askNameMessage = "Great! Before I send you the best recommendations, what's your name? 😊";
+        
+        await supabase.from('whatsapp_conversations').insert({
+          phone_number: from,
+          role: 'user',
+          content: body
+        });
+        
+        await supabase.from('whatsapp_conversations').insert({
+          phone_number: from,
+          role: 'assistant',
+          content: askNameMessage
+        });
+        
+        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${askNameMessage}</Message>
+</Response>`;
+        
+        return new Response(twimlResponse, {
+          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+          status: 200
+        });
+      }
+      
+      // First recommendation request: Ask for age if name exists but age missing
+      if (recCount === 0 && whatsappUser.name && !whatsappUser.age) {
+        const askAgeMessage = `Nice to meet you, ${whatsappUser.name}! And how old are you? This helps me find age-appropriate events for you. 🎉`;
+        
+        await supabase.from('whatsapp_conversations').insert({
+          phone_number: from,
+          role: 'user',
+          content: body
+        });
+        
+        await supabase.from('whatsapp_conversations').insert({
+          phone_number: from,
+          role: 'assistant',
+          content: askAgeMessage
+        });
+        
+        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${askAgeMessage}</Message>
+</Response>`;
+        
+        return new Response(twimlResponse, {
+          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+          status: 200
+        });
+      }
+      
+      // Second recommendation request: Ask for preferred neighborhood
+      if (recCount === 1 && (!whatsappUser.favorite_neighborhoods || whatsappUser.favorite_neighborhoods.length === 0)) {
+        const askNeighborhoodMessage = "What neighborhood do you usually hang out in or prefer to go out in Buenos Aires? (e.g., Palermo, Villa Crespo, San Telmo) 📍";
+        
+        await supabase.from('whatsapp_conversations').insert({
+          phone_number: from,
+          role: 'user',
+          content: body
+        });
+        
+        await supabase.from('whatsapp_conversations').insert({
+          phone_number: from,
+          role: 'assistant',
+          content: askNeighborhoodMessage
+        });
+        
+        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${askNeighborhoodMessage}</Message>
+</Response>`;
+        
+        return new Response(twimlResponse, {
+          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+          status: 200
+        });
+      }
+    }
 
     // Build conversation history for AI
     const messages = conversationHistory.map(msg => ({
