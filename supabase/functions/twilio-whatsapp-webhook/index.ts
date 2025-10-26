@@ -521,12 +521,7 @@ Deno.serve(async (req) => {
       const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER') || 'whatsapp:+17622513744';
 
       // Prepare the intro message - send this first before recommendations
-      const welcomeText = welcomeMessageSent 
-        ? (whatsappUser?.name 
-          ? `Welcome back ${whatsappUser.name}! 👋\n\n` 
-          : "Hey welcome to Yara AI - if you're looking for indie events, hidden deals and bohemian spots in Buenos Aires- I got you. What are you looking for?\n\n")
-        : "";
-      const introMessage = welcomeText + "Yes! Sending you the recommendations in just a minute! 🎯";
+      const introMessage = parsedResponse.intro_message || "Yes! Sending you the recommendations in just a minute! 🎯";
       
       // Send intro via TwiML immediately
       console.log('Sending intro message via TwiML...');
