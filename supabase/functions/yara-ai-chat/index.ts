@@ -423,7 +423,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         { role: "system", content: systemPrompt },
         ...enrichedMessages,
       ],
-      max_completion_tokens: 2000,
+      max_completion_tokens: 4000,
     };
 
     // Check if this is likely a recommendation request
