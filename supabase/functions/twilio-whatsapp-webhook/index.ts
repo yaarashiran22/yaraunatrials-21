@@ -389,31 +389,47 @@ Deno.serve(async (req) => {
         });
       }
       
-      // Second recommendation request: Ask for preferred neighborhood
+      // Second recommendation request: Ask for preferred neighborhood (only if not mentioned in current message)
       if (recCount === 1 && (!whatsappUser.favorite_neighborhoods || whatsappUser.favorite_neighborhoods.length === 0)) {
-        const askNeighborhoodMessage = "What neighborhood do you usually hang out in or prefer to go out in Buenos Aires? (e.g., Palermo, Villa Crespo, San Telmo) 📍";
+        // Check if user already mentioned a neighborhood in this message
+        const neighborhoodKeywords = [
+          'palermo', 'palermo soho', 'palermo hollywood', 'villa crespo', 'san telmo', 
+          'recoleta', 'belgrano', 'caballito', 'almagro', 'chacarita', 'colegiales',
+          'puerto madero', 'barracas', 'la boca', 'retiro', 'microcentro', 'monserrat',
+          'boedo', 'flores', 'parque patricios', 'constitución', 'balvanera', 'once',
+          'núñez', 'saavedra', 'villa urquiza', 'villa del parque', 'versalles'
+        ];
         
-        await supabase.from('whatsapp_conversations').insert({
-          phone_number: from,
-          role: 'user',
-          content: body
-        });
+        const bodyLower = body.toLowerCase();
+        const hasNeighborhoodInMessage = neighborhoodKeywords.some(n => bodyLower.includes(n));
         
-        await supabase.from('whatsapp_conversations').insert({
-          phone_number: from,
-          role: 'assistant',
-          content: askNeighborhoodMessage
-        });
-        
-        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+        // Only ask if they didn't mention a neighborhood in their message
+        if (!hasNeighborhoodInMessage) {
+          const askNeighborhoodMessage = "What neighborhood do you usually hang out in or prefer to go out in Buenos Aires? (e.g., Palermo, Villa Crespo, San Telmo) 📍";
+          
+          await supabase.from('whatsapp_conversations').insert({
+            phone_number: from,
+            role: 'user',
+            content: body
+          });
+          
+          await supabase.from('whatsapp_conversations').insert({
+            phone_number: from,
+            role: 'assistant',
+            content: askNeighborhoodMessage
+          });
+          
+          const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>${askNeighborhoodMessage}</Message>
 </Response>`;
-        
-        return new Response(twimlResponse, {
-          headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
-          status: 200
-        });
+          
+          return new Response(twimlResponse, {
+            headers: { ...corsHeaders, 'Content-Type': 'text/xml' },
+            status: 200
+          });
+        }
+        // If neighborhood is mentioned, continue to process the recommendation
       }
     }
 
