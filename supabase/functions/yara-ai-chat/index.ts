@@ -579,6 +579,33 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         }
         const parsed = JSON.parse(jsonStr);
 
+        // CRITICAL FIX: Filter out jam sessions when user asks for workshops
+        const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase() || "";
+        const userAskedForWorkshops = /\b(workshop|workshops|class|classes|course|courses|taller|talleres)\b/i.test(lastUserMessage);
+        
+        if (userAskedForWorkshops && parsed.recommendations && Array.isArray(parsed.recommendations)) {
+          const workshopKeywords = /\b(workshop|class|course|taller|masterclass|training|seminar|lesson|tutorial)\b/i;
+          
+          parsed.recommendations = parsed.recommendations.filter((rec: any) => {
+            const titleHasWorkshop = workshopKeywords.test(rec.title || "");
+            const descHasWorkshop = workshopKeywords.test(rec.description || "");
+            
+            const isJamSession = /\bjam\s+session\b/i.test(rec.title || "");
+            
+            if (isJamSession) {
+              console.log(`Filtering out jam session from workshop request: ${rec.title}`);
+              return false;
+            }
+            
+            return titleHasWorkshop || descHasWorkshop;
+          });
+          
+          console.log(`After workshop filtering: ${parsed.recommendations.length} recommendations`);
+          
+          // Update the message to reflect filtered recommendations
+          message = JSON.stringify(parsed);
+        }
+
         // Track database recommendations in background
         if (
           phoneNumber &&
