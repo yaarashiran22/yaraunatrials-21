@@ -323,7 +323,7 @@ Deno.serve(async (req) => {
         alternative: /\balternative\b/i,
         pop: /\bpop\b/i,
         "k-pop": /\bk-pop\b|\bkpop\b/i,
-        hip hop: /\bhip\s+hop\b|\bhiphop\b|\brap\b/i,
+        "hip hop": /\bhip\s+hop\b|\bhiphop\b|\brap\b/i,
         trap: /\btrap\b/i,
         reggaeton: /\breggaeton\b/i,
         salsa: /\bsalsa\b/i,
@@ -341,7 +341,7 @@ Deno.serve(async (req) => {
         "r&b": /\br&b\b|\brnb\b/i,
         disco: /\bdisco\b/i,
         ambient: /\bambient\b/i,
-        "experimental": /\bexperimental\b/i,
+        experimental: /\bexperimental\b/i,
         "live music": /\blive\s+music\b/i,
       };
 
