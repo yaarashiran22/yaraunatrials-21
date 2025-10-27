@@ -415,6 +415,8 @@ REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
 - The image_url will be used to send the event photo via WhatsApp, so it MUST be present
 
 RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
+**CRITICAL: DO NOT FILTER BY USER INTERESTS** - Only filter by: (1) the event type/keywords the user requested, and (2) age appropriateness
+
 1. **CRITICAL: Search BOTH title AND description equally** - if user asks for "party", check if "party" appears in EITHER the title OR the description. Example: event with title "Night Out" and description "Join us for a party at..." MUST match "party" search
 2. **Description matching is just as important as title matching** - don't prioritize title over description, treat them equally
 3. **Single word matches count** - if the user searches for "workshops" and an event has "workshop" anywhere in title OR description, it's a VALID match
@@ -430,10 +432,9 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
      * Social gatherings, meetups, parties - NOT workshops unless they explicitly say "workshop" or "class"
    - **DO NOT justify jam sessions as "interactive events" or "creative workshops"** - they are NOT workshops
    - If an event doesn't use the words "workshop", "class", "course", "taller", "lesson", or "tutorial", DO NOT recommend it for workshop requests
-   - **CRITICAL FOR WORKSHOPS**: When user asks for workshops, DO NOT filter by their interests - recommend ALL age-appropriate workshops that match the workshop keywords above, regardless of whether they match the user's listed interests. Only filter by: (1) age appropriateness, and (2) workshop keywords.
 5. **Check mood field** - if event has mood field, use it for matching (e.g., "Creative" mood matches creative requests)
-6. **Use semantic matching for non-workshop requests** - "creative events" should match: art workshops, painting classes, craft events, DIY sessions, creative meetups, vermuth making, cooking classes
-7. **Be inclusive, not exclusive** - if user asks for a general category like "bars" or "party", include ALL events that contain those words in title OR description
+6. **Use semantic matching** - "creative events" should match: art workshops, painting classes, craft events, DIY sessions, creative meetups, vermuth making, cooking classes
+7. **Be inclusive, not exclusive** - if user asks for a general category like "bars" or "party", include ALL age-appropriate events that contain those words in title OR description, regardless of the user's interest profile
 8. **Don't force matches only when truly unrelated** - if user asks for "jazz concerts" and there are no music events at all, DON'T recommend food events. But if they ask for "party" and an event description mentions "party", ALWAYS recommend it
 9. **Exact keyword matches win** - if an event title OR description contains the exact words the user used, prioritize it
 10. **Category synonyms**: Treat these as equivalent:
@@ -442,6 +443,7 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
     - bar = pub = cerveceria = cocktail bar
     - concert = show = performance = gig
     - **NEVER treat**: jam session = workshop, concert = workshop, show = workshop
+11. **CRITICAL: User interests are for CONTEXT ONLY, not for filtering** - The user's interests help you understand their preferences and personalize your responses, but DO NOT use interests to exclude events from recommendations. Always show all age-appropriate events that match the requested type.
 
 RECOMMENDATION OUTPUT RULES:
 - Return MAXIMUM 6 recommendations total from the database
