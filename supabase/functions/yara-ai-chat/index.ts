@@ -354,6 +354,12 @@ Example conversational responses:
 SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, etc.):
 **ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST return PURE JSON ONLY.
 
+**CRITICAL - WHEN NO DATABASE MATCHES:**
+- If the user requests recommendations (cafes, restaurants, general places) and there are NO matching events/businesses in the Available data above, respond with PLAIN TEXT: "NO_DATABASE_MATCH: [user's original request]"
+- Example: User asks for "cafes for dates" but no matching businesses in database → Respond: "NO_DATABASE_MATCH: cafes for dates"
+- This triggers a fallback to general Buenos Aires recommendations from OpenAI
+- **DO NOT** try to recommend unrelated events just to give an answer - admit when database has no matches
+
 **CRITICAL - ONLY USE JSON FOR EXPLICIT RECOMMENDATION REQUESTS:**
 - Use JSON ONLY when user is EXPLICITLY asking for suggestions/recommendations with action keywords
 - **DO NOT** use JSON when user sends GREETINGS ("hi", "hello", "hey", "hola", "sup") - respond conversationally
@@ -597,6 +603,61 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       // Regular conversational response
       message = data.choices?.[0]?.message?.content || "";
       console.log("AI response (conversational):", message);
+
+      // FALLBACK: Check if AI detected no database matches
+      if (message.startsWith("NO_DATABASE_MATCH:")) {
+        const userQuery = message.replace("NO_DATABASE_MATCH:", "").trim();
+        console.log(`No database matches found for: "${userQuery}". Falling back to OpenAI for general recommendations.`);
+
+        // Call OpenAI for general Buenos Aires recommendations
+        const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
+        if (!openaiApiKey) {
+          message = userLanguage === 'es' 
+            ? "No encontré eventos relacionados en mi base de datos. ¿Quieres que te recomiende otros tipos de eventos?" 
+            : "I couldn't find any matching events in my database. Would you like me to suggest other types of events?";
+        } else {
+          try {
+            const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${openaiApiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "gpt-4o-mini",
+                messages: [
+                  {
+                    role: "system",
+                    content: `You are Yara, a friendly Buenos Aires local guide. The user asked for "${userQuery}" but there are no matching events in your database. Provide 3-5 general recommendations for ${userQuery} in Buenos Aires. Include specific venue names, neighborhoods, and brief descriptions. Keep it conversational, warm, and helpful. Use emojis naturally (1-2 per message). Respond in ${userLanguage === 'es' ? 'Spanish' : 'English'}.`,
+                  },
+                  {
+                    role: "user",
+                    content: `I'm looking for ${userQuery} in Buenos Aires. Can you recommend some places?`,
+                  },
+                ],
+                max_tokens: 500,
+                temperature: 0.8,
+              }),
+            });
+
+            if (openaiResponse.ok) {
+              const openaiData = await openaiResponse.json();
+              message = openaiData.choices?.[0]?.message?.content || message;
+              console.log("OpenAI fallback response:", message);
+            } else {
+              console.error("OpenAI fallback error:", await openaiResponse.text());
+              message = userLanguage === 'es'
+                ? "No encontré eventos relacionados en mi base de datos ahora mismo. ¡Pregúntame sobre eventos, conciertos o vida nocturna!"
+                : "I couldn't find any matching events in my database right now. Try asking about upcoming events, nightlife, or cultural activities!";
+            }
+          } catch (error) {
+            console.error("OpenAI fallback error:", error);
+            message = userLanguage === 'es'
+              ? "No encontré eventos relacionados en mi base de datos. ¡Intenta buscar eventos, conciertos o vida nocturna!"
+              : "I couldn't find any matching events in my database. Try searching for events, concerts, or nightlife!";
+          }
+        }
+      }
 
       if (!message) {
         console.error(
