@@ -395,9 +395,13 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
    - Keywords that MUST appear: workshop, class, course, taller, masterclass, training, seminar, lesson, tutorial, "learn about", "how to", teaching
    - An event with title "Creative vermuth workshop" is a WORKSHOP - INCLUDE IT
    - An event with description "Join our cooking class" is a WORKSHOP - INCLUDE IT
-   - **DO NOT recommend jam sessions, concerts, or performances as workshops** - these are NOT workshops even if they're interactive
-   - **DO NOT recommend events just because they're "creative" or "educational"** - they must explicitly mention workshop/class/course keywords
-   - If an event is just a performance, show, concert, or social gathering WITHOUT explicit workshop keywords, DO NOT include it
+   - **ABSOLUTE EXCLUSIONS - NEVER RECOMMEND THESE AS WORKSHOPS**:
+     * "Live jazz jam session" - This is a JAM SESSION, NOT a workshop
+     * Any "jam session" - These are performances/social events, NOT workshops
+     * Concerts, shows, performances - NOT workshops unless they explicitly say "workshop" or "class"
+     * Social gatherings, meetups, parties - NOT workshops unless they explicitly say "workshop" or "class"
+   - **DO NOT justify jam sessions as "interactive events" or "creative workshops"** - they are NOT workshops
+   - If an event doesn't use the words "workshop", "class", "course", "taller", "lesson", or "tutorial", DO NOT recommend it for workshop requests
 5. **Check mood field** - if event has mood field, use it for matching (e.g., "Creative" mood matches creative requests)
 6. **Use semantic matching for non-workshop requests** - "creative events" should match: art workshops, painting classes, craft events, DIY sessions, creative meetups, vermuth making, cooking classes
 7. **Be inclusive, not exclusive** - if user asks for a general category like "bars" or "party", include ALL events that contain those words in title OR description
