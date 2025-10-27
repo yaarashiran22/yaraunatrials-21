@@ -80,14 +80,25 @@ Deno.serve(async (req) => {
     for (let i = 0; i < uniqueRecs.length; i++) {
       const rec = uniqueRecs[i];
       
-      if (!rec.title || !rec.description) {
-        console.log(`Skipping recommendation ${i + 1}: missing title or description`);
+      if (!rec.title) {
+        console.log(`Skipping recommendation ${i + 1}: missing title`);
         continue;
       }
 
-      // Build message with why_recommended and personalized_note if available
+      // Build description from available fields if not provided by AI
+      let description = rec.description;
+      if (!description && rec.why_recommended) {
+        // Construct a minimal description from why_recommended
+        description = rec.why_recommended;
+      }
+      
+      if (!description) {
+        console.log(`Skipping recommendation ${i + 1}: missing both description and why_recommended`);
+        continue;
+      }
+
       // Make date and time bold in the description
-      let formattedDescription = rec.description;
+      let formattedDescription = description;
       if (formattedDescription) {
         // Bold date patterns (Date: ...)
         formattedDescription = formattedDescription.replace(/Date: ([^\n.]+)/gi, '*Date: $1*');
