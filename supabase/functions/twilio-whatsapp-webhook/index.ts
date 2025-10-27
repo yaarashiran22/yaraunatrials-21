@@ -82,6 +82,22 @@ Deno.serve(async (req) => {
 
     console.log("WhatsApp user:", whatsappUser ? `Found user ${whatsappUser.name || "unnamed"}` : "No user found");
 
+    // Detect language from user message
+    if (whatsappUser) {
+      const spanishPatterns = /\b(hola|hey|buenas|qué|que|donde|dónde|necesito|quiero|busco|me|te|puedo|puede|ayuda|ayudar|gracias|por favor|día|noche|evento|eventos|música|arte|comida|bar|fiesta)\b/i;
+      const isSpanish = spanishPatterns.test(body);
+      
+      // Update language preference if not set or if it changed
+      if (!whatsappUser.preferred_language || (isSpanish && whatsappUser.preferred_language !== 'es') || (!isSpanish && whatsappUser.preferred_language !== 'en')) {
+        const detectedLanguage = isSpanish ? 'es' : 'en';
+        await supabase.from("whatsapp_users").update({ preferred_language: detectedLanguage }).eq("id", whatsappUser.id);
+        whatsappUser.preferred_language = detectedLanguage;
+        console.log(`Detected language: ${detectedLanguage}`);
+      }
+    }
+
+    const userLanguage = whatsappUser?.preferred_language || 'en';
+
     // Handle greetings - respond immediately without calling AI
     // For ALL greetings (new or existing conversations), just send a friendly response
     if (isGreeting && !isConversationStarter) {
@@ -94,12 +110,16 @@ Deno.serve(async (req) => {
         content: body,
       });
 
-      // Personalized greeting for known users
+      // Personalized greeting for known users (bilingual)
       let greetingMessage;
       if (whatsappUser?.name) {
-        greetingMessage = `Hey ${whatsappUser.name}! 👋 What are you looking for today?`;
+        greetingMessage = userLanguage === 'es' 
+          ? `¡Hola ${whatsappUser.name}! 👋 ¿Qué estás buscando hoy?`
+          : `Hey ${whatsappUser.name}! 👋 What are you looking for today?`;
       } else {
-        greetingMessage = "Hey there! 👋 What can I help you find in Buenos Aires?";
+        greetingMessage = userLanguage === 'es'
+          ? "¡Hola! 👋 ¿En qué puedo ayudarte a encontrar en Buenos Aires?"
+          : "Hey there! 👋 What can I help you find in Buenos Aires?";
       }
 
       // Store greeting response
@@ -394,7 +414,9 @@ Deno.serve(async (req) => {
 
     // Ask for name proactively after first non-greeting message
     if (whatsappUser && !whatsappUser.name && conversationHistory.length >= 2 && !isGreeting) {
-      const askNameMessage = "By the way, can I ask what your name is? 😊";
+      const askNameMessage = userLanguage === 'es'
+        ? "Por cierto, ¿cómo te llamas? 😊"
+        : "By the way, can I ask what your name is? 😊";
 
       await supabase.from("whatsapp_conversations").insert({
         phone_number: from,
@@ -424,7 +446,9 @@ Deno.serve(async (req) => {
 
       // First recommendation request: Ask for name if missing
       if (recCount === 0 && !whatsappUser.name) {
-        const askNameMessage = "Great! Before I send you the best recommendations, what's your name? 😊";
+        const askNameMessage = userLanguage === 'es'
+          ? "¡Genial! Antes de enviarte las mejores recomendaciones, ¿cómo te llamas? 😊"
+          : "Great! Before I send you the best recommendations, what's your name? 😊";
 
         await supabase.from("whatsapp_conversations").insert({
           phone_number: from,
@@ -451,7 +475,9 @@ Deno.serve(async (req) => {
 
       // First recommendation request: Ask for age if name exists but age missing
       if (recCount === 0 && whatsappUser.name && !whatsappUser.age) {
-        const askAgeMessage = `Nice to meet you, ${whatsappUser.name}! And how old are you? This helps me find more specific events for you. 🎉`;
+        const askAgeMessage = userLanguage === 'es'
+          ? `¡Mucho gusto, ${whatsappUser.name}! ¿Y cuántos años tenés? Esto me ayuda a encontrar eventos más específicos para vos. 🎉`
+          : `Nice to meet you, ${whatsappUser.name}! And how old are you? This helps me find more specific events for you. 🎉`;
 
         await supabase.from("whatsapp_conversations").insert({
           phone_number: from,

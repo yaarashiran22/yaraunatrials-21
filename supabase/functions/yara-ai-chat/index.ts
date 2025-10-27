@@ -276,7 +276,14 @@ serve(async (req) => {
       }
     }
 
+    const userLanguage = userProfile?.preferred_language || 'en';
+    const languageInstruction = userLanguage === 'es'
+      ? 'CRITICAL: Respond ONLY in Spanish to this user. All messages, recommendations, and questions must be in Spanish.'
+      : 'CRITICAL: Respond ONLY in English to this user. All messages, recommendations, and questions must be in English.';
+
     const systemPrompt = `You are Yara, a friendly AI assistant for Buenos Aires events and experiences. Use emojis naturally to add warmth (1-2 per message), but don't overdo it.
+
+${languageInstruction}
 
 Today's date is: ${today}
 ${userContext}

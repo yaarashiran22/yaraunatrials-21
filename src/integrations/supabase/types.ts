@@ -696,6 +696,7 @@ export type Database = {
           music_preferences: string[] | null
           name: string | null
           phone_number: string
+          preferred_language: string | null
           recommendation_count: number
           updated_at: string
           wants_ai_recommendations: boolean | null
@@ -711,6 +712,7 @@ export type Database = {
           music_preferences?: string[] | null
           name?: string | null
           phone_number: string
+          preferred_language?: string | null
           recommendation_count?: number
           updated_at?: string
           wants_ai_recommendations?: boolean | null
@@ -726,6 +728,7 @@ export type Database = {
           music_preferences?: string[] | null
           name?: string | null
           phone_number?: string
+          preferred_language?: string | null
           recommendation_count?: number
           updated_at?: string
           wants_ai_recommendations?: boolean | null
