@@ -555,13 +555,69 @@ Deno.serve(async (req) => {
     }));
     messages.push({ role: "user", content: body });
 
-    // Call Yara AI chat function with user profile context
+    // Detect if this is a recommendation request
+    const recommendationKeywords =
+      /\b(recommend|suggest|show me|find me|looking for|i'm looking for|im looking for|i want|i need|can you find|help me find|gimme|dame)\b/i;
+    const isRecommendationRequest = recommendationKeywords.test(body);
+
+    // For recommendation requests, generate and send AI intro first using fast model
+    if (isRecommendationRequest) {
+      console.log("Detected recommendation request - generating AI intro with fast model");
+      
+      const { data: introResponse, error: introError } = await supabase.functions.invoke("yara-ai-chat", {
+        body: {
+          messages,
+          stream: false,
+          userProfile: whatsappUser,
+          phoneNumber: from,
+          useIntroModel: true, // Use fast model for intro
+        },
+      });
+
+      if (!introError && introResponse) {
+        let aiIntroText = null;
+        const introText = introResponse.message || introResponse.response || introResponse.text;
+        
+        // Try to parse as JSON to extract intro_message
+        try {
+          const parsedIntro = JSON.parse(introText);
+          aiIntroText = parsedIntro.intro_message;
+        } catch (e) {
+          // If not JSON, use as-is
+          aiIntroText = introText;
+        }
+
+        // Send AI intro if we got one
+        if (aiIntroText && aiIntroText.trim()) {
+          try {
+            await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+              method: "POST",
+              headers: {
+                Authorization: "Basic " + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              body: new URLSearchParams({
+                From: twilioWhatsAppNumber,
+                To: from,
+                Body: aiIntroText,
+              }),
+            });
+            console.log("Sent AI intro message:", aiIntroText);
+          } catch (error) {
+            console.error("Error sending AI intro:", error);
+          }
+        }
+      }
+    }
+
+    // Call Yara AI chat function with user profile context (using standard model)
     const { data: aiResponse, error: aiError } = await supabase.functions.invoke("yara-ai-chat", {
       body: {
         messages,
         stream: false,
         userProfile: whatsappUser, // Pass user profile to AI
         phoneNumber: from, // Pass phone number for tracking
+        useIntroModel: false, // Use standard model for main response
       },
     });
 

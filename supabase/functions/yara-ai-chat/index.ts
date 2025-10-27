@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, stream = true, userProfile = null, phoneNumber = null } = await req.json();
+    const { messages, stream = true, userProfile = null, phoneNumber = null, useIntroModel = false } = await req.json();
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
     if (!lovableApiKey) {
@@ -488,6 +488,12 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       ];
       requestBody.tool_choice = { type: "function", function: { name: "provide_recommendations" } };
     }
+
+    // Use faster model for intro messages, standard model for recommendations
+    const modelToUse = useIntroModel ? "google/gemini-2.5-flash-lite" : "google/gemini-2.5-flash";
+    requestBody.model = modelToUse;
+    
+    console.log(`Using model: ${modelToUse} (useIntroModel: ${useIntroModel})`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
