@@ -463,9 +463,20 @@ REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
 - The image_url will be used to send the event photo via WhatsApp, so it MUST be present
 
 RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
-1. **CRITICAL: Search BOTH title AND description equally** - if user asks for "party", check if "party" appears in EITHER the title OR the description. Example: event with title "Night Out" and description "Join us for a party at..." MUST match "party" search
-2. **Description matching is just as important as title matching** - don't prioritize title over description, treat them equally
-3. **CRITICAL: Check music_type field for music-related requests** - if user asks for "african parties", "techno events", "latin music", etc., check the music_type field for matching keywords. Examples: music_type="African" matches "african", music_type="Techno" matches "techno", music_type="Samba reggae" has African roots so it matches "african" requests
+
+**🎵 RULE #1 - MUSIC GENRE MATCHING (HIGHEST PRIORITY):**
+When user mentions ANY music genre or style (latin, african, techno, jazz, reggae, salsa, etc.), you MUST:
+a) FIRST check the music_type field (case-insensitive) - this is the PRIMARY source for music genre info
+b) Look for PARTIAL matches too: if user asks for "latin" and music_type="Popular Urban Latin Music", that's a MATCH
+c) Examples of CORRECT matching:
+   - User asks "latin parties" → events with music_type containing "Latin" (any case) = MATCH
+   - User asks "african music" → events with music_type="African" OR "Samba reggae" (has African roots) = MATCH
+   - User asks "techno events" → events with music_type="Techno" OR "techno" = MATCH
+d) If music_type matches, ALWAYS include that event even if the genre word isn't in title/description
+e) Case-insensitive matching: "Latin" = "latin" = "LATIN"
+
+2. **CRITICAL: Search BOTH title AND description equally** - if user asks for "party", check if "party" appears in EITHER the title OR the description. Example: event with title "Night Out" and description "Join us for a party at..." MUST match "party" search
+3. **Description matching is just as important as title matching** - don't prioritize title over description, treat them equally
 4. **Single word matches count** - if the user searches for "workshops" and an event has "workshop" anywhere in title OR description, it's a VALID match
 5. **CRITICAL WORKSHOP/EVENT TYPE DETECTION**: When user asks for "workshops", "classes", "courses", etc.:
    - **STRICT RULE**: ONLY recommend events that EXPLICITLY contain workshop-related keywords in their title OR description
