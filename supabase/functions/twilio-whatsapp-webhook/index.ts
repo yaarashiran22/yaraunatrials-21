@@ -726,8 +726,8 @@ Deno.serve(async (req) => {
         });
         console.log("✅ Sent intro message successfully");
         
-        // Small delay to ensure intro arrives before recommendations
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Longer delay to ensure intro arrives before recommendations
+        await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (error) {
         console.error("Error sending intro:", error);
       }
