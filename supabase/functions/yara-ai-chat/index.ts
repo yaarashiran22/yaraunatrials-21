@@ -276,39 +276,14 @@ serve(async (req) => {
       }
     }
 
-    // Detect language from the most recent user message
-    const lastUserMessage = enrichedMessages.findLast((m) => m.role === "user");
-    const userMessageText = lastUserMessage?.content || "";
-    
-    // Simple language detection based on character patterns
-    const hasHebrew = /[\u0590-\u05FF]/.test(userMessageText);
-    const hasSpanish = /\b(hola|qué|dónde|cuándo|dame|quiero|eventos|música|esta|semana|noche)\b/i.test(userMessageText);
-    
-    let detectedLanguage = 'en'; // default
-    if (hasHebrew) {
-      detectedLanguage = 'he';
-    } else if (hasSpanish || userProfile?.preferred_language === 'es') {
-      detectedLanguage = 'es';
-    }
-    
-    const languageInstructions = {
-      'es': 'CRITICAL: Respond ONLY in Spanish to this user. All messages, recommendations, and questions must be in Spanish.',
-      'he': 'CRITICAL: Respond ONLY in Hebrew to this user. All messages, recommendations, and questions must be in Hebrew. Use right-to-left text formatting.',
-      'en': 'CRITICAL: Respond ONLY in English to this user. All messages, recommendations, and questions must be in English.'
-    };
-    
-    const languageInstruction = languageInstructions[detectedLanguage] || languageInstructions['en'];
+    const userLanguage = userProfile?.preferred_language || 'en';
+    const languageInstruction = userLanguage === 'es'
+      ? 'CRITICAL: Respond ONLY in Spanish to this user. All messages, recommendations, and questions must be in Spanish.'
+      : 'CRITICAL: Respond ONLY in English to this user. All messages, recommendations, and questions must be in English.';
 
     const systemPrompt = `You are Yara, a friendly AI assistant for Buenos Aires events and experiences. Use emojis naturally to add warmth (1-2 per message), but don't overdo it.
 
 ${languageInstruction}
-
-**LANGUAGE DETECTION - CRITICAL:**
-- ALWAYS respond in the SAME language the user is writing to you
-- If they write in Hebrew (עברית), respond in Hebrew
-- If they write in Spanish (Español), respond in Spanish  
-- If they write in English, respond in English
-- Detect the language from their most recent message and match it
 
 Today's date is: ${today}
 ${userContext}
