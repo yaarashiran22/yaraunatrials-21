@@ -237,14 +237,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Detect email
-      const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
-      const emailMatch = body.match(emailPattern);
-      if (emailMatch && !whatsappUser.email) {
-        updates.email = emailMatch[0];
-        console.log(`Detected email: ${emailMatch[0]}`);
-      }
-
       // Detect interests from what user wants to visit/attend
       const interestPatterns = [
         /(?:looking for|want to|interested in|like|love|into|attend|visit|go to|check out)\s+([a-zA-Z\s,&-]+?)(?:\.|!|\?|$|tonight|today|tomorrow|this|next)/gi,
