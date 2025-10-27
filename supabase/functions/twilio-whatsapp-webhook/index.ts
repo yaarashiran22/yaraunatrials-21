@@ -519,6 +519,33 @@ Deno.serve(async (req) => {
         }
         // If neighborhood is mentioned, continue to process the recommendation
       }
+
+      // Third recommendation request: Ask for budget preference if missing
+      if (recCount === 2 && !whatsappUser.budget_preference) {
+        const askBudgetMessage = "Are you looking for something fancy-ish or more local/casual vibes? 💰";
+
+        await supabase.from("whatsapp_conversations").insert({
+          phone_number: from,
+          role: "user",
+          content: body,
+        });
+
+        await supabase.from("whatsapp_conversations").insert({
+          phone_number: from,
+          role: "assistant",
+          content: askBudgetMessage,
+        });
+
+        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${askBudgetMessage}</Message>
+</Response>`;
+
+        return new Response(twimlResponse, {
+          headers: { ...corsHeaders, "Content-Type": "text/xml" },
+          status: 200,
+        });
+      }
     }
 
     // Build conversation history for AI
