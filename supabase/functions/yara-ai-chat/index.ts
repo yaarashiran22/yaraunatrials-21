@@ -785,27 +785,48 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     // Format messages for sending
     let messagesToSend = [];
 
-    // Check if message contains JSON recommendations
-    const hasRecommendations = message.includes('"recommendations"');
+    // Check if message contains JSON recommendations (object or array format)
+    const hasRecommendations = message.includes('"type"') && message.includes('"id"') && message.includes('"title"');
 
     if (hasRecommendations) {
       // Parse and format recommendations nicely
       try {
-        let jsonStr = message;
-        const jsonStart = message.indexOf("{");
-        const jsonEnd = message.lastIndexOf("}");
-        if (jsonStart !== -1 && jsonEnd !== -1) {
-          jsonStr = message.substring(jsonStart, jsonEnd + 1);
+        let parsed;
+        let introMessage = null;
+        
+        // Try to detect format: object with intro_message OR text + array
+        const objStart = message.indexOf('{"intro_message"');
+        const arrayStart = message.indexOf('[');
+        
+        if (objStart !== -1 && objStart < arrayStart) {
+          // Format 1: JSON object with intro_message
+          const jsonStr = message.substring(objStart);
+          parsed = JSON.parse(jsonStr);
+          introMessage = parsed.intro_message;
+        } else if (arrayStart !== -1) {
+          // Format 2: Text followed by array
+          const textBeforeArray = message.substring(0, arrayStart).trim();
+          const arrayStr = message.substring(arrayStart);
+          
+          // Extract intro text (remove any extra formatting)
+          if (textBeforeArray && textBeforeArray.length > 0) {
+            introMessage = textBeforeArray.replace(/^(Here are some|Aquí hay algunos?|הנה כמה)/i, '$1').trim();
+          }
+          
+          // Parse the array
+          const jsonEnd = arrayStr.lastIndexOf(']');
+          if (jsonEnd !== -1) {
+            parsed = { recommendations: JSON.parse(arrayStr.substring(0, jsonEnd + 1)) };
+          }
         }
-        const parsed = JSON.parse(jsonStr);
         
         // Add intro message if available
-        if (parsed.intro_message) {
-          messagesToSend.push(parsed.intro_message);
+        if (introMessage) {
+          messagesToSend.push(introMessage);
         }
         
         // Format each recommendation
-        if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
+        if (parsed && parsed.recommendations && Array.isArray(parsed.recommendations)) {
           for (const rec of parsed.recommendations) {
             if (!rec.title || !rec.description) continue;
             
@@ -830,9 +851,9 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
           }
         }
         
-        console.log(`Formatted ${messagesToSend.length} recommendation messages`);
+        console.log(`Formatted ${messagesToSend.length} recommendation messages from ${parsed ? 'parsed' : 'raw'} data`);
       } catch (e) {
-        console.error("Failed to parse recommendations, sending raw message:", e);
+        console.error("Failed to parse recommendations:", e, "\nRaw message:", message);
         messagesToSend = [message];
       }
     } else {
