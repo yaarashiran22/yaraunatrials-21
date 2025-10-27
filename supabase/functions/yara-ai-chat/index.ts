@@ -277,8 +277,8 @@ serve(async (req) => {
     }
 
     // Detect language from the most recent user message
-    const lastUserMsg = enrichedMessages.findLast((m) => m.role === "user");
-    const userMessageText = lastUserMsg?.content || "";
+    const lastUserMessage = enrichedMessages.findLast((m) => m.role === "user");
+    const userMessageText = lastUserMessage?.content || "";
     
     // Simple language detection based on character patterns
     const hasHebrew = /[\u0590-\u05FF]/.test(userMessageText);
@@ -399,9 +399,8 @@ SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, et
 
 DETECTION KEYWORDS FOR JSON RESPONSE (user MUST use at least one of these):
 - Action words: "recommend", "suggest", "show me", "find me", "looking for", "I want", "I need", "gimme", "dame"
-- Availability questions: "are there", "is there", "any", "do you have", "hay", "existe", "tienes"
-- Combined with: "events", "bars", "clubs", "venues", "places", "tonight", "today", "parties", "music", etc.
-- Examples that trigger JSON: "recommend dance events", "show me bars in Palermo", "I want live music tonight", "are there african parties", "any techno events tonight"
+- Combined with: "events", "bars", "clubs", "venues", "places", "tonight", "today", etc.
+- Examples that trigger JSON: "recommend dance events", "show me bars in Palermo", "I want live music tonight"
 - Examples that DO NOT trigger JSON: "hi", "hello", "hey there", "what's up"
 
 **QUESTIONS ABOUT EVENTS = CONVERSATIONAL TEXT (NOT JSON):**
@@ -463,39 +462,27 @@ REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
 - The image_url will be used to send the event photo via WhatsApp, so it MUST be present
 
 RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
-
-**🎵 RULE #1 - MUSIC GENRE MATCHING (HIGHEST PRIORITY):**
-When user mentions ANY music genre or style (latin, african, techno, jazz, reggae, salsa, etc.), you MUST:
-a) FIRST check the music_type field (case-insensitive) - this is the PRIMARY source for music genre info
-b) Look for PARTIAL matches too: if user asks for "latin" and music_type="Popular Urban Latin Music", that's a MATCH
-c) Examples of CORRECT matching:
-   - User asks "latin parties" → events with music_type containing "Latin" (any case) = MATCH
-   - User asks "african music" → events with music_type="African" OR "Samba reggae" (has African roots) = MATCH
-   - User asks "techno events" → events with music_type="Techno" OR "techno" = MATCH
-d) If music_type matches, ALWAYS include that event even if the genre word isn't in title/description
-e) Case-insensitive matching: "Latin" = "latin" = "LATIN"
-
-2. **CRITICAL: Search BOTH title AND description equally** - if user asks for "party", check if "party" appears in EITHER the title OR the description. Example: event with title "Night Out" and description "Join us for a party at..." MUST match "party" search
-3. **Description matching is just as important as title matching** - don't prioritize title over description, treat them equally
-4. **Single word matches count** - if the user searches for "workshops" and an event has "workshop" anywhere in title OR description, it's a VALID match
-5. **CRITICAL WORKSHOP/EVENT TYPE DETECTION**: When user asks for "workshops", "classes", "courses", etc.:
+1. **CRITICAL: Search BOTH title AND description equally** - if user asks for "party", check if "party" appears in EITHER the title OR the description. Example: event with title "Night Out" and description "Join us for a party at..." MUST match "party" search
+2. **Description matching is just as important as title matching** - don't prioritize title over description, treat them equally
+3. **Single word matches count** - if the user searches for "workshops" and an event has "workshop" anywhere in title OR description, it's a VALID match
+4. **CRITICAL WORKSHOP/EVENT TYPE DETECTION**: When user asks for "workshops", "classes", "courses", etc.:
    - **STRICT RULE**: ONLY recommend events that EXPLICITLY contain workshop-related keywords in their title OR description
    - Keywords that MUST appear: workshop, class, course, taller, masterclass, training, seminar, lesson, tutorial, "learn about", "how to", teaching
    - An event with title "Creative vermuth workshop" is a WORKSHOP - INCLUDE IT
    - An event with description "Join our cooking class" is a WORKSHOP - INCLUDE IT
    - **ABSOLUTE EXCLUSIONS - NEVER RECOMMEND THESE AS WORKSHOPS**:
-      * "Live jazz jam session" - This is a JAM SESSION, NOT a workshop
-      * Any "jam session" - These are performances/social events, NOT workshops
-      * Concerts, shows, performances - NOT workshops unless they explicitly say "workshop" or "class"
-      * Social gatherings, meetups, parties - NOT workshops unless they explicitly say "workshop" or "class"
+     * "Live jazz jam session" - This is a JAM SESSION, NOT a workshop
+     * Any "jam session" - These are performances/social events, NOT workshops
+     * Concerts, shows, performances - NOT workshops unless they explicitly say "workshop" or "class"
+     * Social gatherings, meetups, parties - NOT workshops unless they explicitly say "workshop" or "class"
    - **DO NOT justify jam sessions as "interactive events" or "creative workshops"** - they are NOT workshops
    - If an event doesn't use the words "workshop", "class", "course", "taller", "lesson", or "tutorial", DO NOT recommend it for workshop requests
-6. **Check mood field** - if event has mood field, use it for matching (e.g., "Creative" mood matches creative requests)
-7. **Use semantic matching for non-workshop requests** - "creative events" should match: art workshops, painting classes, craft events, DIY sessions, creative meetups, vermuth making, cooking classes
-8. **Be inclusive, not exclusive** - if user asks for a general category like "bars" or "party", include ALL events that contain those words in title OR description
-9. **Don't force matches only when truly unrelated** - if user asks for "jazz concerts" and there are no music events at all, DON'T recommend food events. But if they ask for "party" and an event description mentions "party", ALWAYS recommend it
-10. **Exact keyword matches win** - if an event title OR description contains the exact words the user used, prioritize it
-11. **Category synonyms**: Treat these as equivalent:
+5. **Check mood field** - if event has mood field, use it for matching (e.g., "Creative" mood matches creative requests)
+6. **Use semantic matching for non-workshop requests** - "creative events" should match: art workshops, painting classes, craft events, DIY sessions, creative meetups, vermuth making, cooking classes
+7. **Be inclusive, not exclusive** - if user asks for a general category like "bars" or "party", include ALL events that contain those words in title OR description
+8. **Don't force matches only when truly unrelated** - if user asks for "jazz concerts" and there are no music events at all, DON'T recommend food events. But if they ask for "party" and an event description mentions "party", ALWAYS recommend it
+9. **Exact keyword matches win** - if an event title OR description contains the exact words the user used, prioritize it
+10. **Category synonyms**: Treat these as equivalent:
     - workshops = classes = courses = talleres = masterclasses = trainings = lessons = seminars = tutorials
     - party = fiesta = celebration = gathering
     - bar = pub = cerveceria = cocktail bar
@@ -795,91 +782,15 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       }
     }
 
-    // Check if message contains JSON recommendations (object or array format)
-    const hasRecommendations = message.includes('"type"') && message.includes('"id"') && message.includes('"title"');
-
-    if (hasRecommendations) {
-      // Parse and return as proper JSON for twilio-whatsapp-webhook to handle
-      try {
-        let parsed;
-        let introMessage = null;
-        
-        // Try to detect format: object with intro_message OR text + array
-        const objStart = message.indexOf('{"intro_message"');
-        const arrayStart = message.indexOf('[');
-        
-        console.log(`hasRecommendations detected. objStart: ${objStart}, arrayStart: ${arrayStart}`);
-        console.log(`Message preview: ${message.substring(0, 200)}...`);
-        
-        if (objStart !== -1 && objStart < arrayStart) {
-          // Format 1: JSON object with intro_message
-          const jsonStr = message.substring(objStart);
-          console.log("Parsing format 1 (object with intro_message)");
-          parsed = JSON.parse(jsonStr);
-          introMessage = parsed.intro_message;
-        } else if (arrayStart !== -1) {
-          // Format 2: Text followed by array
-          const textBeforeArray = message.substring(0, arrayStart).trim();
-          const arrayStr = message.substring(arrayStart);
-          
-          console.log("Parsing format 2 (text + array)");
-          console.log(`Text before array: ${textBeforeArray}`);
-          console.log(`Array string length: ${arrayStr.length}, first 100 chars: ${arrayStr.substring(0, 100)}`);
-          
-          // Extract intro text
-          if (textBeforeArray && textBeforeArray.length > 0) {
-            introMessage = textBeforeArray.replace(/^(Here are some|Aquí hay algunos?|הנה כמה)/i, '$1').trim();
-          }
-          
-          // Parse the array
-          const jsonEnd = arrayStr.lastIndexOf(']');
-          console.log(`jsonEnd position: ${jsonEnd}`);
-          
-          if (jsonEnd !== -1) {
-            const arrayToParse = arrayStr.substring(0, jsonEnd + 1);
-            console.log(`Attempting to parse array of length ${arrayToParse.length}`);
-            
-            const parsedArray = JSON.parse(arrayToParse);
-            console.log(`Successfully parsed array with ${parsedArray.length} items`);
-            
-            parsed = { recommendations: parsedArray };
-          } else {
-            console.log("Could not find closing ] in array string");
-          }
-        } else {
-          console.log("Neither format matched - no objStart or arrayStart found");
-        }
-        
-        console.log(`parsed object:`, JSON.stringify(parsed, null, 2));
-        
-        // Build proper JSON response for twilio-whatsapp-webhook
-        const jsonResponse = {
-          intro_message: introMessage || "Here are some recommendations for you! 🎯",
-          recommendations: parsed?.recommendations || []
-        };
-        
-        console.log(`Returning JSON with ${jsonResponse.recommendations.length} recommendations`);
-        
-        // Return as JSON string so twilio-whatsapp-webhook can parse and use send-whatsapp-recommendations
-        return new Response(
-          JSON.stringify({
-            message: JSON.stringify(jsonResponse)
-          }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      } catch (e) {
-        console.error("Failed to parse recommendations:", e, "\nRaw message:", message);
-        // Fall through to regular message handling
-      }
-    }
-    
-    // Regular conversational text - split if too long
-    let messagesToSend = [];
+    // Only split regular conversational text, NOT JSON recommendations
     const MAX_CHARS = 1500;
-    
-    if (message.length > MAX_CHARS) {
+    let messagesToSend = [];
+
+    // Check if message contains JSON recommendations (don't split these)
+    const hasRecommendations = message.includes('"recommendations"');
+
+    if (!hasRecommendations && message.length > MAX_CHARS) {
+      // Only split regular text messages
       console.log(`Message length ${message.length} exceeds ${MAX_CHARS}, splitting text...`);
 
       // Split by sentences to avoid breaking mid-sentence
@@ -893,11 +804,18 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
 
         if ((currentChunk + sentence).length > MAX_CHARS) {
           if (currentChunk) {
-            messagesToSend.push(currentChunk.trim());
-            currentChunk = sentence;
+            // If the sentence contains a link, move entire sentence to next chunk
+            if (hasLink) {
+              messagesToSend.push(currentChunk.trim());
+              currentChunk = sentence;
+            } else {
+              messagesToSend.push(currentChunk.trim());
+              currentChunk = sentence;
+            }
           } else {
             // Single sentence is too long
             if (hasLink) {
+              // Don't split sentences with links
               messagesToSend.push(sentence.trim());
               currentChunk = "";
             } else {
@@ -916,6 +834,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
 
       console.log(`Split text into ${messagesToSend.length} messages`);
     } else {
+      // Don't split: either it's short enough OR it contains JSON recommendations
       messagesToSend = [message];
     }
 

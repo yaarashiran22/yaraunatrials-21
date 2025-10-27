@@ -232,21 +232,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Detect budget preference from user message
-      if (!whatsappUser.budget_preference) {
-        const bodyLowerForBudget = body.toLowerCase();
-        const fancyKeywords = /\b(fancy|upscale|high-end|expensive|lujo|caro|elegante|fino|premium)\b/i;
-        const casualKeywords = /\b(casual|local|cheap|affordable|budget|barato|económico|accesible|sencillo)\b/i;
-        
-        if (fancyKeywords.test(bodyLowerForBudget)) {
-          updates.budget_preference = 'fancy';
-          console.log('Detected budget preference: fancy');
-        } else if (casualKeywords.test(bodyLowerForBudget)) {
-          updates.budget_preference = 'casual';
-          console.log('Detected budget preference: casual');
-        }
-      }
-
       // Detect neighborhood from user message
       const neighborhoodKeywords = [
         "palermo",
