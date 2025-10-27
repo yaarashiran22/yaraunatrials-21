@@ -666,6 +666,34 @@ Deno.serve(async (req) => {
     // Handle recommendations response (even if empty - don't show raw JSON)
     if (parsedResponse && parsedResponse.recommendations && Array.isArray(parsedResponse.recommendations)) {
       console.log(`Found ${parsedResponse.recommendations.length} recommendations to send`);
+      
+      // CRITICAL FIX: Filter out jam sessions when user asks for workshops
+      const userAskedForWorkshops = /\b(workshop|workshops|class|classes|course|courses|taller|talleres)\b/i.test(body);
+      
+      if (userAskedForWorkshops) {
+        // Remove jam sessions and other non-workshop events
+        const workshopKeywords = /\b(workshop|class|course|taller|masterclass|training|seminar|lesson|tutorial)\b/i;
+        
+        parsedResponse.recommendations = parsedResponse.recommendations.filter(rec => {
+          // Check if title or description contains workshop keywords
+          const titleHasWorkshop = workshopKeywords.test(rec.title || "");
+          const descHasWorkshop = workshopKeywords.test(rec.description || "");
+          const whyHasWorkshop = workshopKeywords.test(rec.why_recommended || "");
+          
+          // Explicitly exclude jam sessions
+          const isJamSession = /\bjam\s+session\b/i.test(rec.title || "");
+          
+          if (isJamSession) {
+            console.log(`Filtering out jam session: ${rec.title}`);
+            return false;
+          }
+          
+          // Only include if it has workshop keywords
+          return titleHasWorkshop || descHasWorkshop || whyHasWorkshop;
+        });
+        
+        console.log(`After workshop filtering: ${parsedResponse.recommendations.length} recommendations`);
+      }
 
       // If no recommendations found, send a helpful message instead of JSON
       if (parsedResponse.recommendations.length === 0) {
