@@ -782,60 +782,102 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       }
     }
 
-    // Only split regular conversational text, NOT JSON recommendations
-    const MAX_CHARS = 1500;
+    // Format messages for sending
     let messagesToSend = [];
 
-    // Check if message contains JSON recommendations (don't split these)
+    // Check if message contains JSON recommendations
     const hasRecommendations = message.includes('"recommendations"');
 
-    if (!hasRecommendations && message.length > MAX_CHARS) {
-      // Only split regular text messages
-      console.log(`Message length ${message.length} exceeds ${MAX_CHARS}, splitting text...`);
+    if (hasRecommendations) {
+      // Parse and format recommendations nicely
+      try {
+        let jsonStr = message;
+        const jsonStart = message.indexOf("{");
+        const jsonEnd = message.lastIndexOf("}");
+        if (jsonStart !== -1 && jsonEnd !== -1) {
+          jsonStr = message.substring(jsonStart, jsonEnd + 1);
+        }
+        const parsed = JSON.parse(jsonStr);
+        
+        // Add intro message if available
+        if (parsed.intro_message) {
+          messagesToSend.push(parsed.intro_message);
+        }
+        
+        // Format each recommendation
+        if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
+          for (const rec of parsed.recommendations) {
+            if (!rec.title || !rec.description) continue;
+            
+            // Format description with bold dates and times
+            let formattedDescription = rec.description;
+            formattedDescription = formattedDescription.replace(/Date: ([^\n.]+)/gi, '*Date: $1*');
+            formattedDescription = formattedDescription.replace(/Time: ([^\n.]+)/gi, '*Time: $1*');
+            
+            let messageBody = `*${rec.title}*\n\n${formattedDescription}`;
+            
+            // Add personalized note if available
+            if (rec.personalized_note) {
+              messageBody += `\n\n✨ *Just for you:* ${rec.personalized_note}`;
+            }
+            
+            // Add image URL as a separate line (WhatsApp will render it)
+            if (rec.image_url) {
+              messageBody += `\n\n${rec.image_url}`;
+            }
+            
+            messagesToSend.push(messageBody);
+          }
+        }
+        
+        console.log(`Formatted ${messagesToSend.length} recommendation messages`);
+      } catch (e) {
+        console.error("Failed to parse recommendations, sending raw message:", e);
+        messagesToSend = [message];
+      }
+    } else {
+      // Regular conversational text - split if too long
+      const MAX_CHARS = 1500;
+      
+      if (message.length > MAX_CHARS) {
+        console.log(`Message length ${message.length} exceeds ${MAX_CHARS}, splitting text...`);
 
-      // Split by sentences to avoid breaking mid-sentence
-      const sentences = message.match(/[^.!?]+[.!?]+/g) || [message];
-      let currentChunk = "";
+        // Split by sentences to avoid breaking mid-sentence
+        const sentences = message.match(/[^.!?]+[.!?]+/g) || [message];
+        let currentChunk = "";
 
-      for (const sentence of sentences) {
-        // Check if this sentence contains a link
-        const urlPattern = /(https?:\/\/[^\s]+)/g;
-        const hasLink = urlPattern.test(sentence);
+        for (const sentence of sentences) {
+          // Check if this sentence contains a link
+          const urlPattern = /(https?:\/\/[^\s]+)/g;
+          const hasLink = urlPattern.test(sentence);
 
-        if ((currentChunk + sentence).length > MAX_CHARS) {
-          if (currentChunk) {
-            // If the sentence contains a link, move entire sentence to next chunk
-            if (hasLink) {
+          if ((currentChunk + sentence).length > MAX_CHARS) {
+            if (currentChunk) {
               messagesToSend.push(currentChunk.trim());
               currentChunk = sentence;
             } else {
-              messagesToSend.push(currentChunk.trim());
-              currentChunk = sentence;
+              // Single sentence is too long
+              if (hasLink) {
+                messagesToSend.push(sentence.trim());
+                currentChunk = "";
+              } else {
+                messagesToSend.push(sentence.substring(0, MAX_CHARS).trim());
+                currentChunk = sentence.substring(MAX_CHARS);
+              }
             }
           } else {
-            // Single sentence is too long
-            if (hasLink) {
-              // Don't split sentences with links
-              messagesToSend.push(sentence.trim());
-              currentChunk = "";
-            } else {
-              messagesToSend.push(sentence.substring(0, MAX_CHARS).trim());
-              currentChunk = sentence.substring(MAX_CHARS);
-            }
+            currentChunk += sentence;
           }
-        } else {
-          currentChunk += sentence;
         }
-      }
 
-      if (currentChunk) {
-        messagesToSend.push(currentChunk.trim());
-      }
+        if (currentChunk) {
+          messagesToSend.push(currentChunk.trim());
+        }
 
-      console.log(`Split text into ${messagesToSend.length} messages`);
-    } else {
-      // Don't split: either it's short enough OR it contains JSON recommendations
-      messagesToSend = [message];
+        console.log(`Split text into ${messagesToSend.length} messages`);
+      } else {
+        messagesToSend = [message];
+      }
     }
 
     return new Response(
