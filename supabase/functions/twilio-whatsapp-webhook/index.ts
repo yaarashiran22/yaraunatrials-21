@@ -546,6 +546,36 @@ Deno.serve(async (req) => {
           status: 200,
         });
       }
+
+      // Send generic intro message immediately for recommendation requests
+      if (isRecommendationRequest) {
+        const genericIntro = "On it;) Just a moment..";
+        
+        await supabase.from("whatsapp_conversations").insert({
+          phone_number: from,
+          role: "assistant",
+          content: genericIntro,
+        });
+
+        // Send intro message via Twilio API immediately
+        try {
+          await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+            method: "POST",
+            headers: {
+              Authorization: "Basic " + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              From: twilioWhatsAppNumber,
+              To: from,
+              Body: genericIntro,
+            }),
+          });
+          console.log('Sent generic intro message before AI processing');
+        } catch (error) {
+          console.error("Error sending generic intro message:", error);
+        }
+      }
     }
 
     // Build conversation history for AI
@@ -653,11 +683,8 @@ Deno.serve(async (req) => {
       // Get Twilio WhatsApp number
       const twilioWhatsAppNumber = Deno.env.get("TWILIO_WHATSAPP_NUMBER") || "whatsapp:+17622513744";
 
-      // Prepare the intro message - send this first before recommendations
-      const introMessage = parsedResponse.intro_message || "Yes! Sending you the recommendations in just a minute! 🎯";
-
-      // Send intro via TwiML immediately
-      console.log("Sending intro message via TwiML...");
+      // Generic intro was already sent before AI processing, so just trigger recommendations
+      console.log("Triggering send-whatsapp-recommendations...");
 
       // Trigger send-whatsapp-recommendations in the background (don't wait for it)
       console.log("Triggering send-whatsapp-recommendations function in background...");
@@ -681,14 +708,12 @@ Deno.serve(async (req) => {
           console.error("Failed to invoke send-whatsapp-recommendations:", error);
         });
 
-      // Return intro message immediately via TwiML (don't wait for recommendations)
-      const introTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${introMessage}</Message>
-</Response>`;
+      // Return empty TwiML since generic intro was already sent
+      const emptyTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response></Response>`;
 
-      console.log("Returning intro TwiML response immediately");
-      return new Response(introTwiml, {
+      console.log("Returning empty TwiML (intro already sent)");
+      return new Response(emptyTwiml, {
         headers: { ...corsHeaders, "Content-Type": "text/xml" },
         status: 200,
       });
