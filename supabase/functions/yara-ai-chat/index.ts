@@ -390,11 +390,21 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 1. **CRITICAL: Search BOTH title AND description equally** - if user asks for "party", check if "party" appears in EITHER the title OR the description. Example: event with title "Night Out" and description "Join us for a party at..." MUST match "party" search
 2. **Description matching is just as important as title matching** - don't prioritize title over description, treat them equally
 3. **Single word matches count** - if the user searches for "workshops" and an event has "workshop" anywhere in title OR description, it's a VALID match
-4. **Check mood field** - if event has mood field, use it for matching (e.g., "Creative" mood matches creative requests)
-5. **Use semantic matching** - "creative workshops" should match: art workshops, painting classes, craft events, DIY sessions, creative meetups (check descriptions for these terms!)
-6. **Be inclusive, not exclusive** - if user asks for a general category like "workshops", "bars", or "party", include ALL events that contain those words in title OR description
-7. **Don't force matches only when truly unrelated** - if user asks for "jazz concerts" and there are no music events at all, DON'T recommend food events. But if they ask for "party" and an event description mentions "party", ALWAYS recommend it
-8. **Exact keyword matches win** - if an event title OR description contains the exact words the user used, prioritize it
+4. **CRITICAL WORKSHOP/EVENT TYPE DETECTION**: When user asks for "workshops", "classes", "courses", etc.:
+   - Check BOTH the event_type field AND the title/description
+   - An event with title "Creative vermuth workshop" is a WORKSHOP regardless of event_type field
+   - Keywords to detect workshops in title/description: workshop, class, course, taller, masterclass, training, seminar, lesson, tutorial, learn
+   - ALWAYS include events where these keywords appear in title OR description, even if event_type says "event"
+5. **Check mood field** - if event has mood field, use it for matching (e.g., "Creative" mood matches creative requests)
+6. **Use semantic matching** - "creative workshops" should match: art workshops, painting classes, craft events, DIY sessions, creative meetups, vermuth making, cooking classes (check descriptions for these terms!)
+7. **Be inclusive, not exclusive** - if user asks for a general category like "workshops", "bars", or "party", include ALL events that contain those words in title OR description
+8. **Don't force matches only when truly unrelated** - if user asks for "jazz concerts" and there are no music events at all, DON'T recommend food events. But if they ask for "party" and an event description mentions "party", ALWAYS recommend it
+9. **Exact keyword matches win** - if an event title OR description contains the exact words the user used, prioritize it
+10. **Category synonyms**: Treat these as equivalent:
+    - workshops = classes = courses = talleres = masterclasses = trainings = lessons
+    - party = fiesta = celebration = gathering
+    - bar = pub = cerveceria = cocktail bar
+    - concert = show = performance = gig
 
 RECOMMENDATION OUTPUT RULES:
 - Return MAXIMUM 6 recommendations total from the database
