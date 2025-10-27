@@ -555,10 +555,8 @@ Deno.serve(async (req) => {
     }));
     messages.push({ role: "user", content: body });
 
-    // Detect if this is a recommendation request
-    const recommendationKeywords =
-      /\b(recommend|suggest|show me|find me|looking for|i'm looking for|im looking for|i want|i need|can you find|help me find|gimme|dame)\b/i;
-    const isRecommendationRequest = recommendationKeywords.test(body);
+    // isRecommendationRequest already declared earlier (line 391-393)
+    // Using the same variable for the AI intro logic below
 
     // For recommendation requests, generate and send AI intro first using fast model
     if (isRecommendationRequest) {
