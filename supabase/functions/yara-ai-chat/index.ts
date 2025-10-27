@@ -430,6 +430,7 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
      * Social gatherings, meetups, parties - NOT workshops unless they explicitly say "workshop" or "class"
    - **DO NOT justify jam sessions as "interactive events" or "creative workshops"** - they are NOT workshops
    - If an event doesn't use the words "workshop", "class", "course", "taller", "lesson", or "tutorial", DO NOT recommend it for workshop requests
+   - **CRITICAL FOR WORKSHOPS**: When user asks for workshops, DO NOT filter by their interests - recommend ALL age-appropriate workshops that match the workshop keywords above, regardless of whether they match the user's listed interests. Only filter by: (1) age appropriateness, and (2) workshop keywords.
 5. **Check mood field** - if event has mood field, use it for matching (e.g., "Creative" mood matches creative requests)
 6. **Use semantic matching for non-workshop requests** - "creative events" should match: art workshops, painting classes, craft events, DIY sessions, creative meetups, vermuth making, cooking classes
 7. **Be inclusive, not exclusive** - if user asks for a general category like "bars" or "party", include ALL events that contain those words in title OR description
