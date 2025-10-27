@@ -412,28 +412,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Ask for name proactively after first non-greeting message
-    if (whatsappUser && !whatsappUser.name && conversationHistory.length >= 2 && !isGreeting) {
-      const askNameMessage = userLanguage === 'es'
-        ? "Por cierto, ¿cómo te llamas? 😊"
-        : "By the way, can I ask what your name is? 😊";
-
-      await supabase.from("whatsapp_conversations").insert({
-        phone_number: from,
-        role: "assistant",
-        content: askNameMessage,
-      });
-
-      const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${askNameMessage}</Message>
-</Response>`;
-
-      return new Response(twimlResponse, {
-        headers: { ...corsHeaders, "Content-Type": "text/xml" },
-        status: 200,
-      });
-    }
+    // Removed: Proactive name asking - now handled naturally during recommendation requests to avoid double-asking
 
     // Detect if this is a recommendation request
     const recommendationKeywords =
@@ -444,63 +423,9 @@ Deno.serve(async (req) => {
     if (isRecommendationRequest && whatsappUser) {
       const recCount = whatsappUser.recommendation_count || 0;
 
-      // First recommendation request: Ask for name if missing
-      if (recCount === 0 && !whatsappUser.name) {
-        const askNameMessage = userLanguage === 'es'
-          ? "¡Genial! Antes de enviarte las mejores recomendaciones, ¿cómo te llamas? 😊"
-          : "Great! Before I send you the best recommendations, what's your name? 😊";
-
-        await supabase.from("whatsapp_conversations").insert({
-          phone_number: from,
-          role: "user",
-          content: body,
-        });
-
-        await supabase.from("whatsapp_conversations").insert({
-          phone_number: from,
-          role: "assistant",
-          content: askNameMessage,
-        });
-
-        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${askNameMessage}</Message>
-</Response>`;
-
-        return new Response(twimlResponse, {
-          headers: { ...corsHeaders, "Content-Type": "text/xml" },
-          status: 200,
-        });
-      }
-
-      // First recommendation request: Ask for age if name exists but age missing
-      if (recCount === 0 && whatsappUser.name && !whatsappUser.age) {
-        const askAgeMessage = userLanguage === 'es'
-          ? `¡Mucho gusto, ${whatsappUser.name}! ¿Y cuántos años tenés? Esto me ayuda a encontrar eventos más específicos para vos. 🎉`
-          : `Nice to meet you, ${whatsappUser.name}! And how old are you? This helps me find more specific events for you. 🎉`;
-
-        await supabase.from("whatsapp_conversations").insert({
-          phone_number: from,
-          role: "user",
-          content: body,
-        });
-
-        await supabase.from("whatsapp_conversations").insert({
-          phone_number: from,
-          role: "assistant",
-          content: askAgeMessage,
-        });
-
-        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${askAgeMessage}</Message>
-</Response>`;
-
-        return new Response(twimlResponse, {
-          headers: { ...corsHeaders, "Content-Type": "text/xml" },
-          status: 200,
-        });
-      }
+      // First recommendation request: Ask for name if missing (don't intercept - let AI handle it)
+      // REMOVED hard-coded name/age asking to prevent losing user's question
+      // The AI will ask for name/age naturally based on the system prompt in yara-ai-chat
 
       // Second recommendation request: Ask for preferred neighborhood (only if not mentioned in current message)
       if (
