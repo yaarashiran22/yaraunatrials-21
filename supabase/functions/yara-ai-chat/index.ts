@@ -295,6 +295,8 @@ AGE-BASED FILTERING (when giving recommendations):
   - Example: User is 25, event target_audience is "18-30" or "21-35" → MATCH, recommend it
   - Example: User is 25, event target_audience is "40-60" or "50+" → NO MATCH, don't recommend it
   - If target_audience is null/missing, use the general guidelines below
+- **CRITICAL**: If NO events match the user's age after filtering, respond with CONVERSATIONAL TEXT (NOT JSON) explaining there are no age-appropriate events available
+  - Example: "I couldn't find any ceramic events suitable for your age group right now. Would you like me to suggest similar creative events instead?"
 - For users 18-30: Focus on nightlife, clubs, indie venues, underground scenes, energetic events
 - For users 30-45: Mix of sophisticated bars, live music, cultural events, some nightlife
 - For users 45+: Cultural events, theaters, upscale dining, wine bars, art galleries
