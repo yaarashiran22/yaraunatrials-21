@@ -305,6 +305,65 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Detect music preferences
+      const musicGenreKeywords = {
+        techno: /\btechno\b/i,
+        house: /\bhouse\s+music\b|\bhouse\b/i,
+        "deep house": /\bdeep\s+house\b/i,
+        electronic: /\belectronic\b|\bedm\b/i,
+        trance: /\btrance\b/i,
+        "drum and bass": /\bdrum\s+and\s+bass\b|\bd&b\b|\bdnb\b/i,
+        dubstep: /\bdubstep\b/i,
+        jazz: /\bjazz\b/i,
+        blues: /\bblues\b/i,
+        rock: /\brock\b/i,
+        "hard rock": /\bhard\s+rock\b/i,
+        "punk rock": /\bpunk\s+rock\b|\bpunk\b/i,
+        indie: /\bindie\b/i,
+        alternative: /\balternative\b/i,
+        pop: /\bpop\b/i,
+        "k-pop": /\bk-pop\b|\bkpop\b/i,
+        hip hop: /\bhip\s+hop\b|\bhiphop\b|\brap\b/i,
+        trap: /\btrap\b/i,
+        reggaeton: /\breggaeton\b/i,
+        salsa: /\bsalsa\b/i,
+        bachata: /\bbachata\b/i,
+        cumbia: /\bcumbia\b/i,
+        tango: /\btango\b/i,
+        folk: /\bfolk\b/i,
+        country: /\bcountry\b/i,
+        classical: /\bclassical\b/i,
+        opera: /\bopera\b/i,
+        metal: /\bmetal\b/i,
+        reggae: /\breggae\b/i,
+        funk: /\bfunk\b/i,
+        soul: /\bsoul\b/i,
+        "r&b": /\br&b\b|\brnb\b/i,
+        disco: /\bdisco\b/i,
+        ambient: /\bambient\b/i,
+        "experimental": /\bexperimental\b/i,
+        "live music": /\blive\s+music\b/i,
+      };
+
+      let detectedMusicGenres: string[] = [];
+      for (const [genre, regex] of Object.entries(musicGenreKeywords)) {
+        if (regex.test(body)) {
+          detectedMusicGenres.push(genre);
+        }
+      }
+
+      // Remove duplicates and update music preferences
+      if (detectedMusicGenres.length > 0) {
+        const uniqueGenres = [...new Set(detectedMusicGenres)];
+        const currentMusicPreferences = whatsappUser.music_preferences || [];
+        const mergedMusicPreferences = [...new Set([...currentMusicPreferences, ...uniqueGenres])];
+
+        if (mergedMusicPreferences.length > currentMusicPreferences.length) {
+          updates.music_preferences = mergedMusicPreferences;
+          console.log(`Detected music genres:`, uniqueGenres, `| Total music preferences:`, mergedMusicPreferences);
+        }
+      }
+
       // Update user profile if we detected any information
       if (Object.keys(updates).length > 0) {
         await supabase.from("whatsapp_users").update(updates).eq("id", whatsappUser.id);

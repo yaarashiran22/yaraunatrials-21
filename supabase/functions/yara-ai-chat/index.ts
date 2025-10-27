@@ -202,6 +202,13 @@ serve(async (req) => {
         missingFields.push("interests");
       }
 
+      if (userProfile.music_preferences?.length) {
+        parts.push(`Music Preferences: ${userProfile.music_preferences.join(", ")}`);
+        userProfileInfo.push(`I like ${userProfile.music_preferences.join(", ")} music`);
+      } else {
+        missingFields.push("music_preferences");
+      }
+
       if (userProfile.recommendation_count !== undefined) {
         parts.push(`Recommendations given: ${userProfile.recommendation_count}`);
         userProfileInfo.push(`you've given me ${userProfile.recommendation_count} recommendations so far`);
@@ -301,6 +308,9 @@ PROGRESSIVE PROFILING (Build profile gradually):
 - After the 2nd-3rd recommendation, if email is missing from both the message and profile, you can ask: "By the way, what's your email? I can send you updates on cool events 📧"
 - After the 4th-5th recommendation, if budget_preference is missing, ask: "Are you looking for something fancy-ish or more local/casual vibes?"
 - After the 6th-7th recommendation, if favorite_neighborhoods OR interests are missing, ask: "Which neighborhoods do you usually hang out in, and what are your main interests?"
+- After the 8th-9th recommendation, if music_preferences is missing, ask: "What type of music are you into? (e.g., techno, jazz, rock, indie, etc.) 🎵"
+- Ask ONLY ONE profiling question per message
+- Use the "Missing Fields" list to know what information you don't have yet
 - Ask ONLY ONE profiling question per message
 - Use the "Missing Fields" list to know what information you don't have yet
 
