@@ -795,15 +795,23 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         const objStart = message.indexOf('{"intro_message"');
         const arrayStart = message.indexOf('[');
         
+        console.log(`hasRecommendations detected. objStart: ${objStart}, arrayStart: ${arrayStart}`);
+        console.log(`Message preview: ${message.substring(0, 200)}...`);
+        
         if (objStart !== -1 && objStart < arrayStart) {
           // Format 1: JSON object with intro_message
           const jsonStr = message.substring(objStart);
+          console.log("Parsing format 1 (object with intro_message)");
           parsed = JSON.parse(jsonStr);
           introMessage = parsed.intro_message;
         } else if (arrayStart !== -1) {
           // Format 2: Text followed by array
           const textBeforeArray = message.substring(0, arrayStart).trim();
           const arrayStr = message.substring(arrayStart);
+          
+          console.log("Parsing format 2 (text + array)");
+          console.log(`Text before array: ${textBeforeArray}`);
+          console.log(`Array string length: ${arrayStr.length}, first 100 chars: ${arrayStr.substring(0, 100)}`);
           
           // Extract intro text
           if (textBeforeArray && textBeforeArray.length > 0) {
@@ -812,10 +820,24 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
           
           // Parse the array
           const jsonEnd = arrayStr.lastIndexOf(']');
+          console.log(`jsonEnd position: ${jsonEnd}`);
+          
           if (jsonEnd !== -1) {
-            parsed = { recommendations: JSON.parse(arrayStr.substring(0, jsonEnd + 1)) };
+            const arrayToParse = arrayStr.substring(0, jsonEnd + 1);
+            console.log(`Attempting to parse array of length ${arrayToParse.length}`);
+            
+            const parsedArray = JSON.parse(arrayToParse);
+            console.log(`Successfully parsed array with ${parsedArray.length} items`);
+            
+            parsed = { recommendations: parsedArray };
+          } else {
+            console.log("Could not find closing ] in array string");
           }
+        } else {
+          console.log("Neither format matched - no objStart or arrayStart found");
         }
+        
+        console.log(`parsed object:`, JSON.stringify(parsed, null, 2));
         
         // Build proper JSON response for twilio-whatsapp-webhook
         const jsonResponse = {
