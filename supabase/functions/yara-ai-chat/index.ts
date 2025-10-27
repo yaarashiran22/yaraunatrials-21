@@ -355,9 +355,14 @@ SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, et
 **ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST return PURE JSON ONLY.
 
 **CRITICAL - WHEN NO DATABASE MATCHES:**
-- If the user requests recommendations (cafes, restaurants, general places) and there are NO matching events/businesses in the Available data above, respond with PLAIN TEXT: "NO_DATABASE_MATCH: [user's original request]"
-- Example: User asks for "cafes for dates" but no matching businesses in database → Respond: "NO_DATABASE_MATCH: cafes for dates"
-- This triggers a fallback to general Buenos Aires recommendations from OpenAI
+- If the user requests recommendations (cafes, restaurants, general places) and there are NO matching events/businesses in the Available data above, respond with PLAIN TEXT: "NO_DATABASE_MATCH: [user's EXACT original request]"
+- **CRITICAL: Preserve the user's EXACT request wording** - do NOT rephrase or reinterpret their request
+- Example: User asks "cafes to focus on work in villa crespo" → Respond: "NO_DATABASE_MATCH: cafes to focus on work in villa crespo"
+- Example: User asks "romantic restaurants in Palermo" → Respond: "NO_DATABASE_MATCH: romantic restaurants in Palermo"
+- **DO NOT reinterpret**: "cafes to focus on work" is NOT the same as "cafes for dates"
+- **PRESERVE neighborhood**: If user mentions a specific neighborhood (Villa Crespo, Palermo, etc.), keep it in the query
+- **PRESERVE purpose/mood**: If user mentions work, dates, study, etc., keep that specific purpose
+- This triggers a fallback to general Buenos Aires recommendations from OpenAI WITH the correct user intent
 - **DO NOT** try to recommend unrelated events just to give an answer - admit when database has no matches
 
 **CRITICAL - ONLY USE JSON FOR EXPLICIT RECOMMENDATION REQUESTS:**
