@@ -88,7 +88,7 @@ serve(async (req) => {
       supabase
         .from("events")
         .select(
-          "id, title, description, date, time, location, address, price, mood, music_type, venue_size, external_link, image_url",
+          "id, title, description, date, time, location, address, price, mood, music_type, venue_size, external_link, image_url, target_audience",
         )
         .or(`date.gte.${today},date.ilike.%every%`)
         .order("date", { ascending: true })
@@ -129,6 +129,7 @@ serve(async (req) => {
         venue_size: e.venue_size,
         external_link: e.external_link,
         image_url: e.image_url,
+        target_audience: e.target_audience,
       })),
       businesses: businesses.map((b) => ({
         id: b.id,
@@ -290,6 +291,10 @@ AGE COLLECTION - SECOND PRIORITY (after name):
   - If they're asking just for themselves, ask: "Quick question - how old are you? This helps me recommend the perfect spots for you 😊"
 
 AGE-BASED FILTERING (when giving recommendations):
+- **CRITICAL**: If an event has a `target_audience` field, CHECK if the user's age falls within that range
+  - Example: User is 25, event target_audience is "18-30" or "21-35" → MATCH, recommend it
+  - Example: User is 25, event target_audience is "40-60" or "50+" → NO MATCH, don't recommend it
+  - If target_audience is null/missing, use the general guidelines below
 - For users 18-30: Focus on nightlife, clubs, indie venues, underground scenes, energetic events
 - For users 30-45: Mix of sophisticated bars, live music, cultural events, some nightlife
 - For users 45+: Cultural events, theaters, upscale dining, wine bars, art galleries
