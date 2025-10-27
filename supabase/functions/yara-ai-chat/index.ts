@@ -611,6 +611,21 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         }
         const parsed = JSON.parse(jsonStr);
 
+        // CRITICAL FIX: Filter out age-inappropriate events that AI might hallucinate
+        if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
+          const ageAppropriateEventIds = new Set(ageFilteredEvents.map(e => e.id));
+          
+          parsed.recommendations = parsed.recommendations.filter((rec: any) => {
+            if (rec.type === 'event' && !ageAppropriateEventIds.has(rec.id)) {
+              console.log(`Filtering out age-inappropriate event that AI hallucinated: ${rec.title} (ID: ${rec.id})`);
+              return false;
+            }
+            return true;
+          });
+          
+          console.log(`After age validation: ${parsed.recommendations.length} recommendations`);
+        }
+
         // CRITICAL FIX: Filter out jam sessions when user asks for workshops
         const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase() || "";
         const userAskedForWorkshops = /\b(workshop|workshops|class|classes|course|courses|taller|talleres)\b/i.test(lastUserMessage);
