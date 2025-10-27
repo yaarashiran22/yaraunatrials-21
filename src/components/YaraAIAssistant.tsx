@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { X, Send, Sparkles } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -17,6 +19,7 @@ interface YaraAIAssistantProps {
 }
 
 const YaraAIAssistant: React.FC<YaraAIAssistantProps> = ({ isOpen, onClose }) => {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -25,8 +28,39 @@ const YaraAIAssistant: React.FC<YaraAIAssistantProps> = ({ isOpen, onClose }) =>
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const chatUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/yara-ai-chat`;
+
+  // Fetch user profile on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (data) {
+        setUserProfile({
+          name: data.full_name,
+          age: data.age,
+          budget_preference: data.budget_preference,
+          favorite_neighborhoods: data.favorite_neighborhoods,
+          interests: data.interests,
+          music_preferences: data.music_preferences,
+          preferred_language: data.preferred_language || 'en',
+          recommendation_count: 0
+        });
+      }
+    };
+    
+    if (isOpen) {
+      fetchProfile();
+    }
+  }, [isOpen, user]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -42,6 +76,42 @@ const YaraAIAssistant: React.FC<YaraAIAssistantProps> = ({ isOpen, onClose }) =>
     setInput('');
     setIsLoading(true);
 
+    // Extract age from user message if provided
+    const ageMatch = input.match(/\b(\d{2})\b/);
+    if (ageMatch && !userProfile?.age) {
+      const age = parseInt(ageMatch[1]);
+      if (age >= 18 && age <= 99) {
+        const updatedProfile = { ...userProfile, age };
+        setUserProfile(updatedProfile);
+        
+        // Update profile in database if user is logged in
+        if (user) {
+          await supabase
+            .from('profiles')
+            .update({ age })
+            .eq('id', user.id);
+        }
+      }
+    }
+
+    // Extract name from user message if provided (simple heuristic)
+    if (!userProfile?.name && messages.length === 1) {
+      // If this is first response after greeting, assume it's their name
+      const potentialName = input.trim().split(' ')[0];
+      if (potentialName && potentialName.length > 1 && /^[A-Za-z]+$/.test(potentialName)) {
+        const updatedProfile = { ...userProfile, name: potentialName };
+        setUserProfile(updatedProfile);
+        
+        // Update profile in database if user is logged in
+        if (user) {
+          await supabase
+            .from('profiles')
+            .update({ full_name: potentialName })
+            .eq('id', user.id);
+        }
+      }
+    }
+
     try {
       const response = await fetch(chatUrl, {
         method: 'POST',
@@ -50,7 +120,8 @@ const YaraAIAssistant: React.FC<YaraAIAssistantProps> = ({ isOpen, onClose }) =>
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({
-          messages: [...messages, userMessage]
+          messages: [...messages, userMessage],
+          userProfile
         }),
       });
 
