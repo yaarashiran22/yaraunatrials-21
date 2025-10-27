@@ -277,8 +277,8 @@ serve(async (req) => {
     }
 
     // Detect language from the most recent user message
-    const lastUserMessage = enrichedMessages.findLast((m) => m.role === "user");
-    const userMessageText = lastUserMessage?.content || "";
+    const lastUserMsg = enrichedMessages.findLast((m) => m.role === "user");
+    const userMessageText = lastUserMsg?.content || "";
     
     // Simple language detection based on character patterns
     const hasHebrew = /[\u0590-\u05FF]/.test(userMessageText);
