@@ -158,15 +158,41 @@ Deno.serve(async (req) => {
     if (whatsappUser) {
       const updates: any = {};
 
-      // Detect name only from explicit statements like "My name is John" or "I'm John"
+      // Detect name from user message
       if (!whatsappUser.name) {
-        const namePattern = /(?:my name is|i'm|i am|me llamo|call me)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i;
-        const nameMatch = body.match(namePattern);
+        // Check if the previous message was asking for name
+        const lastAssistantMessage = conversationHistory.length > 0 
+          ? conversationHistory[conversationHistory.length - 1]
+          : null;
+        
+        const wasAskingForName = lastAssistantMessage?.role === 'assistant' && 
+          /what'?s your name|can i ask what your name is|what is your name|tell me your name/i.test(lastAssistantMessage.content);
 
-        if (nameMatch) {
-          const detectedName = nameMatch[1].trim();
+        let detectedName = null;
+
+        if (wasAskingForName) {
+          // If we just asked for name, be more flexible in extracting it
+          // Match: "Sarah", "It's Sarah", "My name is Sarah", "I'm Sarah", "Call me Sarah"
+          const flexibleNamePattern = /^(?:it'?s\s+|my name is\s+|i'?m\s+|i am\s+|me llamo\s+|call me\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)[\s!.]*$/i;
+          const nameMatch = body.match(flexibleNamePattern);
+          
+          if (nameMatch) {
+            detectedName = nameMatch[1].trim();
+            console.log(`Detected name from direct response: ${detectedName}`);
+          }
+        } else {
+          // Otherwise, only match explicit name statements
+          const namePattern = /(?:my name is|i'm|i am|me llamo|call me)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i;
+          const nameMatch = body.match(namePattern);
+
+          if (nameMatch) {
+            detectedName = nameMatch[1].trim();
+            console.log(`Detected name from explicit statement: ${detectedName}`);
+          }
+        }
+
+        if (detectedName) {
           updates.name = detectedName;
-          console.log(`Detected name from explicit statement: ${detectedName}`);
         }
       }
 
