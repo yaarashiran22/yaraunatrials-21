@@ -490,9 +490,10 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     // Get the last user message to understand their query
     const lastUserMessage = messages[messages.length - 1]?.content || "";
 
-    // Keywords that indicate an EXPLICIT recommendation request (more specific to avoid false positives)
+    // Keywords that indicate an EXPLICIT recommendation request
+    // Expanded to catch event/venue requests even without action words
     const recommendationKeywords =
-      /\b(recommend|suggest|show me|find me|looking for|i want|i need|can you find|help me find|gimme|dame)\b/i;
+      /\b(recommend|suggest|show me|find me|looking for|i want|i need|can you find|help me find|gimme|dame|are there|is there|any)\b.*\b(event|party|parties|bar|bars|club|clubs|venue|concert|show|music|workshop|class)\b|^\b(event|party|parties|bar|bars|club|clubs|latin|techno|jazz|indie|dance|dancing)\b/i;
 
     // Build request body
     const requestBody: any = {
