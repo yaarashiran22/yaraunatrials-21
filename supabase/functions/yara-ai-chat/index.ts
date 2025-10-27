@@ -111,11 +111,32 @@ serve(async (req) => {
     const businesses = itemsResult.data || [];
     const coupons = couponsResult.data || [];
 
-    console.log(`Fetched ${events.length} events, ${businesses.length} businesses, ${coupons.length} coupons`);
+    // Helper function to check if user's age matches event's target_audience
+    const isAgeAppropriate = (targetAudience: string | null, userAge: number | null): boolean => {
+      if (!targetAudience || !userAge) return true; // If no target_audience or no user age, include event
+      
+      // Parse age ranges like "18-30", "40+", "20-23"
+      if (targetAudience.includes('-')) {
+        const [minAge, maxAge] = targetAudience.split('-').map(s => parseInt(s.trim()));
+        return userAge >= minAge && userAge <= maxAge;
+      } else if (targetAudience.includes('+')) {
+        const minAge = parseInt(targetAudience.replace('+', '').trim());
+        return userAge >= minAge;
+      }
+      
+      return true; // If format is unrecognized, include the event
+    };
+
+    // Filter events by age appropriateness if user has an age
+    const userAge = userProfile?.age;
+    const ageFilteredEvents = events.filter(event => isAgeAppropriate(event.target_audience, userAge));
+    
+    console.log(`Fetched ${events.length} events, filtered to ${ageFilteredEvents.length} age-appropriate events for age ${userAge}`);
+    console.log(`Also fetched ${businesses.length} businesses, ${coupons.length} coupons`);
 
     // Build context for AI - include IDs and image URLs with formatted dates
     const contextData = {
-      events: events.map((e) => ({
+      events: ageFilteredEvents.map((e) => ({
         id: e.id,
         title: e.title,
         description: e.description,
