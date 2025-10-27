@@ -416,16 +416,63 @@ Deno.serve(async (req) => {
 
     // Detect if this is a recommendation request
     const recommendationKeywords =
-      /\b(recommend|suggest|show me|find me|looking for|i'm looking for|im looking for|i want|i need|can you find|help me find|gimme|dame)\b/i;
+      /\b(recommend|suggest|show me|find me|looking for|i'm looking for|im looking for|i want|i need|can you find|help me find|gimme|dame|quiero|busco|necesito|muéstrame|muestrame)\b/i;
     const isRecommendationRequest = recommendationKeywords.test(body);
 
-    // Progressive profiling: Ask for name and age before first recommendations
+    // Smart name/age collection on first recommendation request
     if (isRecommendationRequest && whatsappUser) {
       const recCount = whatsappUser.recommendation_count || 0;
 
-      // First recommendation request: Ask for name if missing (don't intercept - let AI handle it)
-      // REMOVED hard-coded name/age asking to prevent losing user's question
-      // The AI will ask for name/age naturally based on the system prompt in yara-ai-chat
+      // First recommendation: Ask for name if missing
+      if (recCount === 0 && !whatsappUser.name) {
+        const askNameMessage = userLanguage === 'es'
+          ? "¡Genial! Antes de darte las mejores recomendaciones, ¿cómo te llamas? 😊"
+          : "Great! Before I give you the best recommendations, what's your name? 😊";
+
+        await supabase.from("whatsapp_conversations").insert({
+          phone_number: from,
+          role: "assistant",
+          content: askNameMessage,
+        });
+
+        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${askNameMessage}</Message>
+</Response>`;
+
+        return new Response(twimlResponse, {
+          headers: { ...corsHeaders, "Content-Type": "text/xml" },
+          status: 200,
+        });
+      }
+
+      // After name collected: Ask for age if missing
+      if (whatsappUser.name && !whatsappUser.age) {
+        const askAgeMessage = userLanguage === 'es'
+          ? `¡Mucho gusto, ${whatsappUser.name}! ¿Y cuántos años tenés? Esto me ayuda a encontrar eventos perfectos para vos 🎉`
+          : `Nice to meet you, ${whatsappUser.name}! And how old are you? This helps me find perfect events for you 🎉`;
+
+        await supabase.from("whatsapp_conversations").insert({
+          phone_number: from,
+          role: "assistant",
+          content: askAgeMessage,
+        });
+
+        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${askAgeMessage}</Message>
+</Response>`;
+
+        return new Response(twimlResponse, {
+          headers: { ...corsHeaders, "Content-Type": "text/xml" },
+          status: 200,
+        });
+      }
+    }
+
+    // Progressive profiling: Ask for neighborhood on second recommendation (only if not mentioned)
+    if (isRecommendationRequest && whatsappUser) {
+      const recCount = whatsappUser.recommendation_count || 0;
 
       // Second recommendation request: Ask for preferred neighborhood (only if not mentioned in current message)
       if (

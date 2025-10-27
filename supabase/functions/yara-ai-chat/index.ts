@@ -617,6 +617,15 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
             : "I couldn't find any matching events in my database. Would you like me to suggest other types of events?";
         } else {
           try {
+            // Extract location from last user message if specified
+            const lastUserMsg = messages[messages.length - 1]?.content?.toLowerCase() || "";
+            const locationMatch = lastUserMsg.match(/\b(?:in|en)\s+([a-záéíóúñ\s]+?)(?:\s|$|,|\.|\?|!)/i);
+            const specifiedLocation = locationMatch ? locationMatch[1].trim() : null;
+            
+            const locationInstruction = specifiedLocation 
+              ? `CRITICAL: The user specifically asked for recommendations IN ${specifiedLocation.toUpperCase()}. You MUST recommend ONLY venues located in ${specifiedLocation}. Do NOT recommend venues in other neighborhoods.`
+              : '';
+
             const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
               method: "POST",
               headers: {
@@ -628,7 +637,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                 messages: [
                   {
                     role: "system",
-                    content: `You are Yara, a friendly Buenos Aires local guide. The user asked for "${userQuery}" but there are no matching events in your database. Provide 3-5 general recommendations for ${userQuery} in Buenos Aires. Include specific venue names, neighborhoods, and brief descriptions. Keep it conversational, warm, and helpful. Use emojis naturally (1-2 per message). Respond in ${userLanguage === 'es' ? 'Spanish' : 'English'}.`,
+                    content: `You are Yara, a friendly Buenos Aires local guide. The user asked for "${userQuery}" but there are no matching events in your database. Provide 3-5 general recommendations for ${userQuery} in Buenos Aires. Include specific venue names, neighborhoods, and brief descriptions. Keep it conversational, warm, and helpful. Use emojis naturally (1-2 per message). Respond in ${userLanguage === 'es' ? 'Spanish' : 'English'}. ${locationInstruction}`,
                   },
                   {
                     role: "user",
