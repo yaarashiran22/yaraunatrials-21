@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
 
     // Detect language from user message
     if (whatsappUser) {
-      const spanishPatterns = /\b(hola|hey|buenas|qué|que|donde|dónde|necesito|quiero|busco|me|te|puedo|puede|ayuda|ayudar|gracias|por favor|día|noche|evento|eventos|música|arte|comida|bar|fiesta)\b/i;
+      const spanishPatterns = /\b(hola|buenas|qué|que|donde|dónde|necesito|quiero|busco|me llamo|tengo|años|gracias|por favor|día|noche|evento|eventos|música|arte|comida|bar|fiesta|estoy|buscando)\b/i;
       const isSpanish = spanishPatterns.test(body);
       
       // Update language preference if not set or if it changed
