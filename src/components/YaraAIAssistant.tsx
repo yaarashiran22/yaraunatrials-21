@@ -45,13 +45,10 @@ const YaraAIAssistant: React.FC<YaraAIAssistantProps> = ({ isOpen, onClose }) =>
       
       if (data) {
         setUserProfile({
-          name: data.full_name,
+          name: data.name,
           age: data.age,
-          budget_preference: data.budget_preference,
-          favorite_neighborhoods: data.favorite_neighborhoods,
           interests: data.interests,
-          music_preferences: data.music_preferences,
-          preferred_language: data.preferred_language || 'en',
+          location: data.location,
           recommendation_count: 0
         });
       }
@@ -106,7 +103,7 @@ const YaraAIAssistant: React.FC<YaraAIAssistantProps> = ({ isOpen, onClose }) =>
         if (user) {
           await supabase
             .from('profiles')
-            .update({ full_name: potentialName })
+            .update({ name: potentialName })
             .eq('id', user.id);
         }
       }

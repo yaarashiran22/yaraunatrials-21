@@ -196,32 +196,14 @@ serve(async (req) => {
         missingFields.push("age");
       }
 
-      if (userProfile.budget_preference) {
-        parts.push(`Budget: ${userProfile.budget_preference}`);
-        userProfileInfo.push(`my budget preference is ${userProfile.budget_preference}`);
-      } else {
-        missingFields.push("budget_preference");
-      }
-
-      if (userProfile.favorite_neighborhoods?.length) {
-        parts.push(`Neighborhoods: ${userProfile.favorite_neighborhoods.join(", ")}`);
-        userProfileInfo.push(`my favorite neighborhoods are ${userProfile.favorite_neighborhoods.join(", ")}`);
-      } else {
-        missingFields.push("favorite_neighborhoods");
-      }
-
       if (userProfile.interests?.length) {
         parts.push(`Interests: ${userProfile.interests.join(", ")}`);
         userProfileInfo.push(`my interests are ${userProfile.interests.join(", ")}`);
-      } else {
-        missingFields.push("interests");
       }
 
-      if (userProfile.music_preferences?.length) {
-        parts.push(`Music Preferences: ${userProfile.music_preferences.join(", ")}`);
-        userProfileInfo.push(`I like ${userProfile.music_preferences.join(", ")} music`);
-      } else {
-        missingFields.push("music_preferences");
+      if (userProfile.location) {
+        parts.push(`Location: ${userProfile.location}`);
+        userProfileInfo.push(`I'm based in ${userProfile.location}`);
       }
 
       if (userProfile.recommendation_count !== undefined) {
@@ -305,18 +287,18 @@ Respond with PLAIN TEXT ONLY. Be warm and conversational.
 - **IMPORTANT**: Keep responses brief and ask ONLY ONE question at a time
 - If user asks VERY GENERAL questions about things to do in the city (like "what's happening?", "what should I do?", "any events tonight?") WITHOUT any specific preferences, ask them ONE clarifying question to personalize recommendations
 
-NAME COLLECTION - FIRST PRIORITY:
-- **IMPORTANT**: The user's messages may include their profile information in parentheses at the start (e.g., "(By the way, my name is Matias, I'm 33 years old.)")
-- **IF** you see this information in their message, you ALREADY KNOW it - use their name and DO NOT ask for it again
-- **IF** the user's message does NOT include their name, ask for it after the first greeting: "Hey! Before I help you discover Buenos Aires - what's your name?"
-- Once they provide their name, greet them by name and continue with the conversation
-
-AGE COLLECTION - SECOND PRIORITY (after name):
-- **CRITICAL**: Check the "User Profile Context" section at the top - if it shows "Age: [number]", you ALREADY KNOW their age - NEVER ask for it
-- **IF** the user's message includes their age in parentheses (e.g., "I'm 33 years old"), you ALREADY KNOW their age - DO NOT ask for it
-- **IF** the User Profile Context does NOT show an age AND their message does NOT include age AND they request recommendations, ask for age:
+AGE COLLECTION - FIRST PRIORITY:
+- **CRITICAL**: Check the "User Profile Context" section at the top - if it shows "Age: [number]", you ALREADY KNOW their age - NEVER ask for it again
+- **IF** the user's message includes their age in parentheses (e.g., "I'm 33 years old"), you ALREADY KNOW their age - DO NOT ask for it again
+- **IF** the User Profile Context does NOT show an age AND their message does NOT include age, ask for age BEFORE giving recommendations:
   - If they mention going "with friends", "with people", or "we", ask: "Quick question - what are your ages? (e.g., 25, 28, 30)"
   - If they're asking just for themselves, ask: "Quick question - how old are you? This helps me recommend the perfect spots for you 😊"
+
+NAME COLLECTION - AFTER FIRST RECOMMENDATION:
+- **IMPORTANT**: The user's messages may include their profile information in parentheses at the start (e.g., "(By the way, my name is Matias, I'm 33 years old.)")
+- **IF** you see their name in their message or in the User Profile Context, you ALREADY KNOW it - use their name and DO NOT ask for it again
+- **ONLY ASK FOR NAME AFTER YOU'VE GIVEN THE FIRST RECOMMENDATION** - Don't ask during initial greeting
+- Once they provide their name, use it naturally in future conversations
 
 AGE-BASED FILTERING (when giving recommendations):
 - **CRITICAL**: If an event has a target_audience field, you MUST parse it and CHECK if the user's age falls within that range:
@@ -337,13 +319,9 @@ AGE-BASED FILTERING (when giving recommendations):
 PROGRESSIVE PROFILING (Build profile gradually):
 - **Check if the user's message includes profile info in parentheses** - if it does, you already know that information
 - **Check the User Profile Context above** - if a field has data, NEVER ask for it again
-- After the 2nd-3rd recommendation, if budget_preference is missing, ask: "Are you looking for something fancy-ish or more local/casual vibes?"
-- After the 4th-5th recommendation, if music_preferences is missing, ask: "What type of music are you into? (e.g., techno, jazz, rock, indie, etc.) 🎵"
-- After the 6th-7th recommendation, if favorite_neighborhoods OR interests are missing, ask: "Which neighborhoods do you usually hang out in, and what are your main interests?"
+- After the 2nd-3rd recommendation, if interests are missing, ask: "What are your main interests? (art, music, food, sports, etc.) 🎨"
+- After the 4th-5th recommendation, if location is missing, ask: "Which neighborhood are you usually in? 📍"
 - Ask ONLY ONE profiling question per message
-- Use the "Missing Fields" list to know what information you don't have yet
-- Ask ONLY ONE profiling question per message
-- Use the "Missing Fields" list to know what information you don't have yet
 
 Example conversational responses: 
   - "Hey [name]! What kind of events are you looking for?" (if name is known)
