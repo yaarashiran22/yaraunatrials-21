@@ -364,7 +364,7 @@ Date calculation rules (today is ${today}):
 5. Start with { and end with }
 6. Return ONLY the raw JSON object
 
-REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY:
+REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
 {
   "intro_message": "Here are some [type] you might like:",
   "recommendations": [
@@ -372,7 +372,7 @@ REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY:
       "type": "event",
       "id": "actual-event-id-from-database",
       "title": "Event Title from database",
-      "description": "Location: [location]. Address: [address if available]. Date: [date - already formatted, use as-is]. Time: [time]. Music Type: [music_type if available]. Instagram: [external_link if available]. Brief description.",
+      "description": "MANDATORY - MUST ALWAYS BE INCLUDED. Format: Location: [location]. Address: [address if available]. Date: [date - already formatted, use as-is]. Time: [time]. Music Type: [music_type if available]. Instagram: [external_link if available]. Brief description of the event.",
       "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
       "personalized_note": "CRITICAL - A custom personal message based on their profile data (age, budget, interests, neighborhoods). Examples: 'Perfect for your age group (33) and high budget preference', 'This matches your interest in jazz and is in your favorite neighborhood Palermo', 'Great for someone your age (25) looking for affordable nightlife'. ALWAYS reference specific profile data when available.",
       "image_url": "CRITICAL - YOU MUST COPY THE EXACT image_url VALUE FROM THE DATABASE EVENT - this is the event photo URL that will be sent via WhatsApp. DO NOT omit this field or the images won't be sent!"
@@ -469,7 +469,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                       type: { type: "string", enum: ["event", "business", "coupon"] },
                       id: { type: "string", description: "The actual ID from the database" },
                       title: { type: "string", description: "The event/item title from the database" },
-                      description: { type: "string", description: "Location, address, date, time, and other details" },
+                      description: { type: "string", description: "MANDATORY - NEVER SKIP THIS. Include: Location, address, date, time, and brief event details" },
                       why_recommended: { type: "string", description: "Why this matches their request" },
                       personalized_note: { type: "string", description: "Personal message based on their profile" },
                       image_url: {
