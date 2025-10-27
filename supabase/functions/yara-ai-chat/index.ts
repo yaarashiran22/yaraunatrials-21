@@ -782,14 +782,11 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       }
     }
 
-    // Format messages for sending
-    let messagesToSend = [];
-
     // Check if message contains JSON recommendations (object or array format)
     const hasRecommendations = message.includes('"type"') && message.includes('"id"') && message.includes('"title"');
 
     if (hasRecommendations) {
-      // Parse and format recommendations nicely
+      // Parse and return as proper JSON for twilio-whatsapp-webhook to handle
       try {
         let parsed;
         let introMessage = null;
@@ -808,7 +805,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
           const textBeforeArray = message.substring(0, arrayStart).trim();
           const arrayStr = message.substring(arrayStart);
           
-          // Extract intro text (remove any extra formatting)
+          // Extract intro text
           if (textBeforeArray && textBeforeArray.length > 0) {
             introMessage = textBeforeArray.replace(/^(Here are some|Aquí hay algunos?|הנה כמה)/i, '$1').trim();
           }
@@ -820,85 +817,71 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
           }
         }
         
-        // Add intro message if available
-        if (introMessage) {
-          messagesToSend.push(introMessage);
-        }
+        // Build proper JSON response for twilio-whatsapp-webhook
+        const jsonResponse = {
+          intro_message: introMessage || "Here are some recommendations for you! 🎯",
+          recommendations: parsed?.recommendations || []
+        };
         
-        // Format each recommendation
-        if (parsed && parsed.recommendations && Array.isArray(parsed.recommendations)) {
-          for (const rec of parsed.recommendations) {
-            if (!rec.title || !rec.description) continue;
-            
-            // Format description with bold dates and times
-            let formattedDescription = rec.description;
-            formattedDescription = formattedDescription.replace(/Date: ([^\n.]+)/gi, '*Date: $1*');
-            formattedDescription = formattedDescription.replace(/Time: ([^\n.]+)/gi, '*Time: $1*');
-            
-            let messageBody = `*${rec.title}*\n\n${formattedDescription}`;
-            
-            // Add personalized note if available
-            if (rec.personalized_note) {
-              messageBody += `\n\n✨ *Just for you:* ${rec.personalized_note}`;
-            }
-            
-            // Add image URL as a separate line (WhatsApp will render it)
-            if (rec.image_url) {
-              messageBody += `\n\n${rec.image_url}`;
-            }
-            
-            messagesToSend.push(messageBody);
-          }
-        }
+        console.log(`Returning JSON with ${jsonResponse.recommendations.length} recommendations`);
         
-        console.log(`Formatted ${messagesToSend.length} recommendation messages from ${parsed ? 'parsed' : 'raw'} data`);
+        // Return as JSON string so twilio-whatsapp-webhook can parse and use send-whatsapp-recommendations
+        return new Response(
+          JSON.stringify({
+            message: JSON.stringify(jsonResponse)
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       } catch (e) {
         console.error("Failed to parse recommendations:", e, "\nRaw message:", message);
-        messagesToSend = [message];
+        // Fall through to regular message handling
       }
-    } else {
-      // Regular conversational text - split if too long
-      const MAX_CHARS = 1500;
-      
-      if (message.length > MAX_CHARS) {
-        console.log(`Message length ${message.length} exceeds ${MAX_CHARS}, splitting text...`);
+    }
+    
+    // Regular conversational text - split if too long
+    let messagesToSend = [];
+    const MAX_CHARS = 1500;
+    
+    if (message.length > MAX_CHARS) {
+      console.log(`Message length ${message.length} exceeds ${MAX_CHARS}, splitting text...`);
 
-        // Split by sentences to avoid breaking mid-sentence
-        const sentences = message.match(/[^.!?]+[.!?]+/g) || [message];
-        let currentChunk = "";
+      // Split by sentences to avoid breaking mid-sentence
+      const sentences = message.match(/[^.!?]+[.!?]+/g) || [message];
+      let currentChunk = "";
 
-        for (const sentence of sentences) {
-          // Check if this sentence contains a link
-          const urlPattern = /(https?:\/\/[^\s]+)/g;
-          const hasLink = urlPattern.test(sentence);
+      for (const sentence of sentences) {
+        // Check if this sentence contains a link
+        const urlPattern = /(https?:\/\/[^\s]+)/g;
+        const hasLink = urlPattern.test(sentence);
 
-          if ((currentChunk + sentence).length > MAX_CHARS) {
-            if (currentChunk) {
-              messagesToSend.push(currentChunk.trim());
-              currentChunk = sentence;
-            } else {
-              // Single sentence is too long
-              if (hasLink) {
-                messagesToSend.push(sentence.trim());
-                currentChunk = "";
-              } else {
-                messagesToSend.push(sentence.substring(0, MAX_CHARS).trim());
-                currentChunk = sentence.substring(MAX_CHARS);
-              }
-            }
+        if ((currentChunk + sentence).length > MAX_CHARS) {
+          if (currentChunk) {
+            messagesToSend.push(currentChunk.trim());
+            currentChunk = sentence;
           } else {
-            currentChunk += sentence;
+            // Single sentence is too long
+            if (hasLink) {
+              messagesToSend.push(sentence.trim());
+              currentChunk = "";
+            } else {
+              messagesToSend.push(sentence.substring(0, MAX_CHARS).trim());
+              currentChunk = sentence.substring(MAX_CHARS);
+            }
           }
+        } else {
+          currentChunk += sentence;
         }
-
-        if (currentChunk) {
-          messagesToSend.push(currentChunk.trim());
-        }
-
-        console.log(`Split text into ${messagesToSend.length} messages`);
-      } else {
-        messagesToSend = [message];
       }
+
+      if (currentChunk) {
+        messagesToSend.push(currentChunk.trim());
+      }
+
+      console.log(`Split text into ${messagesToSend.length} messages`);
+    } else {
+      messagesToSend = [message];
     }
 
     return new Response(
