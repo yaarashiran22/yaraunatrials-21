@@ -706,41 +706,18 @@ Deno.serve(async (req) => {
       // Get Twilio WhatsApp number
       const twilioWhatsAppNumber = Deno.env.get("TWILIO_WHATSAPP_NUMBER") || "whatsapp:+17622513744";
 
-      // Prepare the intro message - send via Twilio API (not TwiML) for guaranteed delivery order
+      // Prepare the intro message
       const introMessage = parsedResponse.intro_message || "Here are some recommendations for you! 🎯";
 
-      // Send intro via Twilio API first (guarantees it arrives before recommendations)
-      console.log("Sending intro message via Twilio API:", introMessage);
-      try {
-        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
-          method: "POST",
-          headers: {
-            Authorization: "Basic " + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({
-            From: twilioWhatsAppNumber,
-            To: from,
-            Body: introMessage,
-          }),
-        });
-        console.log("✅ Sent intro message successfully");
-        
-        // Longer delay to ensure intro arrives before recommendations
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      } catch (error) {
-        console.error("Error sending intro:", error);
-      }
-
-      // Trigger send-whatsapp-recommendations in the background (after intro)
-      console.log("Triggering send-whatsapp-recommendations function...");
+      // Trigger send-whatsapp-recommendations in background - it will send intro FIRST, then recommendations
+      console.log("Triggering send-whatsapp-recommendations with intro message...");
       supabase.functions
         .invoke("send-whatsapp-recommendations", {
           body: {
             recommendations: parsedResponse.recommendations,
             toNumber: from,
             fromNumber: twilioWhatsAppNumber,
-            introText: null, // Already sent above
+            introText: introMessage, // Pass intro to background function - it will send it first
           },
         })
         .then(({ data, error }) => {
@@ -754,11 +731,11 @@ Deno.serve(async (req) => {
           console.error("Failed to invoke send-whatsapp-recommendations:", error);
         });
 
-      // Return empty TwiML response (intro already sent via API)
+      // Return empty TwiML response (background function handles everything)
       const emptyTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response></Response>`;
 
-      console.log("Returning empty TwiML (intro sent via API)");
+      console.log("Returning empty TwiML (background function will send intro + recommendations)");
       return new Response(emptyTwiml, {
         headers: { ...corsHeaders, "Content-Type": "text/xml" },
         status: 200,
