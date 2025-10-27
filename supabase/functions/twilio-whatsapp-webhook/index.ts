@@ -128,32 +128,6 @@ Deno.serve(async (req) => {
       content: body,
     });
 
-    // Send immediate "Thinking.." feedback
-    const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-    const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
-    const twilioWhatsAppNumber = Deno.env.get("TWILIO_WHATSAPP_NUMBER") || "whatsapp:+17622513744";
-
-    // Send thinking message immediately via Twilio API
-    const thinkingMessage = "Thinking..";
-
-    try {
-      await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
-        method: "POST",
-        headers: {
-          Authorization: "Basic " + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          From: twilioWhatsAppNumber,
-          To: from,
-          Body: thinkingMessage,
-        }),
-      });
-      console.log('Sent "Thinking.." message');
-    } catch (error) {
-      console.error("Error sending thinking message:", error);
-    }
-
     // Detect and store user information from message
     if (whatsappUser) {
       const updates: any = {};
@@ -548,33 +522,35 @@ Deno.serve(async (req) => {
       }
 
       // Send generic intro message immediately for recommendation requests
-      if (isRecommendationRequest) {
-        const genericIntro = "On it;) Just a moment..";
-        
-        await supabase.from("whatsapp_conversations").insert({
-          phone_number: from,
-          role: "assistant",
-          content: genericIntro,
-        });
+      const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
+      const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+      const twilioWhatsAppNumber = Deno.env.get("TWILIO_WHATSAPP_NUMBER") || "whatsapp:+17622513744";
+      
+      const genericIntro = "On it;) Just a moment..";
+      
+      await supabase.from("whatsapp_conversations").insert({
+        phone_number: from,
+        role: "assistant",
+        content: genericIntro,
+      });
 
-        // Send intro message via Twilio API immediately
-        try {
-          await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
-            method: "POST",
-            headers: {
-              Authorization: "Basic " + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: new URLSearchParams({
-              From: twilioWhatsAppNumber,
-              To: from,
-              Body: genericIntro,
-            }),
-          });
-          console.log('Sent generic intro message before AI processing');
-        } catch (error) {
-          console.error("Error sending generic intro message:", error);
-        }
+      // Send intro message via Twilio API immediately
+      try {
+        await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+          method: "POST",
+          headers: {
+            Authorization: "Basic " + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            From: twilioWhatsAppNumber,
+            To: from,
+            Body: genericIntro,
+          }),
+        });
+        console.log('Sent generic intro message before AI processing');
+      } catch (error) {
+        console.error("Error sending generic intro message:", error);
       }
     }
 
