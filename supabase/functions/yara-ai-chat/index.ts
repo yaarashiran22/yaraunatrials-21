@@ -356,15 +356,22 @@ DETECTION KEYWORDS FOR JSON RESPONSE (user MUST use at least one of these):
 **DATE FILTERING - CRITICAL:**
 You MUST calculate the correct date based on user's request and filter events accordingly.
 
-**IMPORTANT**: Event dates are in YYYY-MM-DD format (e.g., "2025-11-01"). Use this format for all date calculations.
+**IMPORTANT**: Event dates are in YYYY-MM-DD format (e.g., "2025-11-01") OR recurring format (e.g., "every monday"). Use this format for all date calculations.
 
 Date calculation rules (today is ${today}):
-- "tonight" / "today" / "esta noche" / "hoy" → Filter events where date = "${today}"
-- "tomorrow" / "mañana" → Calculate tomorrow's date by adding 1 day to ${today} (e.g., if today is 2025-10-28, tomorrow is 2025-10-29)
+- "tonight" / "today" / "esta noche" / "hoy" → Filter events where date = "${today}" OR recurring events that match today's day of week
+- "tomorrow" / "mañana" → Calculate tomorrow's date by adding 1 day to ${today} (e.g., if today is 2025-10-28, tomorrow is 2025-10-29) OR recurring events that match tomorrow's day of week
 - "next week" / "próxima semana" / "semana que viene" → Filter events where date is between 7-14 days from ${today}
-- "this weekend" / "weekend" / "fin de semana" → Calculate the next Saturday and Sunday dates
+- "this weekend" / "weekend" / "fin de semana" → Calculate the next Saturday and Sunday dates OR include "every saturday" and "every sunday" recurring events
 
-**When formatting dates in your response**: Convert YYYY-MM-DD to human-readable format like "November 1st" in the description field only.
+**RECURRING EVENTS - CRITICAL:**
+- Events with dates like "every monday", "every friday", etc. occur weekly on that day
+- When user asks for a specific date (e.g., "tonight"), calculate what day of the week that is
+- Example: If today is Monday and user asks for "tonight", include both date="2025-10-28" AND date="every monday"
+- Example: If user asks for "tomorrow" and tomorrow is Tuesday, include both tomorrow's date AND date="every tuesday"
+- Days of week: monday, tuesday, wednesday, thursday, friday, saturday, sunday
+
+**When formatting dates in your response**: Convert YYYY-MM-DD to human-readable format like "November 1st" in the description field only. For recurring events, keep as "every [day]".
 - Specific dates (e.g., "December 25", "25 de diciembre", "2025-12-25") → parse and use that exact date
 
 **RECURRING EVENTS - CRITICAL:**
