@@ -370,6 +370,9 @@ Date calculation rules (today is ${today}):
 - When user asks for a specific date (e.g., "tonight"), calculate what day of the week that is
 - Example: If today is Monday and user asks for "tonight", include both date="2025-10-28" AND date="every monday"
 - Example: If user asks for "tomorrow" and tomorrow is Tuesday, include both tomorrow's date AND date="every tuesday"
+- **CRITICAL FOR "THIS WEEK"**: When user asks for "this week" or "esta semana", you MUST include EVERY recurring event that falls on a remaining day of this week
+- Example: If today is Tuesday and user asks for "this week", you MUST include: "every tuesday", "every wednesday", "every thursday", "every friday", "every saturday", "every sunday"
+- **DO NOT SKIP recurring events just because there are specific-date events on the same day** - include BOTH
 - Days of week: monday, tuesday, wednesday, thursday, friday, saturday, sunday
 
 **When formatting dates in your response**: Convert YYYY-MM-DD to human-readable format like "November 1st" in the description field only. For recurring events, keep as "every [day]".
