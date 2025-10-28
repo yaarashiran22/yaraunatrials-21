@@ -432,7 +432,8 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
     - workshops = classes = courses = talleres = masterclasses = trainings = lessons = seminars = tutorials
     - party = fiesta = celebration = gathering
     - bar = pub = cerveceria = cocktail bar
-    - concert = show = performance = gig
+    - **CRITICAL - "shows" interpretation**: shows = concerts = performances = gigs = live music = live performances = live entertainment = spectacles
+    - When user asks for "shows" or "live shows", include ALL of: concerts, performances, live music events, gigs, theater, comedy shows, any live entertainment
     - **NEVER treat**: jam session = workshop, concert = workshop, show = workshop
 11. **CRITICAL: User interests are for CONTEXT ONLY, not for filtering** - The user's interests help you understand their preferences and personalize your responses, but DO NOT use interests to exclude events from recommendations. Always show all age-appropriate events that match the requested type.
 
