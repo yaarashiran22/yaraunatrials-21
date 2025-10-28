@@ -361,6 +361,7 @@ You MUST calculate the correct date based on user's request and filter events ac
 Date calculation rules (today is ${today}):
 - "tonight" / "today" / "esta noche" / "hoy" → Filter events where date = "${today}" OR recurring events that match today's day of week
 - "tomorrow" / "mañana" → Calculate tomorrow's date by adding 1 day to ${today} (e.g., if today is 2025-10-28, tomorrow is 2025-10-29) OR recurring events that match tomorrow's day of week
+- "this week" / "esta semana" → Filter events from ${today} until the end of this week (Sunday) OR recurring events for remaining days of week (e.g., if today is Tuesday, include "every wednesday", "every thursday", "every friday", "every saturday", "every sunday")
 - "next week" / "próxima semana" / "semana que viene" → Filter events where date is between 7-14 days from ${today}
 - "this weekend" / "weekend" / "fin de semana" → Calculate the next Saturday and Sunday dates OR include "every saturday" and "every sunday" recurring events
 
