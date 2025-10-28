@@ -134,13 +134,13 @@ serve(async (req) => {
     console.log(`Fetched ${events.length} events, filtered to ${ageFilteredEvents.length} age-appropriate events for age ${userAge}`);
     console.log(`Also fetched ${businesses.length} businesses, ${coupons.length} coupons`);
 
-    // Build context for AI - include IDs and image URLs with formatted dates
+    // Build context for AI - keep dates in YYYY-MM-DD format for proper filtering
     const contextData = {
       events: ageFilteredEvents.map((e) => ({
         id: e.id,
         title: e.title,
         description: e.description,
-        date: formatDate(e.date), // Format date here before sending to AI
+        date: e.date, // Keep raw date format for AI to filter properly
         time: e.time,
         location: e.location,
         address: e.address,
@@ -356,11 +356,15 @@ DETECTION KEYWORDS FOR JSON RESPONSE (user MUST use at least one of these):
 **DATE FILTERING - CRITICAL:**
 You MUST calculate the correct date based on user's request and filter events accordingly.
 
+**IMPORTANT**: Event dates are in YYYY-MM-DD format (e.g., "2025-11-01"). Use this format for all date calculations.
+
 Date calculation rules (today is ${today}):
-- "tonight" / "today" / "esta noche" / "hoy" → ${today}
-- "tomorrow" / "mañana" → calculate tomorrow's date (add 1 day to ${today})
-- "next week" / "próxima semana" / "semana que viene" → events between 7-14 days from ${today}
-- "this weekend" / "weekend" / "fin de semana" → calculate next Saturday and Sunday
+- "tonight" / "today" / "esta noche" / "hoy" → Filter events where date = "${today}"
+- "tomorrow" / "mañana" → Calculate tomorrow's date by adding 1 day to ${today} (e.g., if today is 2025-10-28, tomorrow is 2025-10-29)
+- "next week" / "próxima semana" / "semana que viene" → Filter events where date is between 7-14 days from ${today}
+- "this weekend" / "weekend" / "fin de semana" → Calculate the next Saturday and Sunday dates
+
+**When formatting dates in your response**: Convert YYYY-MM-DD to human-readable format like "November 1st" in the description field only.
 - Specific dates (e.g., "December 25", "25 de diciembre", "2025-12-25") → parse and use that exact date
 
 **RECURRING EVENTS - CRITICAL:**
