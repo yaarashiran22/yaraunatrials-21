@@ -359,8 +359,12 @@ You MUST calculate the correct date based on user's request and filter events ac
 **IMPORTANT**: Event dates are in YYYY-MM-DD format (e.g., "2025-11-01") OR recurring format (e.g., "every monday"). Use this format for all date calculations.
 
 Date calculation rules (today is ${today}):
-- "tonight" / "today" / "esta noche" / "hoy" → Filter events where date = "${today}" OR recurring events that match today's day of week
-- "tomorrow" / "mañana" → Calculate tomorrow's date by adding 1 day to ${today} (e.g., if today is 2025-10-28, tomorrow is 2025-10-29) OR recurring events that match tomorrow's day of week
+- **"tonight" / "today" / "esta noche" / "hoy" → CRITICAL:**
+  * Determine what day of week ${today} is (e.g., if ${today} is 2025-10-30, that's Wednesday)
+  * ONLY include: 1) events with date = "${today}" OR 2) recurring events that match TODAY's EXACT day of week
+  * Example: If today is Wednesday, ONLY include "every wednesday" - DO NOT include "every tuesday", "every monday", etc. even though they're recurring
+  * **DO NOT include recurring events from earlier days of the week that already passed**
+- "tomorrow" / "mañana" → Calculate tomorrow's date by adding 1 day to ${today} (e.g., if today is 2025-10-28, tomorrow is 2025-10-29). ONLY include recurring events that match TOMORROW's day of week (not today's or earlier days)
 - "this week" / "esta semana" → Filter events from ${today} until the end of this week (Sunday) OR recurring events for remaining days of week (e.g., if today is Tuesday, include "every wednesday", "every thursday", "every friday", "every saturday", "every sunday")
 - "next week" / "próxima semana" / "semana que viene" → Filter events where date is between 7-14 days from ${today}
 - **"this weekend" / "weekend" / "fin de semana" → CRITICAL CALCULATION:**
