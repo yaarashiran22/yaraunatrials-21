@@ -44,6 +44,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
   const [priceRange, setPriceRange] = useState("");
   const [venueName, setVenueName] = useState("");
   const [address, setAddress] = useState("");
+  const [ticketLink, setTicketLink] = useState("");
 
   // Mood filters from home page
   const moodFilters = [
@@ -225,7 +226,8 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
           venue_size: venueSize || null,
           price_range: priceRange || null,
           venue_name: venueName.trim(),
-          address: address.trim() || null
+          address: address.trim() || null,
+          ticket_link: ticketLink.trim() || null
         });
 
       if (error) throw error;
@@ -256,6 +258,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
       setPriceRange("");
       setVenueName("");
       setAddress("");
+      setTicketLink("");
 
       // Call callback to refresh data
       if (onEventCreated) {
@@ -445,6 +448,17 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               placeholder={t('createEvent.pricePlaceholder')}
+              className="w-full h-12 text-left text-black placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-full"
+            />
+          </div>
+
+          {/* Ticket Link Field */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground block text-left">Ticket Link (Optional)</label>
+            <Input 
+              value={ticketLink}
+              onChange={(e) => setTicketLink(e.target.value)}
+              placeholder="https://..."
               className="w-full h-12 text-left text-black placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-full"
             />
           </div>

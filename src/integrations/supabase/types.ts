@@ -149,6 +149,7 @@ export type Database = {
           price: string | null
           price_range: string | null
           target_audience: string | null
+          ticket_link: string | null
           time: string | null
           title: string
           updated_at: string | null
@@ -173,6 +174,7 @@ export type Database = {
           price?: string | null
           price_range?: string | null
           target_audience?: string | null
+          ticket_link?: string | null
           time?: string | null
           title: string
           updated_at?: string | null
@@ -197,6 +199,7 @@ export type Database = {
           price?: string | null
           price_range?: string | null
           target_audience?: string | null
+          ticket_link?: string | null
           time?: string | null
           title?: string
           updated_at?: string | null
