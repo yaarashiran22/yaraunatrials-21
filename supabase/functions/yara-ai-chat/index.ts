@@ -124,14 +124,15 @@ serve(async (req) => {
     // Filter events by date BEFORE passing to AI
     // Include: 
     // 1. Events with date >= today (future one-time events)
-    // 2. ALL recurring events (let AI filter by specific day based on user request)
+    // 2. Events that match today's day of week (recurring events)
     const filteredByDateEvents = allEvents.filter(event => {
       const eventDate = event.date?.toLowerCase() || '';
       
-      // Include ALL recurring events - AI will filter by specific day
+      // Check if it's a recurring event that matches today's day
       if (eventDate.includes('every')) {
-        console.log(`Recurring event "${event.title}" (${eventDate}): INCLUDED (AI will filter by day)`);
-        return true;
+        const matchesToday = eventDate.includes(todayDayName);
+        console.log(`Recurring event "${event.title}" (${eventDate}): ${matchesToday ? 'MATCHES' : 'DOES NOT MATCH'} ${todayDayName}`);
+        return matchesToday;
       }
       
       // For non-recurring events, check if date is today or in the future
@@ -140,7 +141,7 @@ serve(async (req) => {
       return isFutureEvent;
     });
 
-    console.log(`Filtered events from ${allEvents.length} to ${filteredByDateEvents.length} (removed only past one-time events)`);
+    console.log(`Filtered events from ${allEvents.length} to ${filteredByDateEvents.length} based on date matching`);
 
     // Helper function to check if user's age matches event's target_audience
     const isAgeAppropriate = (targetAudience: string | null, userAge: number | null): boolean => {
@@ -313,8 +314,8 @@ CRITICAL DATE INFORMATION - YOU ALREADY KNOW THIS:
 
 ${userContext}
 
-Available data${isTomorrowQuery ? ` (PRE-FILTERED FOR TOMORROW ${tomorrowDate})` : isTodayQuery ? ` (PRE-FILTERED FOR TODAY ${today})` : ''}:
-${JSON.stringify(dataForAI, null, 2)}
+Available data:
+${JSON.stringify(contextData, null, 2)}
 
 CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 
@@ -377,17 +378,6 @@ SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, et
 - This triggers a fallback to general Buenos Aires recommendations from OpenAI WITH the correct user intent
 - **DO NOT** try to recommend unrelated events just to give an answer - admit when database has no matches
 
-**🚨 ABSOLUTE RULE FOR TOMORROW/TODAY REQUESTS 🚨**
-**CRITICAL - MUST RETURN JSON, NOT CONVERSATIONAL TEXT:**
-When user asks for events "tomorrow" or "today", you MUST return JSON recommendations if matching events exist:
-1. **FIRST**: Look through ALL events in the Available data above
-2. **CHECK**: For "tomorrow" (${tomorrowDayName} ${tomorrowDate}), do ANY events have:
-   - date = "${tomorrowDate}" (exact date match) OR
-   - date = "every ${tomorrowDayName}" (recurring event on ${tomorrowDayName}s)?
-3. **IF YES** (matching events exist): Return PURE JSON with those recommendations (including "every ${tomorrowDayName}" events) - NO conversational text, NO "(searches data)", ONLY JSON
-4. **IF NO** (zero matching events): Only then respond conversationally
-**Example**: Tomorrow is ${tomorrowDayName}. If you see "La bomba de tiempo" with date "every monday" in the data, that event HAPPENS TOMORROW - return it in JSON format with image_url, title, description, etc.
-
 **CRITICAL - ONLY USE JSON FOR EXPLICIT RECOMMENDATION REQUESTS:**
 - Use JSON ONLY when user is EXPLICITLY asking for suggestions/recommendations with action keywords
 - **DO NOT** use JSON when user sends GREETINGS ("hi", "hello", "hey", "hola", "sup") - respond conversationally
@@ -433,24 +423,19 @@ You EXCLUDE: "every monday", "every tuesday", "every wednesday", "every thursday
 Date calculation rules (today is ${today}):
 
 **"tonight" / "today" / "esta noche" / "hoy":**
-**CRITICAL - ABSOLUTE RULES**:
-Today is ${today} which is a ${todayDayName}
-1. Calculate what day of week ${today} is: It's ${todayDayName}
-2. **CRITICALLY FIRST CHECK**: Look through ALL events in the Available data - do ANY of them have date = "${today}" or date = "every ${todayDayName}"?
-3. **IF YES** (events exist for today): Return those events in JSON format - NEVER say "I don't have events for tonight"
-4. **IF NO** (zero events for today): ONLY THEN use NO_DATABASE_MATCH
-5. ONLY include events where date = "${today}" OR date = "every ${todayDayName}"
-6. EXCLUDE all other "every [different day]" events
+1. Calculate what day of week ${today} is (Monday/Tuesday/Wednesday/Thursday/Friday/Saturday/Sunday)
+2. ONLY include events where:
+   - date exactly equals "${today}" OR
+   - date equals "every [today's day name in lowercase]"
+3. EXCLUDE all other "every [different day]" events
 
 **"tomorrow" / "mañana":**
-**CRITICAL - YOU ALREADY KNOW TOMORROW'S DATE**: Tomorrow is ${tomorrowDate} which is a ${tomorrowDayName}
-**ABSOLUTE MATCHING RULE FOR TOMORROW**:
+**CRITICAL - YOU ALREADY KNOW TOMORROW'S DATE**: Tomorrow is ${tomorrowDate} (${tomorrowDayName})
 1. **DO NOT ASK** "what day is tomorrow?" - you already know it's ${tomorrowDayName}
-2. You MUST include ANY event where:
-   - date field = "${tomorrowDate}" (exact match) OR
-   - date field = "every ${tomorrowDayName}" (recurring event that happens on ${tomorrowDayName}s)
-3. Example: If you see an event with date "every ${tomorrowDayName}" in the data, it HAPPENS TOMORROW - you MUST recommend it
-4. EXCLUDE all "every [other day]" events (they don't happen tomorrow)
+2. ONLY include events where:
+   - date equals "${tomorrowDate}" OR
+   - date equals "every ${tomorrowDayName}"
+3. EXCLUDE all other "every [different day]" events
 
 **"this weekend" / "weekend" / "fin de semana":**
 1. Calculate the upcoming Saturday and Sunday dates
@@ -484,9 +469,8 @@ Today is ${today} which is a ${todayDayName}
 2. NO markdown formatting
 3. NO code blocks or json wrappers
 4. NO explanatory text before or after the JSON
-5. NO phrases like "(searches data)", "(thinking)", "(checking)", or any meta-commentary
-6. Start with { and end with }
-7. Return ONLY the raw JSON object
+5. Start with { and end with }
+6. Return ONLY the raw JSON object
 
 REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
 {
@@ -568,36 +552,10 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     // Get the last user message to understand their query
     const lastUserMessage = messages[messages.length - 1]?.content || "";
 
-    // Pre-filter events for tomorrow/today requests to ensure AI gets relevant data
-    let eventsToUse = availableData.events;
-    const isTomorrowQuery = /\b(tomorrow|mañana)\b/i.test(lastUserMessage);
-    const isTodayQuery = /\b(today|hoy)\b/i.test(lastUserMessage);
-
-    if (isTomorrowQuery || isTodayQuery) {
-      const targetDate = isTomorrowQuery ? tomorrowDate : today;
-      const targetDay = isTomorrowQuery ? tomorrowDayName : todayDayName;
-      
-      // Filter to only events that match the target date
-      eventsToUse = availableData.events.filter(event => {
-        const eventDate = event.date?.toLowerCase() || '';
-        // Match exact date OR recurring event on that day of week
-        return eventDate === targetDate || eventDate === `every ${targetDay}`;
-      });
-      
-      console.log(`Filtered for ${isTomorrowQuery ? 'tomorrow' : 'today'} (${targetDay} ${targetDate}): ${eventsToUse.length} matching events`);
-    }
-
-    // Create the data context with potentially filtered events
-    const dataForAI = {
-      events: eventsToUse,
-      businesses: availableData.businesses,
-      coupons: availableData.coupons
-    };
-
     // Keywords that indicate an EXPLICIT recommendation request
     // Expanded to catch event/venue requests even without action words
     const recommendationKeywords =
-      /\b(recommend|suggest|show me|find me|looking for|i want|i need|can you find|help me find|gimme|dame|are there|is there|any|what's|whats|what is)\b.*\b(event|party|parties|bar|bars|club|clubs|venue|concert|show|music|workshop|class|going on|happening)\b|^\b(event|party|parties|bar|bars|club|clubs|latin|techno|jazz|indie|dance|dancing)\b/i;
+      /\b(recommend|suggest|show me|find me|looking for|i want|i need|can you find|help me find|gimme|dame|are there|is there|any)\b.*\b(event|party|parties|bar|bars|club|clubs|venue|concert|show|music|workshop|class)\b|^\b(event|party|parties|bar|bars|club|clubs|latin|techno|jazz|indie|dance|dancing)\b/i;
 
     // Build request body
     const requestBody: any = {
