@@ -747,7 +747,6 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
           const ageAppropriateEventIds = new Set(ageFilteredEvents.map(e => e.id));
           
-          const beforeCount = parsed.recommendations.length;
           parsed.recommendations = parsed.recommendations.filter((rec: any) => {
             if (rec.type === 'event' && !ageAppropriateEventIds.has(rec.id)) {
               console.log(`Filtering out age-inappropriate event that AI hallucinated: ${rec.title} (ID: ${rec.id})`);
@@ -756,19 +755,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
             return true;
           });
           
-          const afterCount = parsed.recommendations.length;
-          console.log(`After age validation: ${afterCount} recommendations (filtered out ${beforeCount - afterCount})`);
-          
-          // If ALL recommendations were filtered out, provide a helpful message
-          if (afterCount === 0 && beforeCount > 0) {
-            const fallbackMessage = userLanguage === 'es'
-              ? "Lo siento, no encontré eventos que coincidan perfectamente con tu búsqueda para hoy. ¿Te gustaría ver eventos de otros días de la semana?"
-              : "Sorry, I couldn't find events that match perfectly for tonight. Would you like to see events on other days this week?";
-            
-            return new Response(JSON.stringify({ message: fallbackMessage }), {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
+          console.log(`After age validation: ${parsed.recommendations.length} recommendations`);
         }
 
         // CRITICAL FIX: Filter out jam sessions when user asks for workshops
@@ -796,59 +783,6 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
           
           // Update the message to reflect filtered recommendations
           message = JSON.stringify(parsed);
-        }
-
-        // Generate Google Maps URL with event locations
-        if (parsed.recommendations && Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
-          const eventRecs = parsed.recommendations.filter((rec: any) => rec.type === 'event');
-          
-          if (eventRecs.length > 0) {
-            // Get full event details to access addresses
-            const eventIds = eventRecs.map((rec: any) => rec.id);
-            const eventsWithAddresses = ageFilteredEvents.filter(e => eventIds.includes(e.id) && e.address);
-            
-            if (eventsWithAddresses.length > 0) {
-              // Create Google Maps URL with markers for each event
-              const addresses = eventsWithAddresses.map(e => e.address).filter(Boolean);
-              
-              if (addresses.length > 0) {
-                // For a single location, use a simpler search URL
-                if (addresses.length === 1) {
-                  const encodedAddress = encodeURIComponent(addresses[0] + ", Buenos Aires, Argentina");
-                  parsed.map_url = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
-                } else {
-                  // For multiple locations, create a URL with all markers
-                  // Format: directions API with waypoints
-                  const origin = encodeURIComponent(addresses[0] + ", Buenos Aires, Argentina");
-                  const destination = encodeURIComponent(addresses[addresses.length - 1] + ", Buenos Aires, Argentina");
-                  const waypoints = addresses.slice(1, -1).map(addr => 
-                    encodeURIComponent(addr + ", Buenos Aires, Argentina")
-                  ).join('|');
-                  
-                  if (addresses.length === 2) {
-                    // Just origin and destination
-                    parsed.map_url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=walking`;
-                  } else {
-                    // Include waypoints
-                    parsed.map_url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=walking`;
-                  }
-                }
-                
-                console.log(`Generated map URL with ${addresses.length} locations:`, parsed.map_url);
-                
-                // Add map link to intro message
-                const mapEmoji = "🗺️";
-                if (parsed.intro_message) {
-                  parsed.intro_message += `\n\n${mapEmoji} View all locations on map: ${parsed.map_url}`;
-                } else {
-                  parsed.intro_message = `${mapEmoji} View all locations on map: ${parsed.map_url}`;
-                }
-                
-                // Update message with modified intro_message containing map URL
-                message = JSON.stringify(parsed);
-              }
-            }
-          }
         }
 
         // Track database recommendations in background
