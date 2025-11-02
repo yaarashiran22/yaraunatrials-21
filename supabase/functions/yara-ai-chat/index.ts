@@ -313,8 +313,8 @@ CRITICAL DATE INFORMATION - YOU ALREADY KNOW THIS:
 
 ${userContext}
 
-Available data:
-${JSON.stringify(contextData, null, 2)}
+Available data${isTomorrowQuery ? ` (PRE-FILTERED FOR TOMORROW ${tomorrowDate})` : isTodayQuery ? ` (PRE-FILTERED FOR TODAY ${today})` : ''}:
+${JSON.stringify(dataForAI, null, 2)}
 
 CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 
@@ -569,7 +569,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     const lastUserMessage = messages[messages.length - 1]?.content || "";
 
     // Pre-filter events for tomorrow/today requests to ensure AI gets relevant data
-    let contextualEvents = availableData.events;
+    let eventsToUse = availableData.events;
     const isTomorrowQuery = /\b(tomorrow|mañana)\b/i.test(lastUserMessage);
     const isTodayQuery = /\b(today|hoy)\b/i.test(lastUserMessage);
 
@@ -578,20 +578,21 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       const targetDay = isTomorrowQuery ? tomorrowDayName : todayDayName;
       
       // Filter to only events that match the target date
-      contextualEvents = availableData.events.filter(event => {
+      eventsToUse = availableData.events.filter(event => {
         const eventDate = event.date?.toLowerCase() || '';
         // Match exact date OR recurring event on that day of week
         return eventDate === targetDate || eventDate === `every ${targetDay}`;
       });
       
-      console.log(`Filtered for ${isTomorrowQuery ? 'tomorrow' : 'today'} (${targetDay} ${targetDate}): ${contextualEvents.length} matching events`);
-      
-      // Update the available data with filtered events
-      availableData = {
-        ...availableData,
-        events: contextualEvents
-      };
+      console.log(`Filtered for ${isTomorrowQuery ? 'tomorrow' : 'today'} (${targetDay} ${targetDate}): ${eventsToUse.length} matching events`);
     }
+
+    // Create the data context with potentially filtered events
+    const dataForAI = {
+      events: eventsToUse,
+      businesses: availableData.businesses,
+      coupons: availableData.coupons
+    };
 
     // Keywords that indicate an EXPLICIT recommendation request
     // Expanded to catch event/venue requests even without action words
