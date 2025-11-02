@@ -568,10 +568,35 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     // Get the last user message to understand their query
     const lastUserMessage = messages[messages.length - 1]?.content || "";
 
+    // Pre-filter events for tomorrow/today requests to ensure AI gets relevant data
+    let contextualEvents = availableData.events;
+    const isTomorrowQuery = /\b(tomorrow|mañana)\b/i.test(lastUserMessage);
+    const isTodayQuery = /\b(today|hoy)\b/i.test(lastUserMessage);
+
+    if (isTomorrowQuery || isTodayQuery) {
+      const targetDate = isTomorrowQuery ? tomorrowDate : today;
+      const targetDay = isTomorrowQuery ? tomorrowDayName : todayDayName;
+      
+      // Filter to only events that match the target date
+      contextualEvents = availableData.events.filter(event => {
+        const eventDate = event.date?.toLowerCase() || '';
+        // Match exact date OR recurring event on that day of week
+        return eventDate === targetDate || eventDate === `every ${targetDay}`;
+      });
+      
+      console.log(`Filtered for ${isTomorrowQuery ? 'tomorrow' : 'today'} (${targetDay} ${targetDate}): ${contextualEvents.length} matching events`);
+      
+      // Update the available data with filtered events
+      availableData = {
+        ...availableData,
+        events: contextualEvents
+      };
+    }
+
     // Keywords that indicate an EXPLICIT recommendation request
     // Expanded to catch event/venue requests even without action words
     const recommendationKeywords =
-      /\b(recommend|suggest|show me|find me|looking for|i want|i need|can you find|help me find|gimme|dame|are there|is there|any)\b.*\b(event|party|parties|bar|bars|club|clubs|venue|concert|show|music|workshop|class)\b|^\b(event|party|parties|bar|bars|club|clubs|latin|techno|jazz|indie|dance|dancing)\b/i;
+      /\b(recommend|suggest|show me|find me|looking for|i want|i need|can you find|help me find|gimme|dame|are there|is there|any|what's|whats|what is)\b.*\b(event|party|parties|bar|bars|club|clubs|venue|concert|show|music|workshop|class|going on|happening)\b|^\b(event|party|parties|bar|bars|club|clubs|latin|techno|jazz|indie|dance|dancing)\b/i;
 
     // Build request body
     const requestBody: any = {
