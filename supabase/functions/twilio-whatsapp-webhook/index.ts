@@ -414,10 +414,11 @@ Deno.serve(async (req) => {
 
     // Smart name/age collection for ANY new user (not just on recommendation requests)
     if (whatsappUser && (!whatsappUser.name || !whatsappUser.age)) {
-      const messageCount = conversationHistory.length;
+      // conversationHistory doesn't include current message, so add 1 to get total message count
+      const totalMessages = conversationHistory.length + 1;
       
       // Ask for name/age on first or second message (to avoid asking on greeting)
-      if (messageCount === 1 || messageCount === 2) {
+      if (totalMessages === 1 || totalMessages === 2) {
         const askBothMessage = userLanguage === 'es'
           ? "¡Hola! Soy Yara, tu guía de Buenos Aires 🎭 Para darte las mejores recomendaciones personalizadas, ¿cómo te llamas y cuántos años tenés? (ej: Matias, 25) 😊"
           : "Hi! I'm Yara, your Buenos Aires guide 🎭 To give you the best personalized recommendations, what's your name and age? (e.g., Matias, 25) 😊";
