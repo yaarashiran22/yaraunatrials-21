@@ -124,15 +124,14 @@ serve(async (req) => {
     // Filter events by date BEFORE passing to AI
     // Include: 
     // 1. Events with date >= today (future one-time events)
-    // 2. Events that match today's day of week (recurring events)
+    // 2. ALL recurring events (let AI filter by specific day based on user request)
     const filteredByDateEvents = allEvents.filter(event => {
       const eventDate = event.date?.toLowerCase() || '';
       
-      // Check if it's a recurring event that matches today's day
+      // Include ALL recurring events - AI will filter by specific day
       if (eventDate.includes('every')) {
-        const matchesToday = eventDate.includes(todayDayName);
-        console.log(`Recurring event "${event.title}" (${eventDate}): ${matchesToday ? 'MATCHES' : 'DOES NOT MATCH'} ${todayDayName}`);
-        return matchesToday;
+        console.log(`Recurring event "${event.title}" (${eventDate}): INCLUDED (AI will filter by day)`);
+        return true;
       }
       
       // For non-recurring events, check if date is today or in the future
@@ -141,7 +140,7 @@ serve(async (req) => {
       return isFutureEvent;
     });
 
-    console.log(`Filtered events from ${allEvents.length} to ${filteredByDateEvents.length} based on date matching`);
+    console.log(`Filtered events from ${allEvents.length} to ${filteredByDateEvents.length} (removed only past one-time events)`);
 
     // Helper function to check if user's age matches event's target_audience
     const isAgeAppropriate = (targetAudience: string | null, userAge: number | null): boolean => {
