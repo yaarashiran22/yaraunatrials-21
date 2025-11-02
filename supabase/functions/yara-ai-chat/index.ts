@@ -121,18 +121,38 @@ serve(async (req) => {
     const businesses = itemsResult.data || [];
     const coupons = couponsResult.data || [];
 
+    // Helper function to calculate next occurrence of recurring event
+    const getNextOccurrence = (dayName: string, fromDate: Date = new Date()): string => {
+      const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const targetDayIndex = daysOfWeek.indexOf(dayName.toLowerCase());
+      
+      if (targetDayIndex === -1) return fromDate.toISOString().split('T')[0]; // fallback
+      
+      const currentDayIndex = fromDate.getDay();
+      let daysUntilTarget = targetDayIndex - currentDayIndex;
+      
+      // If the target day is today or has passed this week, get next week's occurrence
+      if (daysUntilTarget <= 0) {
+        daysUntilTarget += 7;
+      }
+      
+      const nextOccurrence = new Date(fromDate);
+      nextOccurrence.setDate(fromDate.getDate() + daysUntilTarget);
+      
+      return nextOccurrence.toISOString().split('T')[0]; // YYYY-MM-DD format
+    };
+
     // Filter events by date BEFORE passing to AI
     // Include: 
     // 1. Events with date >= today (future one-time events)
-    // 2. Events that match today's day of week (recurring events)
+    // 2. All recurring events (we'll calculate their next occurrence)
     const filteredByDateEvents = allEvents.filter(event => {
       const eventDate = event.date?.toLowerCase() || '';
       
-      // Check if it's a recurring event that matches today's day
+      // Check if it's a recurring event
       if (eventDate.includes('every')) {
-        const matchesToday = eventDate.includes(todayDayName);
-        console.log(`Recurring event "${event.title}" (${eventDate}): ${matchesToday ? 'MATCHES' : 'DOES NOT MATCH'} ${todayDayName}`);
-        return matchesToday;
+        console.log(`Recurring event "${event.title}" (${eventDate}): INCLUDED`);
+        return true; // Include all recurring events
       }
       
       // For non-recurring events, check if date is today or in the future
@@ -166,24 +186,38 @@ serve(async (req) => {
     console.log(`Filtered ${filteredByDateEvents.length} date-matched events to ${ageFilteredEvents.length} age-appropriate events for age ${userAge}`);
     console.log(`Also fetched ${businesses.length} businesses, ${coupons.length} coupons`);
 
-    // Build context for AI - keep dates in YYYY-MM-DD format for proper filtering
+    // Build context for AI - transform recurring events to actual dates in memory
     const contextData = {
-      events: ageFilteredEvents.map((e) => ({
-        id: e.id,
-        title: e.title,
-        description: e.description,
-        date: e.date, // Keep raw date format for AI to filter properly
-        time: e.time,
-        location: e.location,
-        address: e.address,
-        price: e.price,
-        mood: e.mood,
-        music_type: e.music_type,
-        venue_size: e.venue_size,
-        external_link: e.external_link,
-        image_url: e.image_url,
-        target_audience: e.target_audience,
-      })),
+      events: ageFilteredEvents.map((e) => {
+        let processedDate = e.date;
+        
+        // Transform recurring events to next occurrence date
+        if (e.date?.toLowerCase().includes('every')) {
+          const dayMatch = e.date.toLowerCase().match(/every\s+(\w+)/);
+          if (dayMatch && dayMatch[1]) {
+            const dayName = dayMatch[1];
+            processedDate = getNextOccurrence(dayName);
+            console.log(`Transformed "${e.date}" to ${processedDate} for event: ${e.title}`);
+          }
+        }
+        
+        return {
+          id: e.id,
+          title: e.title,
+          description: e.description,
+          date: processedDate, // Use calculated date for recurring events
+          time: e.time,
+          location: e.location,
+          address: e.address,
+          price: e.price,
+          mood: e.mood,
+          music_type: e.music_type,
+          venue_size: e.venue_size,
+          external_link: e.external_link,
+          image_url: e.image_url,
+          target_audience: e.target_audience,
+        };
+      }),
       businesses: businesses.map((b) => ({
         id: b.id,
         title: b.title,
