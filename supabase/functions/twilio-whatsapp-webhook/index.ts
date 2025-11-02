@@ -412,22 +412,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Removed: Proactive name asking - now handled naturally during recommendation requests to avoid double-asking
-
-    // Detect if this is a recommendation request
-    const recommendationKeywords =
-      /\b(recommend|suggest|show me|find me|looking for|i'm looking for|im looking for|i want|i need|can you find|help me find|gimme|dame|quiero|busco|necesito|muéstrame|muestrame)\b/i;
-    const isRecommendationRequest = recommendationKeywords.test(body);
-
-    // Smart name/age collection on first recommendation request
-    if (isRecommendationRequest && whatsappUser) {
-      const recCount = whatsappUser.recommendation_count || 0;
-
-      // First recommendation: Ask for name AND age together if both missing
-      if (recCount === 0 && (!whatsappUser.name || !whatsappUser.age)) {
+    // Smart name/age collection for ANY new user (not just on recommendation requests)
+    if (whatsappUser && (!whatsappUser.name || !whatsappUser.age)) {
+      const messageCount = conversationHistory.length;
+      
+      // Ask for name/age on first or second message (to avoid asking on greeting)
+      if (messageCount === 1 || messageCount === 2) {
         const askBothMessage = userLanguage === 'es'
-          ? "¡Genial! Para darte las mejores recomendaciones personalizadas, ¿cómo te llamas y cuántos años tenés? (ej: Matias, 25) 😊"
-          : "Great! To give you the best personalized recommendations, what's your name and age? (e.g., Matias, 25) 😊";
+          ? "¡Hola! Soy Yara, tu guía de Buenos Aires 🎭 Para darte las mejores recomendaciones personalizadas, ¿cómo te llamas y cuántos años tenés? (ej: Matias, 25) 😊"
+          : "Hi! I'm Yara, your Buenos Aires guide 🎭 To give you the best personalized recommendations, what's your name and age? (e.g., Matias, 25) 😊";
 
         await supabase.from("whatsapp_conversations").insert({
           phone_number: from,
@@ -446,6 +439,11 @@ Deno.serve(async (req) => {
         });
       }
     }
+
+    // Detect if this is a recommendation request
+    const recommendationKeywords =
+      /\b(recommend|suggest|show me|find me|looking for|i'm looking for|im looking for|i want|i need|can you find|help me find|gimme|dame|quiero|busco|necesito|muéstrame|muestrame)\b/i;
+    const isRecommendationRequest = recommendationKeywords.test(body);
 
     // Progressive profiling: Ask for neighborhood on second recommendation (only if not mentioned)
     if (isRecommendationRequest && whatsappUser) {
@@ -722,26 +720,76 @@ Deno.serve(async (req) => {
     // Regular conversational response (no recommendations)
     console.log("Sending conversational response");
 
-    // Store the assistant message
-    await supabase.from("whatsapp_conversations").insert({
-      phone_number: from,
-      role: "assistant",
-      content: multipleMessages ? multipleMessages.join("\n\n") : assistantMessage,
-    });
+    try {
+      // Store the assistant message
+      await supabase.from("whatsapp_conversations").insert({
+        phone_number: from,
+        role: "assistant",
+        content: multipleMessages ? multipleMessages.join("\n\n") : assistantMessage,
+      });
 
-    // If message was split, send multiple TwiML messages
-    if (multipleMessages && multipleMessages.length > 1) {
-      console.log(`Sending ${multipleMessages.length} TwiML messages`);
+      // If message was split, send multiple TwiML messages
+      if (multipleMessages && multipleMessages.length > 1) {
+        console.log(`Sending ${multipleMessages.length} TwiML messages`);
 
-      const twimlMessages = multipleMessages
-        .map((msg) => {
-          return `  <Message>${msg}</Message>`;
-        })
-        .join("\n");
+        const twimlMessages = multipleMessages
+          .map((msg) => {
+            // Escape XML special characters
+            const escapedMsg = msg
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&apos;");
+            return `  <Message>${escapedMsg}</Message>`;
+          })
+          .join("\n");
+
+        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+${twimlMessages}
+</Response>`;
+
+        console.log("Sending split TwiML response");
+        return new Response(twimlResponse, {
+          headers: { ...corsHeaders, "Content-Type": "text/xml" },
+          status: 200,
+        });
+      }
+
+      // Escape XML special characters for single message
+      const escapedMessage = assistantMessage
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
 
       const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-${twimlMessages}
+  <Message>${escapedMessage}</Message>
+</Response>`;
+
+      console.log("Sending TwiML response");
+
+      return new Response(twimlResponse, {
+        headers: { ...corsHeaders, "Content-Type": "text/xml" },
+        status: 200,
+      });
+    } catch (storageError) {
+      console.error("Error storing or sending conversational response:", storageError);
+      
+      // Still try to send the message even if storage fails
+      const escapedMessage = assistantMessage
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+
+      const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${escapedMessage}</Message>
 </Response>`;
 
       return new Response(twimlResponse, {
@@ -749,18 +797,6 @@ ${twimlMessages}
         status: 200,
       });
     }
-
-    const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${assistantMessage}</Message>
-</Response>`;
-
-    console.log("Sending TwiML response");
-
-    return new Response(twimlResponse, {
-      headers: { ...corsHeaders, "Content-Type": "text/xml" },
-      status: 200,
-    });
   } catch (error) {
     console.error("Error in Twilio webhook:", error);
 
