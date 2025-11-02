@@ -38,8 +38,13 @@ serve(async (req) => {
       interactionHistory = interactions || [];
     }
 
-    // Get current date for filtering
-    const today = new Date().toISOString().split("T")[0];
+    // Get current date and day of week for filtering
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const todayDayName = daysOfWeek[now.getDay()]; // e.g., "saturday"
+
+    console.log(`Today's date: ${today}, Day: ${todayDayName}`);
 
     // Helper function to format date from YYYY-MM-DD to "Month DDth"
     const formatDate = (dateStr: string): string => {
@@ -82,17 +87,15 @@ serve(async (req) => {
       }
     };
 
-    // Fetch relevant data from database with image URLs
-    // Include recurring events by checking if date contains "every" OR is >= today
+    // Fetch ALL events first, then filter in code
     const [eventsResult, itemsResult, couponsResult] = await Promise.all([
       supabase
         .from("events")
         .select(
           "id, title, description, date, time, location, address, price, mood, music_type, venue_size, external_link, image_url, target_audience",
         )
-        .or(`date.gte.${today},date.ilike.%every%`)
         .order("date", { ascending: true })
-        .limit(50),
+        .limit(200), // Fetch more to ensure we get recurring events
       supabase
         .from("items")
         .select("id, title, description, category, location, price, image_url")
@@ -107,9 +110,31 @@ serve(async (req) => {
         .limit(50),
     ]);
 
-    const events = eventsResult.data || [];
+    let allEvents = eventsResult.data || [];
     const businesses = itemsResult.data || [];
     const coupons = couponsResult.data || [];
+
+    // Filter events by date BEFORE passing to AI
+    // Include: 
+    // 1. Events with date >= today (future one-time events)
+    // 2. Events that match today's day of week (recurring events)
+    const filteredByDateEvents = allEvents.filter(event => {
+      const eventDate = event.date?.toLowerCase() || '';
+      
+      // Check if it's a recurring event that matches today's day
+      if (eventDate.includes('every')) {
+        const matchesToday = eventDate.includes(todayDayName);
+        console.log(`Recurring event "${event.title}" (${eventDate}): ${matchesToday ? 'MATCHES' : 'DOES NOT MATCH'} ${todayDayName}`);
+        return matchesToday;
+      }
+      
+      // For non-recurring events, check if date is today or in the future
+      const isFutureEvent = eventDate >= today;
+      console.log(`One-time event "${event.title}" (${eventDate}): ${isFutureEvent ? 'FUTURE/TODAY' : 'PAST'}`);
+      return isFutureEvent;
+    });
+
+    console.log(`Filtered events from ${allEvents.length} to ${filteredByDateEvents.length} based on date matching`);
 
     // Helper function to check if user's age matches event's target_audience
     const isAgeAppropriate = (targetAudience: string | null, userAge: number | null): boolean => {
@@ -129,9 +154,9 @@ serve(async (req) => {
 
     // Filter events by age appropriateness if user has an age
     const userAge = userProfile?.age;
-    const ageFilteredEvents = events.filter(event => isAgeAppropriate(event.target_audience, userAge));
+    const ageFilteredEvents = filteredByDateEvents.filter(event => isAgeAppropriate(event.target_audience, userAge));
     
-    console.log(`Fetched ${events.length} events, filtered to ${ageFilteredEvents.length} age-appropriate events for age ${userAge}`);
+    console.log(`Filtered ${filteredByDateEvents.length} date-matched events to ${ageFilteredEvents.length} age-appropriate events for age ${userAge}`);
     console.log(`Also fetched ${businesses.length} businesses, ${coupons.length} coupons`);
 
     // Build context for AI - keep dates in YYYY-MM-DD format for proper filtering
