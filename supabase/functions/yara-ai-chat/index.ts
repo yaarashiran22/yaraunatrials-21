@@ -142,26 +142,38 @@ serve(async (req) => {
       return nextOccurrence.toISOString().split('T')[0]; // YYYY-MM-DD format
     };
 
-    // Filter events by date BEFORE passing to AI
-    // Include: 
-    // 1. Events with date >= today (future one-time events)
-    // 2. All recurring events (we'll calculate their next occurrence)
-    const filteredByDateEvents = allEvents.filter(event => {
-      const eventDate = event.date?.toLowerCase() || '';
+    // Transform recurring events to their next occurrence dates FIRST
+    const eventsWithTransformedDates = allEvents.map(event => {
+      let transformedDate = event.date;
+      let originalDate = event.date;
       
-      // Check if it's a recurring event
-      if (eventDate.includes('every')) {
-        console.log(`Recurring event "${event.title}" (${eventDate}): INCLUDED`);
-        return true; // Include all recurring events
+      // Transform recurring events to next occurrence date
+      if (event.date?.toLowerCase().includes('every')) {
+        const dayMatch = event.date.toLowerCase().match(/every\s+(\w+)/);
+        if (dayMatch && dayMatch[1]) {
+          const dayName = dayMatch[1];
+          transformedDate = getNextOccurrence(dayName);
+          console.log(`Transformed "${event.date}" to ${transformedDate} for event: ${event.title}`);
+        }
       }
       
-      // For non-recurring events, check if date is today or in the future
-      const isFutureEvent = eventDate >= today;
-      console.log(`One-time event "${event.title}" (${eventDate}): ${isFutureEvent ? 'FUTURE/TODAY' : 'PAST'}`);
-      return isFutureEvent;
+      return {
+        ...event,
+        date: transformedDate,
+        originalDate: originalDate, // Keep original for reference
+      };
     });
 
-    console.log(`Filtered events from ${allEvents.length} to ${filteredByDateEvents.length} based on date matching`);
+    // NOW filter events by transformed dates - only include future events
+    const filteredByDateEvents = eventsWithTransformedDates.filter(event => {
+      const eventDate = event.date?.toLowerCase() || '';
+      const isInFuture = eventDate >= today;
+      
+      console.log(`Event "${event.title}" (${event.originalDate} → ${event.date}): ${isInFuture ? 'FUTURE/TODAY' : 'PAST'}`);
+      return isInFuture;
+    });
+
+    console.log(`Filtered events from ${allEvents.length} to ${filteredByDateEvents.length} based on transformed date matching`);
 
     // Helper function to check if user's age matches event's target_audience
     const isAgeAppropriate = (targetAudience: string | null, userAge: number | null): boolean => {
@@ -186,38 +198,25 @@ serve(async (req) => {
     console.log(`Filtered ${filteredByDateEvents.length} date-matched events to ${ageFilteredEvents.length} age-appropriate events for age ${userAge}`);
     console.log(`Also fetched ${businesses.length} businesses, ${coupons.length} coupons`);
 
-    // Build context for AI - transform recurring events to actual dates in memory
+    // Build context for AI - dates are already transformed above
     const contextData = {
-      events: ageFilteredEvents.map((e) => {
-        let processedDate = e.date;
-        
-        // Transform recurring events to next occurrence date
-        if (e.date?.toLowerCase().includes('every')) {
-          const dayMatch = e.date.toLowerCase().match(/every\s+(\w+)/);
-          if (dayMatch && dayMatch[1]) {
-            const dayName = dayMatch[1];
-            processedDate = getNextOccurrence(dayName);
-            console.log(`Transformed "${e.date}" to ${processedDate} for event: ${e.title}`);
-          }
-        }
-        
-        return {
-          id: e.id,
-          title: e.title,
-          description: e.description,
-          date: processedDate, // Use calculated date for recurring events
-          time: e.time,
-          location: e.location,
-          address: e.address,
-          price: e.price,
-          mood: e.mood,
-          music_type: e.music_type,
-          venue_size: e.venue_size,
-          external_link: e.external_link,
-          image_url: e.image_url,
-          target_audience: e.target_audience,
-        };
-      }),
+      events: ageFilteredEvents.map((e) => ({
+        id: e.id,
+        title: e.title,
+        description: e.description,
+        date: e.date, // Already transformed date
+        originalDate: e.originalDate, // Keep original for AI to see (e.g., "every monday")
+        time: e.time,
+        location: e.location,
+        address: e.address,
+        price: e.price,
+        mood: e.mood,
+        music_type: e.music_type,
+        venue_size: e.venue_size,
+        external_link: e.external_link,
+        image_url: e.image_url,
+        target_audience: e.target_audience,
+      })),
       businesses: businesses.map((b) => ({
         id: b.id,
         title: b.title,
@@ -433,70 +432,44 @@ DETECTION KEYWORDS FOR JSON RESPONSE (user MUST use at least one of these):
 
 **DATE FILTERING - CRITICAL - READ THIS FIRST:**
 
-🚨 ABSOLUTE RULE FOR RECURRING EVENTS 🚨
-Today is ${today}. Calculate what day of week this is.
-- If today is SATURDAY → ONLY include "every saturday" recurring events
-- If today is TUESDAY → ONLY include "every tuesday" recurring events  
-- If today is MONDAY → ONLY include "every monday" recurring events
-etc.
+🚨 DATES ARE ALREADY TRANSFORMED 🚨
+**CRITICAL**: All event dates in the "date" field are ALREADY in YYYY-MM-DD format. Recurring events like "every monday" have been converted to their next occurrence date (e.g., "2025-11-03").
+- Use the "date" field for ALL filtering decisions
+- The "originalDate" field shows the original recurring pattern (e.g., "every monday") for reference only - DO NOT filter by this
+- All dates are standardized to YYYY-MM-DD format, making direct comparison easy
 
-❌ WRONG EXAMPLE (DO NOT DO THIS):
-User asks "what's going on tonight?" on Saturday Nov 2, 2025
-You recommend: "Live jazz jam session" with date "every tuesday"
-WHY WRONG: Tuesday ≠ Saturday. This event happens on TUESDAYS, not tonight.
-
-✅ CORRECT EXAMPLE:
-User asks "what's going on tonight?" on Saturday Nov 2, 2025  
-You ONLY recommend events with:
-- date = "2025-11-02" (exact Saturday date)
-- date = "every saturday" (recurring Saturday events)
-You EXCLUDE: "every monday", "every tuesday", "every wednesday", "every thursday", "every friday", "every sunday"
-
-**Event dates are in YYYY-MM-DD format (e.g., "2025-11-01") OR recurring format (e.g., "every monday").**
-
-Date calculation rules (today is ${today}):
+**FILTERING RULES (dates already transformed):**
 
 **"tonight" / "today" / "esta noche" / "hoy":**
-1. Calculate what day of week ${today} is (Monday/Tuesday/Wednesday/Thursday/Friday/Saturday/Sunday)
-2. ONLY include events where:
-   - date exactly equals "${today}" OR
-   - date equals "every [today's day name in lowercase]"
-3. EXCLUDE all other "every [different day]" events
+ONLY include events where: date = "${today}"
 
 **"tomorrow" / "mañana":**
-**CRITICAL - YOU ALREADY KNOW TOMORROW'S DATE**: Tomorrow is ${tomorrowDate} (${tomorrowDayName})
-1. **DO NOT ASK** "what day is tomorrow?" - you already know it's ${tomorrowDayName}
-2. ONLY include events where:
-   - date equals "${tomorrowDate}" OR
-   - date equals "every ${tomorrowDayName}"
-3. EXCLUDE all other "every [different day]" events
+**CRITICAL**: Tomorrow is ${tomorrowDate} (${tomorrowDayName})
+ONLY include events where: date = "${tomorrowDate}"
+EXCLUDE all events where date ≠ "${tomorrowDate}"
+
+Example for tomorrow (${tomorrowDayName}, ${tomorrowDate}):
+✅ INCLUDE: Event with date = "${tomorrowDate}" (matches tomorrow)
+❌ EXCLUDE: Event with date = "2025-11-04" (does not match tomorrow)
+❌ EXCLUDE: Event with date = "2025-11-08" (does not match tomorrow)
 
 **"this weekend" / "weekend" / "fin de semana":**
-1. Calculate the upcoming Saturday and Sunday dates
-2. ONLY include events where:
-   - date equals that Saturday date OR that Sunday date OR
-   - date equals "every saturday" OR "every sunday"
-3. EXCLUDE: monday, tuesday, wednesday, thursday, friday events
+Calculate the upcoming Saturday and Sunday dates, then:
+ONLY include events where: date equals that Saturday date OR that Sunday date
 
 **"this week" / "esta semana":**
-1. Calculate days remaining in this week (today through Sunday)
-2. Include events dated for any remaining day OR recurring events for remaining days
-3. Example: If today is Saturday, ONLY include "every saturday" and "every sunday"
+Calculate all dates from today through Sunday, then:
+Include events where date is within that range
 
-**When formatting dates in your response**: Convert YYYY-MM-DD to human-readable format like "November 1st" in the description field only. For recurring events, keep as "every [day]".
-- Specific dates (e.g., "December 25", "25 de diciembre", "2025-12-25") → parse and use that exact date
+**When formatting dates in your response**: 
+- Use the originalDate field in descriptions (shows "every monday" for recurring events)
+- Convert YYYY-MM-DD dates to human-readable format like "November 3rd"
 
-**RECURRING EVENTS - CRITICAL:**
-- Events with dates like "every friday", "every tuesday", "every monday", etc. are RECURRING EVENTS
-- When a user asks for events "in [month]" or "this month" or "next month", ALWAYS include recurring events that match their other criteria (music type, vibe, etc.)
-- Example: User asks for "jazz events in November" → include "every friday" jazz events because they occur in November
-- Only filter by specific dates when user asks for "tonight", "tomorrow", "this weekend", or a specific date
-- For broader time requests (weeks, months, or general "events"), include ALL recurring events that match the user's other criteria
-
-**IMPORTANT**: After calculating the target date, filter events appropriately:
-- For specific date requests (tonight, tomorrow, specific date): Only return events with that exact date
-- For time period requests (this month, next month, this week): Include both events in that period AND recurring events
-- Filter events by date BEFORE selecting which ones to recommend.
+**IMPORTANT FILTERING RULES:**
+- For specific date requests (tonight, tomorrow, specific date): Only return events where date EXACTLY matches that date
+- For time period requests (this month, next month, this week): Include events where date falls within that period
+- The date field is already transformed and standardized - use it for ALL filtering decisions
+- Filter by comparing date values directly (e.g., date === "${tomorrowDate}")
 
 **JSON-ONLY RULES - ENFORCE STRICTLY:**
 1. NO conversational text whatsoever
@@ -514,7 +487,7 @@ REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
       "type": "event",
       "id": "actual-event-id-from-database",
       "title": "Event Title from database",
-      "description": "MANDATORY - MUST ALWAYS BE INCLUDED. Format: Location: [location]. Address: [address if available]. Date: [date - already formatted, use as-is]. Time: [time]. Music Type: [music_type if available]. Instagram: [external_link if available]. CRITICAL: Only include the FIRST 2 SENTENCES from the event description field - truncate the rest.",
+      "description": "MANDATORY - MUST ALWAYS BE INCLUDED. Format: Location: [location]. Address: [address if available]. Date: [use originalDate field to show the original pattern like 'every monday', or if it's a one-time event use the date field]. Time: [time]. Music Type: [music_type if available]. Instagram: [external_link if available]. CRITICAL: Only include the FIRST 2 SENTENCES from the event description field - truncate the rest.",
       "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
       "personalized_note": "CRITICAL - A custom personal message based on their profile data (age, budget, interests, neighborhoods). Examples: 'Perfect for your age group (33) and high budget preference', 'This matches your interest in jazz and is in your favorite neighborhood Palermo', 'Great for someone your age (25) looking for affordable nightlife'. ALWAYS reference specific profile data when available.",
       "image_url": "CRITICAL - YOU MUST COPY THE EXACT image_url VALUE FROM THE DATABASE EVENT - this is the event photo URL that will be sent via WhatsApp. DO NOT omit this field or the images won't be sent!"
