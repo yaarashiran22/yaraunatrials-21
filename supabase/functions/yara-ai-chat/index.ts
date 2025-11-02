@@ -43,8 +43,15 @@ serve(async (req) => {
     const today = now.toISOString().split("T")[0];
     const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const todayDayName = daysOfWeek[now.getDay()]; // e.g., "saturday"
+    
+    // Calculate tomorrow's date and day
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowDate = tomorrow.toISOString().split("T")[0];
+    const tomorrowDayName = daysOfWeek[tomorrow.getDay()];
 
     console.log(`Today's date: ${today}, Day: ${todayDayName}`);
+    console.log(`Tomorrow's date: ${tomorrowDate}, Day: ${tomorrowDayName}`);
 
     // Helper function to format date from YYYY-MM-DD to "Month DDth"
     const formatDate = (dateStr: string): string => {
@@ -299,7 +306,12 @@ Tone:
 
 ${languageInstruction}
 
-Today's date is: ${today}
+CRITICAL DATE INFORMATION - YOU ALREADY KNOW THIS:
+- Today's date is: ${today} (${todayDayName})
+- Tomorrow's date is: ${tomorrowDate} (${tomorrowDayName})
+- **NEVER ASK** "what day is tomorrow?" - you ALREADY KNOW tomorrow is ${tomorrowDayName}, ${tomorrowDate}
+- **NEVER ASK** for date clarification - all dates are pre-calculated for you
+
 ${userContext}
 
 Available data:
@@ -418,11 +430,12 @@ Date calculation rules (today is ${today}):
 3. EXCLUDE all other "every [different day]" events
 
 **"tomorrow" / "mañana":**
-1. Calculate tomorrow's exact date (add 1 day to ${today})
-2. Calculate what day of week tomorrow is
-3. ONLY include events where:
-   - date equals tomorrow's exact date OR
-   - date equals "every [tomorrow's day name]"
+**CRITICAL - YOU ALREADY KNOW TOMORROW'S DATE**: Tomorrow is ${tomorrowDate} (${tomorrowDayName})
+1. **DO NOT ASK** "what day is tomorrow?" - you already know it's ${tomorrowDayName}
+2. ONLY include events where:
+   - date equals "${tomorrowDate}" OR
+   - date equals "every ${tomorrowDayName}"
+3. EXCLUDE all other "every [different day]" events
 
 **"this weekend" / "weekend" / "fin de semana":**
 1. Calculate the upcoming Saturday and Sunday dates
