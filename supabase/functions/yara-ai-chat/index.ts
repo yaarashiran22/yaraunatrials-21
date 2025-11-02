@@ -369,6 +369,8 @@ SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, et
 **ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST return PURE JSON ONLY.
 
 **CRITICAL - WHEN NO DATABASE MATCHES:**
+- **ONLY use NO_DATABASE_MATCH when literally ZERO events/businesses exist** in the Available data that could possibly match the user's request
+- **BEFORE saying NO_DATABASE_MATCH**: Double-check if ANY events could loosely match their request
 - If the user requests recommendations (cafes, restaurants, general places) and there are NO matching events/businesses in the Available data above, respond with PLAIN TEXT: "NO_DATABASE_MATCH: [user's EXACT original request]"
 - **CRITICAL: Preserve the user's EXACT request wording** - do NOT rephrase or reinterpret their request
 - Example: User asks "cafes to focus on work in villa crespo" → Respond: "NO_DATABASE_MATCH: cafes to focus on work in villa crespo"
@@ -377,7 +379,8 @@ SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, et
 - **PRESERVE neighborhood**: If user mentions a specific neighborhood (Villa Crespo, Palermo, etc.), keep it in the query
 - **PRESERVE purpose/mood**: If user mentions work, dates, study, etc., keep that specific purpose
 - This triggers a fallback to general Buenos Aires recommendations from OpenAI WITH the correct user intent
-- **DO NOT** try to recommend unrelated events just to give an answer - admit when database has no matches
+- **DO NOT** try to recommend unrelated events just to give an answer - only use NO_DATABASE_MATCH when truly zero matches exist
+- **NEVER say "I don't have events for tonight" if events exist for today's date** - check the date field carefully
 
 **CRITICAL - ONLY USE JSON FOR EXPLICIT RECOMMENDATION REQUESTS:**
 - Use JSON ONLY when user is EXPLICITLY asking for suggestions/recommendations with action keywords
@@ -423,12 +426,15 @@ You EXCLUDE: "every monday", "every tuesday", "every wednesday", "every thursday
 
 Date calculation rules (today is ${today}):
 
-**"tonight" / "today" / "esta noche" / "hoy":**
+**"tonight" / "today" / "esta noche" / "hoy" - ABSOLUTE RULES:**
 1. Calculate what day of week ${today} is (Monday/Tuesday/Wednesday/Thursday/Friday/Saturday/Sunday)
-2. ONLY include events where:
+2. **CRITICAL**: First check if there are ANY events in the available data where:
    - date exactly equals "${today}" OR
    - date equals "every [today's day name in lowercase]"
-3. EXCLUDE all other "every [different day]" events
+3. **IF events exist for today**: Return them in JSON format, DO NOT say you don't have events
+4. **ONLY IF zero events exist for today**: Use NO_DATABASE_MATCH
+5. EXCLUDE all other "every [different day]" events when filtering
+6. **NEVER say "I don't have specific events for tonight" if there ARE events for ${today}**
 
 **"tomorrow" / "mañana":**
 1. Calculate tomorrow's exact date (add 1 day to ${today})
