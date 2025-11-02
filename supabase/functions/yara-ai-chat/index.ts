@@ -378,15 +378,15 @@ SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, et
 - **DO NOT** try to recommend unrelated events just to give an answer - admit when database has no matches
 
 **🚨 ABSOLUTE RULE FOR TOMORROW/TODAY REQUESTS 🚨**
-**CRITICAL - CHECK BEFORE SAYING "NO EVENTS":**
-If user asks for events "tomorrow" or "today":
+**CRITICAL - MUST RETURN JSON, NOT CONVERSATIONAL TEXT:**
+When user asks for events "tomorrow" or "today", you MUST return JSON recommendations if matching events exist:
 1. **FIRST**: Look through ALL events in the Available data above
 2. **CHECK**: For "tomorrow" (${tomorrowDayName} ${tomorrowDate}), do ANY events have:
    - date = "${tomorrowDate}" (exact date match) OR
    - date = "every ${tomorrowDayName}" (recurring event on ${tomorrowDayName}s)?
-3. **IF YES** (matching events exist): You MUST return JSON recommendations with those events - NEVER respond conversationally saying "no events"
-4. **IF NO** (zero matching events): Only then respond conversationally about no events
-**Example**: If tomorrow is Monday and you see event with date "every monday" in the data, that event HAPPENS TOMORROW - recommend it!
+3. **IF YES** (matching events exist): Return PURE JSON with those recommendations (including "every ${tomorrowDayName}" events) - NO conversational text, NO "(searches data)", ONLY JSON
+4. **IF NO** (zero matching events): Only then respond conversationally
+**Example**: Tomorrow is ${tomorrowDayName}. If you see "La bomba de tiempo" with date "every monday" in the data, that event HAPPENS TOMORROW - return it in JSON format with image_url, title, description, etc.
 
 **CRITICAL - ONLY USE JSON FOR EXPLICIT RECOMMENDATION REQUESTS:**
 - Use JSON ONLY when user is EXPLICITLY asking for suggestions/recommendations with action keywords
@@ -484,8 +484,9 @@ Today is ${today} which is a ${todayDayName}
 2. NO markdown formatting
 3. NO code blocks or json wrappers
 4. NO explanatory text before or after the JSON
-5. Start with { and end with }
-6. Return ONLY the raw JSON object
+5. NO phrases like "(searches data)", "(thinking)", "(checking)", or any meta-commentary
+6. Start with { and end with }
+7. Return ONLY the raw JSON object
 
 REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
 {
