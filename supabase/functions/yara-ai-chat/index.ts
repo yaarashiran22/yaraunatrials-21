@@ -365,36 +365,47 @@ You MUST calculate the correct date based on user's request and filter events ac
 
 **IMPORTANT**: Event dates are in YYYY-MM-DD format (e.g., "2025-11-01") OR recurring format (e.g., "every monday"). Use this format for all date calculations.
 
+**CRITICAL DAY-OF-WEEK MATCHING FOR RECURRING EVENTS:**
+- Today is ${today}. First determine what day of week this is (Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, or Sunday)
+- **ABSOLUTE RULE**: Only recommend recurring events that match the EXACT day of week being requested
+- Example: If today is Saturday Nov 2, 2025:
+  * User asks "tonight" or "today" → ONLY recommend "every saturday" events + specific events dated "2025-11-02"
+  * DO NOT recommend "every tuesday", "every monday", "every friday" etc. - those days already passed this week
+  * A "every tuesday" event does NOT happen on Saturday - it only happens on Tuesday
+
 Date calculation rules (today is ${today}):
 - **"tonight" / "today" / "esta noche" / "hoy" → CRITICAL:**
-  * Determine what day of week ${today} is (e.g., if ${today} is 2025-10-30, that's Wednesday)
-  * ONLY include: 1) events with date = "${today}" OR 2) recurring events that match TODAY's EXACT day of week
-  * Example: If today is Wednesday, ONLY include "every wednesday" - DO NOT include "every tuesday", "every monday", etc. even though they're recurring
-  * **DO NOT include recurring events from earlier days of the week that already passed**
-- "tomorrow" / "mañana" → Calculate tomorrow's date by adding 1 day to ${today} (e.g., if today is 2025-10-28, tomorrow is 2025-10-29). ONLY include recurring events that match TOMORROW's day of week (not today's or earlier days)
-- "this week" / "esta semana" → Filter events from ${today} until the end of this week (Sunday) OR recurring events for remaining days of week (e.g., if today is Tuesday, include "every wednesday", "every thursday", "every friday", "every saturday", "every sunday")
-- "next week" / "próxima semana" / "semana que viene" → Filter events where date is between 7-14 days from ${today}
-- **"this weekend" / "weekend" / "fin de semana" → CRITICAL CALCULATION:**
-  * First, determine what day of week today is (${today})
-  * If today is Saturday or Sunday: "this weekend" means today + tomorrow (the current weekend)
-  * If today is Monday-Friday: "this weekend" means the UPCOMING Saturday and Sunday
-  * Example: If today is Tuesday Oct 29, 2025, then "this weekend" = Nov 1 (Sat) and Nov 2 (Sun)
-  * Calculate the exact YYYY-MM-DD dates for that Saturday and Sunday
-  * **STRICT FILTER**: ONLY include events with those EXACT Saturday/Sunday YYYY-MM-DD dates OR "every saturday"/"every sunday" recurring events
-  * **DO NOT include events from other days** - weekend means ONLY Saturday and Sunday
+  * Step 1: Determine what day of week ${today} is (calculate: Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5, Saturday=6, Sunday=7)
+  * Step 2: ONLY include events with date = "${today}" OR recurring events that match TODAY's EXACT day name
+  * Example: If today is Saturday → ONLY "every saturday" recurring events, NOT "every tuesday" or any other day
+  * Example: If today is Monday → ONLY "every monday" recurring events, NOT "every friday" or any other day
+  * **STRICT DAY MATCHING**: If the recurring event's day does NOT match today's day name, EXCLUDE it completely
+  
+- "tomorrow" / "mañana":
+  * Calculate tomorrow's date (add 1 day to ${today})
+  * Calculate tomorrow's day of week
+  * ONLY include: events dated exactly tomorrow + recurring events matching tomorrow's day name
+  * Example: If tomorrow is Sunday → ONLY "every sunday" recurring events
+  
+- "this week" / "esta semana":
+  * Include events from ${today} until end of this week (Sunday)
+  * For recurring events: ONLY include days that haven't passed yet this week
+  * Example: If today is Saturday, ONLY include "every saturday" and "every sunday" (Mon-Fri already passed)
+  
+- **"this weekend" / "weekend" / "fin de semana":**
+  * Calculate the upcoming Saturday and Sunday dates
+  * ONLY include: events dated for that Sat/Sun + "every saturday"/"every sunday" recurring events
+  * EXCLUDE all other days (monday, tuesday, wednesday, thursday, friday)
 
-**RECURRING EVENTS - CRITICAL:**
-- Events with dates like "every monday", "every friday", etc. occur weekly on that day
-- **FOR SPECIFIC DATE REQUESTS ("tonight", "today", "tomorrow"):**
-  * Calculate what day of week the target date is
-  * ONLY include recurring events that match that EXACT day
-  * Example: If today is Wednesday Oct 30, user asks "tonight" → ONLY include "every wednesday", EXCLUDE "every tuesday", "every monday", etc.
-  * Example: If today is Wednesday, user asks "tomorrow" (Thursday) → ONLY include "every thursday", EXCLUDE all other days
-  * **ABSOLUTE RULE: A recurring "every tuesday" event does NOT happen on Wednesday, Thursday, etc. Only include it when the target date IS actually Tuesday**
-- **CRITICAL FOR "THIS WEEK"**: When user asks for "this week" or "esta semana", you MUST include EVERY recurring event that falls on a remaining day of this week
-- Example: If today is Tuesday and user asks for "this week", you MUST include: "every tuesday", "every wednesday", "every thursday", "every friday", "every saturday", "every sunday"
-- **DO NOT SKIP recurring events just because there are specific-date events on the same day** - include BOTH
-- Days of week: monday, tuesday, wednesday, thursday, friday, saturday, sunday
+**RECURRING EVENTS - STRICT DAY MATCHING:**
+- "every monday" → ONLY show when target date is actually Monday
+- "every tuesday" → ONLY show when target date is actually Tuesday  
+- "every wednesday" → ONLY show when target date is actually Wednesday
+- "every thursday" → ONLY show when target date is actually Thursday
+- "every friday" → ONLY show when target date is actually Friday
+- "every saturday" → ONLY show when target date is actually Saturday
+- "every sunday" → ONLY show when target date is actually Sunday
+- **DO NOT recommend a "every tuesday" event when user asks for Saturday events** - they don't match!
 
 **When formatting dates in your response**: Convert YYYY-MM-DD to human-readable format like "November 1st" in the description field only. For recurring events, keep as "every [day]".
 - Specific dates (e.g., "December 25", "25 de diciembre", "2025-12-25") → parse and use that exact date
