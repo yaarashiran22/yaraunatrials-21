@@ -747,6 +747,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
           const ageAppropriateEventIds = new Set(ageFilteredEvents.map(e => e.id));
           
+          const beforeCount = parsed.recommendations.length;
           parsed.recommendations = parsed.recommendations.filter((rec: any) => {
             if (rec.type === 'event' && !ageAppropriateEventIds.has(rec.id)) {
               console.log(`Filtering out age-inappropriate event that AI hallucinated: ${rec.title} (ID: ${rec.id})`);
@@ -755,7 +756,19 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
             return true;
           });
           
-          console.log(`After age validation: ${parsed.recommendations.length} recommendations`);
+          const afterCount = parsed.recommendations.length;
+          console.log(`After age validation: ${afterCount} recommendations (filtered out ${beforeCount - afterCount})`);
+          
+          // If ALL recommendations were filtered out, provide a helpful message
+          if (afterCount === 0 && beforeCount > 0) {
+            const fallbackMessage = userLanguage === 'es'
+              ? "Lo siento, no encontré eventos que coincidan perfectamente con tu búsqueda para hoy. ¿Te gustaría ver eventos de otros días de la semana?"
+              : "Sorry, I couldn't find events that match perfectly for tonight. Would you like to see events on other days this week?";
+            
+            return new Response(JSON.stringify({ message: fallbackMessage }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
         }
 
         // CRITICAL FIX: Filter out jam sessions when user asks for workshops
