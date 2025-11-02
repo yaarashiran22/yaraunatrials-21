@@ -423,44 +423,21 @@ Deno.serve(async (req) => {
     if (isRecommendationRequest && whatsappUser) {
       const recCount = whatsappUser.recommendation_count || 0;
 
-      // First recommendation: Ask for name if missing
-      if (recCount === 0 && !whatsappUser.name) {
-        const askNameMessage = userLanguage === 'es'
-          ? "¡Genial! Antes de darte las mejores recomendaciones, ¿cómo te llamas? 😊"
-          : "Great! Before I give you the best recommendations, what's your name? 😊";
+      // First recommendation: Ask for name AND age together if both missing
+      if (recCount === 0 && (!whatsappUser.name || !whatsappUser.age)) {
+        const askBothMessage = userLanguage === 'es'
+          ? "¡Genial! Para darte las mejores recomendaciones personalizadas, ¿cómo te llamas y cuántos años tenés? (ej: Matias, 25) 😊"
+          : "Great! To give you the best personalized recommendations, what's your name and age? (e.g., Matias, 25) 😊";
 
         await supabase.from("whatsapp_conversations").insert({
           phone_number: from,
           role: "assistant",
-          content: askNameMessage,
+          content: askBothMessage,
         });
 
         const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>${askNameMessage}</Message>
-</Response>`;
-
-        return new Response(twimlResponse, {
-          headers: { ...corsHeaders, "Content-Type": "text/xml" },
-          status: 200,
-        });
-      }
-
-      // After name collected: Ask for age if missing
-      if (whatsappUser.name && !whatsappUser.age) {
-        const askAgeMessage = userLanguage === 'es'
-          ? `¡Mucho gusto, ${whatsappUser.name}! ¿Y cuántos años tenés? Esto me ayuda a encontrar eventos perfectos para vos 🎉`
-          : `Nice to meet you, ${whatsappUser.name}! And how old are you? This helps me find perfect events for you 🎉`;
-
-        await supabase.from("whatsapp_conversations").insert({
-          phone_number: from,
-          role: "assistant",
-          content: askAgeMessage,
-        });
-
-        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${askAgeMessage}</Message>
+  <Message>${askBothMessage}</Message>
 </Response>`;
 
         return new Response(twimlResponse, {
