@@ -843,6 +843,9 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                 } else {
                   parsed.intro_message = `${mapEmoji} View all locations on map: ${parsed.map_url}`;
                 }
+                
+                // Update message with modified intro_message containing map URL
+                message = JSON.stringify(parsed);
               }
             }
           }
