@@ -785,6 +785,56 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
           message = JSON.stringify(parsed);
         }
 
+        // Generate Google Maps URL with event locations
+        if (parsed.recommendations && Array.isArray(parsed.recommendations) && parsed.recommendations.length > 0) {
+          const eventRecs = parsed.recommendations.filter((rec: any) => rec.type === 'event');
+          
+          if (eventRecs.length > 0) {
+            // Get full event details to access addresses
+            const eventIds = eventRecs.map((rec: any) => rec.id);
+            const eventsWithAddresses = ageFilteredEvents.filter(e => eventIds.includes(e.id) && e.address);
+            
+            if (eventsWithAddresses.length > 0) {
+              // Create Google Maps URL with markers for each event
+              const addresses = eventsWithAddresses.map(e => e.address).filter(Boolean);
+              
+              if (addresses.length > 0) {
+                // For a single location, use a simpler search URL
+                if (addresses.length === 1) {
+                  const encodedAddress = encodeURIComponent(addresses[0] + ", Buenos Aires, Argentina");
+                  parsed.map_url = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+                } else {
+                  // For multiple locations, create a URL with all markers
+                  // Format: directions API with waypoints
+                  const origin = encodeURIComponent(addresses[0] + ", Buenos Aires, Argentina");
+                  const destination = encodeURIComponent(addresses[addresses.length - 1] + ", Buenos Aires, Argentina");
+                  const waypoints = addresses.slice(1, -1).map(addr => 
+                    encodeURIComponent(addr + ", Buenos Aires, Argentina")
+                  ).join('|');
+                  
+                  if (addresses.length === 2) {
+                    // Just origin and destination
+                    parsed.map_url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=walking`;
+                  } else {
+                    // Include waypoints
+                    parsed.map_url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=walking`;
+                  }
+                }
+                
+                console.log(`Generated map URL with ${addresses.length} locations:`, parsed.map_url);
+                
+                // Add map link to intro message
+                const mapEmoji = "🗺️";
+                if (parsed.intro_message) {
+                  parsed.intro_message += `\n\n${mapEmoji} View all locations on map: ${parsed.map_url}`;
+                } else {
+                  parsed.intro_message = `${mapEmoji} View all locations on map: ${parsed.map_url}`;
+                }
+              }
+            }
+          }
+        }
+
         // Track database recommendations in background
         if (
           phoneNumber &&
