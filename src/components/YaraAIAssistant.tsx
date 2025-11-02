@@ -3,14 +3,33 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Send, Sparkles } from 'lucide-react';
+import { X, Send, Sparkles, MapPin } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix for default markers in Leaflet
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
+
+interface EventLocation {
+  title: string;
+  lat: number;
+  lng: number;
+  address?: string;
+  time?: string;
+}
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  mapData?: EventLocation[]; // Special field for map rendering
 }
 
 interface YaraAIAssistantProps {
@@ -65,12 +84,44 @@ const YaraAIAssistant: React.FC<YaraAIAssistantProps> = ({ isOpen, onClose }) =>
     }
   }, [messages]);
 
+  // DEMO: Trigger demo map when user asks for events tonight
+  const triggerDemoMap = (userInput: string) => {
+    const isDemoTrigger = userInput.toLowerCase().includes('events tonight') || 
+                          userInput.toLowerCase().includes('what\'s happening tonight');
+    
+    if (isDemoTrigger) {
+      // Demo event locations in Buenos Aires
+      const demoEvents: EventLocation[] = [
+        { title: "Live Jazz @ Thelonious", lat: -34.5870, lng: -58.4263, address: "Palermo", time: "9:00 PM" },
+        { title: "Indie Rock Night", lat: -34.6202, lng: -58.3731, address: "San Telmo", time: "10:00 PM" },
+        { title: "Techno Underground", lat: -34.5998, lng: -58.4386, address: "Villa Crespo", time: "11:00 PM" },
+      ];
+
+      const demoResponse: Message = {
+        role: 'assistant',
+        content: "Here are the hottest events happening tonight in Buenos Aires! Check out the map below to see where they're at:",
+        mapData: demoEvents
+      };
+
+      setMessages(prev => [...prev, demoResponse]);
+      return true;
+    }
+    return false;
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = { role: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
+    
+    // Check if this should trigger the demo
+    if (triggerDemoMap(currentInput)) {
+      return;
+    }
+
     setIsLoading(true);
 
     // Extract age from user message if provided
@@ -202,19 +253,27 @@ const YaraAIAssistant: React.FC<YaraAIAssistantProps> = ({ isOpen, onClose }) =>
         <ScrollArea className="flex-1 p-4" ref={scrollRef}>
           <div className="space-y-4">
             {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
+              <div key={idx}>
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
-                    msg.role === 'user'
-                      ? 'bg-gradient-to-r from-[#E91E63] to-[#9C27B0] text-white shadow-md'
-                      : 'bg-muted/80 border border-[#E91E63]/10'
-                  }`}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+                      msg.role === 'user'
+                        ? 'bg-gradient-to-r from-[#E91E63] to-[#9C27B0] text-white shadow-md'
+                        : 'bg-muted/80 border border-[#E91E63]/10'
+                    }`}
+                  >
+                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  </div>
                 </div>
+                
+                {/* Render map if message has mapData */}
+                {msg.mapData && msg.mapData.length > 0 && (
+                  <div className="mt-3">
+                    <EventsMap events={msg.mapData} />
+                  </div>
+                )}
               </div>
             ))}
             {isLoading && (
@@ -238,7 +297,7 @@ const YaraAIAssistant: React.FC<YaraAIAssistantProps> = ({ isOpen, onClose }) =>
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Ask about events, venues, deals..."
+              placeholder="Try: events tonight"
               className="flex-1 bg-white border-[#E91E63]/20 focus:border-[#E91E63]/40 focus:ring-[#E91E63]/20"
               disabled={isLoading}
             />
@@ -254,6 +313,95 @@ const YaraAIAssistant: React.FC<YaraAIAssistantProps> = ({ isOpen, onClose }) =>
       </Card>
     </div>,
     document.body
+  );
+};
+
+// Mini map component for events
+const EventsMap: React.FC<{ events: EventLocation[] }> = ({ events }) => {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+
+  useEffect(() => {
+    if (!mapRef.current || mapInstanceRef.current) return;
+
+    // Buenos Aires center
+    const buenosAiresCenter: [number, number] = [-34.6118, -58.3960];
+
+    // Create map
+    const map = L.map(mapRef.current, {
+      zoomControl: true,
+      attributionControl: false,
+    }).setView(buenosAiresCenter, 12);
+
+    mapInstanceRef.current = map;
+
+    // Add tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+    }).addTo(map);
+
+    // Add event markers
+    events.forEach((event, idx) => {
+      // Create custom marker with number
+      const icon = L.divIcon({
+        html: `
+          <div class="flex flex-col items-center">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#E91E63] to-[#9C27B0] text-white font-bold flex items-center justify-center shadow-lg border-2 border-white">
+              ${idx + 1}
+            </div>
+            <div class="w-1 h-4 bg-gradient-to-b from-[#E91E63]/80 to-transparent"></div>
+          </div>
+        `,
+        className: 'event-marker',
+        iconSize: [32, 44],
+        iconAnchor: [16, 44],
+        popupAnchor: [0, -44]
+      });
+
+      L.marker([event.lat, event.lng], { icon })
+        .addTo(map)
+        .bindPopup(`
+          <div class="text-sm">
+            <div class="font-semibold text-[#E91E63]">${event.title}</div>
+            ${event.time ? `<div class="text-xs text-muted-foreground mt-1">🕒 ${event.time}</div>` : ''}
+            ${event.address ? `<div class="text-xs text-muted-foreground mt-1">📍 ${event.address}</div>` : ''}
+          </div>
+        `);
+    });
+
+    // Fit bounds to show all markers
+    if (events.length > 0) {
+      const bounds = L.latLngBounds(events.map(e => [e.lat, e.lng]));
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [events]);
+
+  return (
+    <div className="rounded-xl overflow-hidden border border-[#E91E63]/20 shadow-lg">
+      <div className="bg-gradient-to-r from-[#E91E63]/10 to-[#9C27B0]/10 px-3 py-2 flex items-center gap-2 border-b border-[#E91E63]/20">
+        <MapPin className="w-4 h-4 text-[#E91E63]" />
+        <span className="text-sm font-medium">Events happening tonight</span>
+      </div>
+      <div ref={mapRef} className="w-full h-64" />
+      <div className="bg-muted/30 px-3 py-2 text-xs space-y-1">
+        {events.map((event, idx) => (
+          <div key={idx} className="flex items-start gap-2">
+            <span className="font-bold text-[#E91E63] min-w-[16px]">{idx + 1}.</span>
+            <div className="flex-1">
+              <span className="font-medium">{event.title}</span>
+              {event.time && <span className="text-muted-foreground ml-2">• {event.time}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 };
 
