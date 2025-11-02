@@ -422,19 +422,24 @@ You EXCLUDE: "every monday", "every tuesday", "every wednesday", "every thursday
 Date calculation rules (today is ${today}):
 
 **"tonight" / "today" / "esta noche" / "hoy":**
-1. Calculate what day of week ${today} is (Monday/Tuesday/Wednesday/Thursday/Friday/Saturday/Sunday)
-2. ONLY include events where:
-   - date exactly equals "${today}" OR
-   - date equals "every [today's day name in lowercase]"
-3. EXCLUDE all other "every [different day]" events
+**CRITICAL - ABSOLUTE RULES**:
+Today is ${today} which is a ${todayDayName}
+1. Calculate what day of week ${today} is: It's ${todayDayName}
+2. **CRITICALLY FIRST CHECK**: Look through ALL events in the Available data - do ANY of them have date = "${today}" or date = "every ${todayDayName}"?
+3. **IF YES** (events exist for today): Return those events in JSON format - NEVER say "I don't have events for tonight"
+4. **IF NO** (zero events for today): ONLY THEN use NO_DATABASE_MATCH
+5. ONLY include events where date = "${today}" OR date = "every ${todayDayName}"
+6. EXCLUDE all other "every [different day]" events
 
 **"tomorrow" / "mañana":**
-**CRITICAL - YOU ALREADY KNOW TOMORROW'S DATE**: Tomorrow is ${tomorrowDate} (${tomorrowDayName})
+**CRITICAL - YOU ALREADY KNOW TOMORROW'S DATE**: Tomorrow is ${tomorrowDate} which is a ${tomorrowDayName}
+**ABSOLUTE MATCHING RULE FOR TOMORROW**:
 1. **DO NOT ASK** "what day is tomorrow?" - you already know it's ${tomorrowDayName}
-2. ONLY include events where:
-   - date equals "${tomorrowDate}" OR
-   - date equals "every ${tomorrowDayName}"
-3. EXCLUDE all other "every [different day]" events
+2. You MUST include ANY event where:
+   - date field = "${tomorrowDate}" (exact match) OR
+   - date field = "every ${tomorrowDayName}" (recurring event that happens on ${tomorrowDayName}s)
+3. Example: If you see an event with date "every ${tomorrowDayName}" in the data, it HAPPENS TOMORROW - you MUST recommend it
+4. EXCLUDE all "every [other day]" events (they don't happen tomorrow)
 
 **"this weekend" / "weekend" / "fin de semana":**
 1. Calculate the upcoming Saturday and Sunday dates
