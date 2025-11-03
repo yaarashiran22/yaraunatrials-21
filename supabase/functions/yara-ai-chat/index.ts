@@ -627,8 +627,8 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       requestBody.tool_choice = { type: "function", function: { name: "provide_recommendations" } };
     }
 
-    // Use faster model for intro messages, standard model for recommendations
-    const modelToUse = useIntroModel ? "google/gemini-2.5-flash-lite" : "google/gemini-2.5-flash";
+    // Use faster model for intro messages, PRO model for recommendations (better search accuracy)
+    const modelToUse = useIntroModel ? "google/gemini-2.5-flash-lite" : "google/gemini-2.5-pro";
     requestBody.model = modelToUse;
     
     console.log(`Using model: ${modelToUse} (useIntroModel: ${useIntroModel})`);
