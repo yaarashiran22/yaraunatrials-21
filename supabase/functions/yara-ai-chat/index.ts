@@ -164,16 +164,20 @@ serve(async (req) => {
       };
     });
 
-    // NOW filter events by transformed dates - only include future events
+    // NOW filter events by transformed dates - only include events in the NEXT 7 DAYS
+    const oneWeekFromNow = new Date();
+    oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
+    const oneWeekFromNowStr = oneWeekFromNow.toISOString().split('T')[0];
+    
     const filteredByDateEvents = eventsWithTransformedDates.filter(event => {
       const eventDate = event.date?.toLowerCase() || '';
-      const isInFuture = eventDate >= today;
+      const isInNextWeek = eventDate >= today && eventDate <= oneWeekFromNowStr;
       
-      console.log(`Event "${event.title}" (${event.originalDate} → ${event.date}): ${isInFuture ? 'FUTURE/TODAY' : 'PAST'}`);
-      return isInFuture;
+      console.log(`Event "${event.title}" (${event.originalDate} → ${event.date}): ${isInNextWeek ? 'NEXT 7 DAYS' : 'OUTSIDE RANGE'}`);
+      return isInNextWeek;
     });
 
-    console.log(`Filtered events from ${allEvents.length} to ${filteredByDateEvents.length} based on transformed date matching`);
+    console.log(`Filtered events from ${allEvents.length} to ${filteredByDateEvents.length} events in next 7 days`);
 
     // Helper function to check if user's age matches event's target_audience
     const isAgeAppropriate = (targetAudience: string | null, userAge: number | null): boolean => {
@@ -198,12 +202,19 @@ serve(async (req) => {
     console.log(`Filtered ${filteredByDateEvents.length} date-matched events to ${ageFilteredEvents.length} age-appropriate events for age ${userAge}`);
     console.log(`Also fetched ${businesses.length} businesses, ${coupons.length} coupons`);
 
+    // Helper function to shorten descriptions
+    const shortenDescription = (desc: string | null, maxLength: number = 150): string => {
+      if (!desc) return '';
+      if (desc.length <= maxLength) return desc;
+      return desc.substring(0, maxLength).trim() + '...';
+    };
+
     // Build context for AI - dates are already transformed above
     const contextData = {
       events: ageFilteredEvents.map((e) => ({
         id: e.id,
         title: e.title,
-        description: e.description,
+        description: shortenDescription(e.description, 150), // Shortened to max 150 chars
         date: e.date, // Already transformed date
         originalDate: e.originalDate, // Keep original for AI to see (e.g., "every monday")
         time: e.time,
@@ -220,7 +231,7 @@ serve(async (req) => {
       businesses: businesses.map((b) => ({
         id: b.id,
         title: b.title,
-        description: b.description,
+        description: shortenDescription(b.description, 100), // Shortened to max 100 chars
         category: b.category,
         location: b.location,
         price: b.price,
@@ -229,7 +240,7 @@ serve(async (req) => {
       coupons: coupons.map((c) => ({
         id: c.id,
         title: c.title,
-        description: c.description,
+        description: shortenDescription(c.description, 100), // Shortened to max 100 chars
         business_name: c.business_name,
         discount_amount: c.discount_amount,
         neighborhood: c.neighborhood,
