@@ -670,9 +670,10 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     if (firstChoice?.error) {
       console.error("AI provider error:", JSON.stringify(firstChoice.error, null, 2));
       
-      // Handle malformed function call errors
-      if (firstChoice.error.message?.includes("Malformed function call")) {
-        console.log("Malformed function call detected - retrying without structured output");
+      // Handle malformed function call errors - retry without tool calling
+      if (firstChoice.error.message?.includes("Malformed function call") || 
+          firstChoice.error.code === 502) {
+        console.log("Provider error detected - retrying without structured output");
         
         // Retry without tool calling - just ask for JSON in the prompt
         const retryRequestBody = {
@@ -692,25 +693,47 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         
         if (retryResponse.ok) {
           const retryData = await retryResponse.json();
-          console.log("Retry response:", JSON.stringify(retryData, null, 2));
+          console.log("Retry successful");
           
           const retryMessage = retryData.choices?.[0]?.message?.content || "";
           if (retryMessage) {
-            // Continue processing with retry message
-            data.choices[0].message = { role: "assistant", content: retryMessage };
+            // Replace with retry response and continue processing
+            Object.assign(data.choices[0], {
+              message: { role: "assistant", content: retryMessage },
+              error: undefined
+            });
+          } else {
+            // Retry also failed - return friendly error
+            const errorMessage = userLanguage === 'es'
+              ? "Disculpa, tuve un problema técnico. ¿Podrías intentar de nuevo?"
+              : "Sorry, I had a technical issue. Could you try again?";
+            
+            return new Response(
+              JSON.stringify({ message: errorMessage }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
           }
+        } else {
+          console.error("Retry also failed:", await retryResponse.text());
+          const errorMessage = userLanguage === 'es'
+            ? "Disculpa, tuve un problema técnico. ¿Podrías intentar de nuevo en unos segundos?"
+            : "Sorry, I had a technical issue. Could you try again in a few seconds?";
+          
+          return new Response(
+            JSON.stringify({ message: errorMessage }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
       } else {
         // Other errors - return conversational fallback
+        console.error("Unhandled AI error type:", firstChoice.error);
         const errorMessage = userLanguage === 'es'
-          ? "Disculpa, tuve un problema al procesar tu solicitud. ¿Podrías intentar de nuevo?"
-          : "Sorry, I had trouble processing your request. Could you try again?";
+          ? "Disculpa, tuve un problema al procesar tu solicitud. ¿Podrías reformularla?"
+          : "Sorry, I had trouble processing your request. Could you rephrase it?";
         
         return new Response(
           JSON.stringify({ message: errorMessage }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }

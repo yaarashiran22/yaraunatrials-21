@@ -61,7 +61,8 @@ Deno.serve(async (req) => {
     );
 
     // Check if message is a greeting OR a conversation starter
-    const greetingPatterns = /^(hey|hi|hello|sup|yo|hola|what's up|whats up)[\s!?.]*$/i;
+    // More flexible greeting pattern to catch variations like "hiii", "hey there", "hi girl", etc.
+    const greetingPatterns = /^(he+y+|hi+|hello+|sup|yo|hola|what'?s\s*up)(\s+(there|girl|dude|friend|man|bro|sis))?[\s!?.]*$/i;
     const conversationStarterPatterns =
       /^(i'm looking for|i want|show me|find me|i need|looking for|what's|whats|tell me about|i'm into|im into|help me find)/i;
     const isGreeting = greetingPatterns.test(body.trim());
