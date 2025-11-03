@@ -64,6 +64,9 @@ Deno.serve(async (req) => {
       .eq("phone_number", from)
       .maybeSingle();
 
+    // Track if this is a brand new user
+    let isFirstTimeUser = false;
+
     // Create new user if doesn't exist
     if (!whatsappUser) {
       console.log("Creating new WhatsApp user for", from);
@@ -77,6 +80,7 @@ Deno.serve(async (req) => {
         console.error("Error creating WhatsApp user:", createError);
       } else {
         whatsappUser = newUser;
+        isFirstTimeUser = true;
       }
     }
 
@@ -110,13 +114,21 @@ Deno.serve(async (req) => {
         content: body,
       });
 
-      // Personalized greeting for known users (bilingual)
+      // Different greeting for first-time users vs returning users
       let greetingMessage;
-      if (whatsappUser?.name) {
+      
+      if (isFirstTimeUser) {
+        // Special welcome message for first-time users
+        greetingMessage = userLanguage === 'es'
+          ? "Hola 👋 Bienvenido a underground BA. Soy tu guía de IA para todo lo boutique, indie y local, que no aparece en Google 😉 ¿Qué estás buscando?"
+          : "Hey 👋 Welcome to underground BA. I'm your AI guide for anything boutique, indie, and local, that doesn't show up on Google 😉 What are you looking for?";
+      } else if (whatsappUser?.name) {
+        // Personalized greeting for known users
         greetingMessage = userLanguage === 'es' 
           ? `¡Hola ${whatsappUser.name}! 👋 ¿Qué estás buscando hoy?`
           : `Hey ${whatsappUser.name}! 👋 What are you looking for today?`;
       } else {
+        // Generic greeting for returning users without name
         greetingMessage = userLanguage === 'es'
           ? "¡Hola! 👋 ¿En qué puedo ayudarte a encontrar en Buenos Aires?"
           : "Hey there! 👋 What can I help you find in Buenos Aires?";
