@@ -665,8 +665,58 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     const data = await response.json();
     console.log("Full AI response:", JSON.stringify(data, null, 2));
 
+    // Check for API-level errors first
+    const firstChoice = data.choices?.[0];
+    if (firstChoice?.error) {
+      console.error("AI provider error:", JSON.stringify(firstChoice.error, null, 2));
+      
+      // Handle malformed function call errors
+      if (firstChoice.error.message?.includes("Malformed function call")) {
+        console.log("Malformed function call detected - retrying without structured output");
+        
+        // Retry without tool calling - just ask for JSON in the prompt
+        const retryRequestBody = {
+          model: modelToUse,
+          messages: [{ role: "system", content: systemPrompt }, ...enrichedMessages],
+          max_completion_tokens: 4000,
+        };
+        
+        const retryResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${lovableApiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(retryRequestBody),
+        });
+        
+        if (retryResponse.ok) {
+          const retryData = await retryResponse.json();
+          console.log("Retry response:", JSON.stringify(retryData, null, 2));
+          
+          const retryMessage = retryData.choices?.[0]?.message?.content || "";
+          if (retryMessage) {
+            // Continue processing with retry message
+            data.choices[0].message = { role: "assistant", content: retryMessage };
+          }
+        }
+      } else {
+        // Other errors - return conversational fallback
+        const errorMessage = userLanguage === 'es'
+          ? "Disculpa, tuve un problema al procesar tu solicitud. ¿Podrías intentar de nuevo?"
+          : "Sorry, I had trouble processing your request. Could you try again?";
+        
+        return new Response(
+          JSON.stringify({ message: errorMessage }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
     // Check if we got a tool call response (structured recommendations)
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const toolCall = firstChoice?.message?.tool_calls?.[0];
     let message: string;
 
     if (toolCall && toolCall.function?.name === "provide_recommendations") {
@@ -676,8 +726,16 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       console.log("AI response (structured):", message);
     } else {
       // Regular conversational response
-      message = data.choices?.[0]?.message?.content || "";
-      console.log("AI response (conversational):", message);
+      message = firstChoice?.message?.content || "";
+      
+      if (!message) {
+        console.error(
+          "AI returned empty content. Full message object:",
+          JSON.stringify(firstChoice?.message, null, 2),
+        );
+      }
+      
+      console.log("AI response (conversational):", message.substring(0, 200));
 
       // FALLBACK: Check if AI detected no database matches
       if (message.startsWith("NO_DATABASE_MATCH:")) {

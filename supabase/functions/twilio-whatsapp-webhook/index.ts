@@ -120,16 +120,18 @@ Deno.serve(async (req) => {
         content: body,
       });
 
-      // Personalized greeting for known users (bilingual)
+      // NEW FLOW: Different greetings for first-time vs returning users
       let greetingMessage;
-      if (whatsappUser?.name) {
+      if (isNewConversation || !whatsappUser?.name) {
+        // First time user
         greetingMessage = userLanguage === 'es' 
-          ? `¡Hola ${whatsappUser.name}! 👋 ¿Qué estás buscando hoy?`
-          : `Hey ${whatsappUser.name}! 👋 What are you looking for today?`;
+          ? "¡Hola! 👋 Bienvenido al Buenos Aires underground. Soy Yara, tu guía de eventos secretos, bares ocultos y gemas locales. ¿Qué te apetece hoy?"
+          : "Hey 👋 Welcome to underground Buenos Aires. I'm Yara, your guide to secret events, hidden bars, and local gems. What are you in the mood for today?";
       } else {
-        greetingMessage = userLanguage === 'es'
-          ? "¡Hola! 👋 ¿En qué puedo ayudarte a encontrar en Buenos Aires?"
-          : "Hey there! 👋 What can I help you find in Buenos Aires?";
+        // Returning user
+        greetingMessage = userLanguage === 'es' 
+          ? `¡Hola ${whatsappUser.name}! ¿Cómo va? ¿Qué buscas?`
+          : `Hey ${whatsappUser.name}, how's it going? What are you in the mood for?`;
       }
 
       // Store greeting response
@@ -423,13 +425,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    // CRITICAL: Always ask for name/age FIRST before handling ANY requests
-    if (whatsappUser && (!whatsappUser.name || !whatsappUser.age)) {
+    // NEW FLOW: Only ask for name/age when user makes a recommendation request
+    // Detect if this is a recommendation request
+    const earlyRecommendationKeywords =
+      /\b(recommend|suggest|show me|find me|looking for|i'm looking for|im looking for|i want|i need|can you find|help me find|gimme|dame|quiero|busco|necesito|muéstrame|muestrame|parties|events|bars|clubs|music|art|workshop)\b/i;
+    const isEarlyRecommendationRequest = earlyRecommendationKeywords.test(body);
+
+    if (whatsappUser && (!whatsappUser.name || !whatsappUser.age) && isEarlyRecommendationRequest) {
       const askBothMessage = userLanguage === 'es'
-        ? "¡Hola! Soy Yara, tu guía de Buenos Aires 🎭 Para darte las mejores recomendaciones personalizadas, ¿cómo te llamas y cuántos años tenés? (ej: Matias, 25) 😊"
-        : "Hi! I'm Yara, your Buenos Aires guide 🎭 To give you the best personalized recommendations, what's your name and age? (e.g., Matias, 25) 😊";
+        ? "Perfecto! Primero, para darte las mejores recomendaciones personalizadas, ¿cómo te llamas y cuántos años tenés? (ej: Matias, 25)"
+        : "Perfect! First, to give you the best personalized recommendations, what's your name and age? (e.g., Matias, 25)";
       
-      console.log('User missing name/age - asking BEFORE handling any requests');
+      console.log('User made recommendation request but missing name/age - asking now');
 
       await supabase.from("whatsapp_conversations").insert({
         phone_number: from,
