@@ -519,7 +519,7 @@ Deno.serve(async (req) => {
         // Only ask if they didn't mention a neighborhood in their message
         if (!hasNeighborhoodInMessage) {
           const askNeighborhoodMessage =
-            "What neighborhood do you usually hang out in or prefer to go out in Buenos Aires? (e.g., Palermo, Villa Crespo, San Telmo) 📍";
+            "What neighborhood do you usually hang out in or prefer to go out in Buenos Aires?📍";
 
           await supabase.from("whatsapp_conversations").insert({
             phone_number: from,
