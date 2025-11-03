@@ -5,16 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Helper function to escape XML special characters
-function escapeXml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -61,9 +51,7 @@ Deno.serve(async (req) => {
     );
 
     // Check if message is a greeting OR a conversation starter
-    // More flexible greeting pattern to catch variations like "hiii", "hey there", "hi girl", "hi hi hi" etc.
-    // Allow repeated greetings with spaces between them
-    const greetingPatterns = /^((he+y+|hi+|hello+|sup|yo|hola|what'?s\s*up)[\s!?.]*)+(\s+(there|girl|dude|friend|man|bro|sis))?[\s!?.]*$/i;
+    const greetingPatterns = /^(hey|hi|hello|sup|yo|hola|what's up|whats up)[\s!?.]*$/i;
     const conversationStarterPatterns =
       /^(i'm looking for|i want|show me|find me|i need|looking for|what's|whats|tell me about|i'm into|im into|help me find)/i;
     const isGreeting = greetingPatterns.test(body.trim());
@@ -122,18 +110,16 @@ Deno.serve(async (req) => {
         content: body,
       });
 
-      // NEW FLOW: Different greetings for first-time vs returning users
+      // Personalized greeting for known users (bilingual)
       let greetingMessage;
-      if (isNewConversation || !whatsappUser?.name) {
-        // First time user
+      if (whatsappUser?.name) {
         greetingMessage = userLanguage === 'es' 
-          ? "¡Hola! 👋 Bienvenido al Buenos Aires underground. Soy Yara, tu guía de eventos secretos, bares ocultos y gemas locales. ¿Qué te apetece hoy?"
-          : "Hey 👋 Welcome to underground Buenos Aires. I'm Yara, your guide to secret events, hidden bars, and local gems. What are you in the mood for today?";
+          ? `¡Hola ${whatsappUser.name}! 👋 ¿Qué estás buscando hoy?`
+          : `Hey ${whatsappUser.name}! 👋 What are you looking for today?`;
       } else {
-        // Returning user
-        greetingMessage = userLanguage === 'es' 
-          ? `¡Hola ${whatsappUser.name}! ¿Cómo va? ¿Qué buscas?`
-          : `Hey ${whatsappUser.name}, how's it going? What are you in the mood for?`;
+        greetingMessage = userLanguage === 'es'
+          ? "¡Hola! 👋 ¿En qué puedo ayudarte a encontrar en Buenos Aires?"
+          : "Hey there! 👋 What can I help you find in Buenos Aires?";
       }
 
       // Store greeting response
@@ -207,8 +193,7 @@ Deno.serve(async (req) => {
         if (wasAskingForName) {
           // If we just asked for name, be more flexible in extracting it
           // Match: "Sarah", "It's Sarah", "My name is Sarah", "I'm Sarah", "Call me Sarah"
-          // Stop at common connectors like "and", commas, or "I'm" appearing again
-          const flexibleNamePattern = /(?:it'?s\s+|my name is\s+|i'?m\s+|i am\s+|me llamo\s+|call me\s+)?([A-Z][a-z]+)(?:\s+and|,|\s+i'?m|\s+\d)/i;
+          const flexibleNamePattern = /^(?:it'?s\s+|my name is\s+|i'?m\s+|i am\s+|me llamo\s+|call me\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)[\s!.]*$/i;
           const nameMatch = body.match(flexibleNamePattern);
           
           if (nameMatch) {
@@ -427,54 +412,38 @@ Deno.serve(async (req) => {
       }
     }
 
-    // NEW FLOW: Only ask for name/age when user makes a recommendation request
-    // Detect if this is a recommendation request
-    const earlyRecommendationKeywords =
-      /\b(recommend|suggest|show me|find me|looking for|i'm looking for|im looking for|i want|i need|can you find|help me find|gimme|dame|quiero|busco|necesito|muéstrame|muestrame|parties|events|bars|clubs|music|art|workshop)\b/i;
-    const isEarlyRecommendationRequest = earlyRecommendationKeywords.test(body);
-
-    if (whatsappUser && (!whatsappUser.name || !whatsappUser.age) && isEarlyRecommendationRequest) {
-      const askBothMessage = userLanguage === 'es'
-        ? "Perfecto! Primero, para darte las mejores recomendaciones personalizadas, ¿cómo te llamas y cuántos años tenés? (ej: Matias, 25)"
-        : "Perfect! First, to give you the best personalized recommendations, what's your name and age? (e.g., Matias, 25)";
+    // Smart name/age collection for ANY new user (not just on recommendation requests)
+    if (whatsappUser && (!whatsappUser.name || !whatsappUser.age)) {
+      const messageCount = conversationHistory.length;
       
-      console.log('User made recommendation request but missing name/age - asking now');
+      // Ask for name/age on first or second message (to avoid asking on greeting)
+      if (messageCount === 1 || messageCount === 2) {
+        const askBothMessage = userLanguage === 'es'
+          ? "¡Hola! Soy Yara, tu guía de Buenos Aires 🎭 Para darte las mejores recomendaciones personalizadas, ¿cómo te llamas y cuántos años tenés? (ej: Matias, 25) 😊"
+          : "Hi! I'm Yara, your Buenos Aires guide 🎭 To give you the best personalized recommendations, what's your name and age? (e.g., Matias, 25) 😊";
 
-      await supabase.from("whatsapp_conversations").insert({
-        phone_number: from,
-        role: "assistant",
-        content: askBothMessage,
-      });
+        await supabase.from("whatsapp_conversations").insert({
+          phone_number: from,
+          role: "assistant",
+          content: askBothMessage,
+        });
 
-      const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>${escapeXml(askBothMessage)}</Message>
+  <Message>${askBothMessage}</Message>
 </Response>`;
 
-      return new Response(twimlResponse, {
-        headers: { ...corsHeaders, "Content-Type": "text/xml" },
-        status: 200,
-      });
+        return new Response(twimlResponse, {
+          headers: { ...corsHeaders, "Content-Type": "text/xml" },
+          status: 200,
+        });
+      }
     }
-
-    // After collecting name/age, check if there was a pending recommendation request in history
-    const hasRecentRecommendationRequest = conversationHistory
-      .slice(-5)  // Check last 5 messages
-      .some(msg => 
-        msg.role === 'user' && 
-        /\b(recommend|suggest|show me|find me|looking for|i'm looking for|im looking for|i want|i need|parties|events|bars|clubs)\b/i.test(msg.content)
-      );
 
     // Detect if this is a recommendation request
     const recommendationKeywords =
       /\b(recommend|suggest|show me|find me|looking for|i'm looking for|im looking for|i want|i need|can you find|help me find|gimme|dame|quiero|busco|necesito|muéstrame|muestrame)\b/i;
-    let isRecommendationRequest = recommendationKeywords.test(body);
-
-    // If user just provided name/age and there was a recent recommendation request, treat this as recommendation request
-    if (hasRecentRecommendationRequest && !isRecommendationRequest && !isGreeting) {
-      console.log('Detected pending recommendation request after name/age collection - processing it');
-      isRecommendationRequest = true;
-    }
+    const isRecommendationRequest = recommendationKeywords.test(body);
 
     // Progressive profiling: Ask for neighborhood on second recommendation (only if not mentioned)
     if (isRecommendationRequest && whatsappUser) {
@@ -617,15 +586,6 @@ Deno.serve(async (req) => {
 
     // Try to parse as JSON - extract JSON from text if needed
     let cleanedMessage = assistantMessage.trim();
-    let wasJsonAttempt = false;
-
-    // Check if response looks like it was meant to be JSON (has markdown fence or starts with {)
-    if (cleanedMessage.startsWith('```json') || cleanedMessage.startsWith('```') || cleanedMessage.startsWith('{')) {
-      wasJsonAttempt = true;
-      
-      // Strip markdown code fences
-      cleanedMessage = cleanedMessage.replace(/^```json\n?/i, '').replace(/^```\n?/, '').replace(/```$/, '').trim();
-    }
 
     // Try to extract JSON from the response
     // Look for a JSON object starting with { and ending with }
@@ -644,28 +604,6 @@ Deno.serve(async (req) => {
         "recommendations",
       );
     } catch (e) {
-      // If this was meant to be JSON but failed to parse, send error message instead
-      if (wasJsonAttempt) {
-        console.error("Failed to parse JSON response:", e);
-        const errorMessage = "Sorry, I'm having trouble processing that right now. Can you try asking again?";
-        
-        await supabase.from("whatsapp_conversations").insert({
-          phone_number: from,
-          role: "assistant",
-          content: errorMessage,
-        });
-
-        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${errorMessage}</Message>
-</Response>`;
-
-        return new Response(twimlResponse, {
-          headers: { ...corsHeaders, "Content-Type": "text/xml" },
-          status: 200,
-        });
-      }
-      
       // Not JSON, just a regular conversational response
       console.log("Response is not valid JSON, treating as conversational text");
       parsedResponse = null;

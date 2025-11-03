@@ -164,20 +164,16 @@ serve(async (req) => {
       };
     });
 
-    // NOW filter events by transformed dates - only include events in the NEXT 7 DAYS
-    const oneWeekFromNow = new Date();
-    oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
-    const oneWeekFromNowStr = oneWeekFromNow.toISOString().split('T')[0];
-    
+    // NOW filter events by transformed dates - only include future events
     const filteredByDateEvents = eventsWithTransformedDates.filter(event => {
       const eventDate = event.date?.toLowerCase() || '';
-      const isInNextWeek = eventDate >= today && eventDate <= oneWeekFromNowStr;
+      const isInFuture = eventDate >= today;
       
-      console.log(`Event "${event.title}" (${event.originalDate} → ${event.date}): ${isInNextWeek ? 'NEXT 7 DAYS' : 'OUTSIDE RANGE'}`);
-      return isInNextWeek;
+      console.log(`Event "${event.title}" (${event.originalDate} → ${event.date}): ${isInFuture ? 'FUTURE/TODAY' : 'PAST'}`);
+      return isInFuture;
     });
 
-    console.log(`Filtered events from ${allEvents.length} to ${filteredByDateEvents.length} events in next 7 days`);
+    console.log(`Filtered events from ${allEvents.length} to ${filteredByDateEvents.length} based on transformed date matching`);
 
     // Helper function to check if user's age matches event's target_audience
     const isAgeAppropriate = (targetAudience: string | null, userAge: number | null): boolean => {
@@ -202,19 +198,12 @@ serve(async (req) => {
     console.log(`Filtered ${filteredByDateEvents.length} date-matched events to ${ageFilteredEvents.length} age-appropriate events for age ${userAge}`);
     console.log(`Also fetched ${businesses.length} businesses, ${coupons.length} coupons`);
 
-    // Helper function to shorten descriptions
-    const shortenDescription = (desc: string | null, maxLength: number = 150): string => {
-      if (!desc) return '';
-      if (desc.length <= maxLength) return desc;
-      return desc.substring(0, maxLength).trim() + '...';
-    };
-
     // Build context for AI - dates are already transformed above
     const contextData = {
       events: ageFilteredEvents.map((e) => ({
         id: e.id,
         title: e.title,
-        description: shortenDescription(e.description, 150), // Shortened to max 150 chars
+        description: e.description,
         date: e.date, // Already transformed date
         originalDate: e.originalDate, // Keep original for AI to see (e.g., "every monday")
         time: e.time,
@@ -231,7 +220,7 @@ serve(async (req) => {
       businesses: businesses.map((b) => ({
         id: b.id,
         title: b.title,
-        description: shortenDescription(b.description, 100), // Shortened to max 100 chars
+        description: b.description,
         category: b.category,
         location: b.location,
         price: b.price,
@@ -240,7 +229,7 @@ serve(async (req) => {
       coupons: coupons.map((c) => ({
         id: c.id,
         title: c.title,
-        description: shortenDescription(c.description, 100), // Shortened to max 100 chars
+        description: c.description,
         business_name: c.business_name,
         discount_amount: c.discount_amount,
         neighborhood: c.neighborhood,
@@ -579,7 +568,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     const requestBody: any = {
       model: "google/gemini-2.5-flash",
       messages: [{ role: "system", content: systemPrompt }, ...enrichedMessages],
-      max_completion_tokens: 8000, // Increased to account for reasoning tokens which count toward limit
+      max_completion_tokens: 4000,
     };
 
     // Check if this is likely a recommendation request
@@ -638,8 +627,8 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       requestBody.tool_choice = { type: "function", function: { name: "provide_recommendations" } };
     }
 
-    // Use faster model for intro messages, PRO model for recommendations (better search accuracy)
-    const modelToUse = useIntroModel ? "google/gemini-2.5-flash-lite" : "google/gemini-2.5-pro";
+    // Use faster model for intro messages, standard model for recommendations
+    const modelToUse = useIntroModel ? "google/gemini-2.5-flash-lite" : "google/gemini-2.5-flash";
     requestBody.model = modelToUse;
     
     console.log(`Using model: ${modelToUse} (useIntroModel: ${useIntroModel})`);
@@ -676,81 +665,8 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     const data = await response.json();
     console.log("Full AI response:", JSON.stringify(data, null, 2));
 
-    // Check for API-level errors first
-    const firstChoice = data.choices?.[0];
-    if (firstChoice?.error) {
-      console.error("AI provider error:", JSON.stringify(firstChoice.error, null, 2));
-      
-      // Handle malformed function call errors - retry without tool calling
-      if (firstChoice.error.message?.includes("Malformed function call") || 
-          firstChoice.error.code === 502) {
-        console.log("Provider error detected - retrying without structured output");
-        
-        // Retry without tool calling - just ask for JSON in the prompt
-        const retryRequestBody = {
-          model: modelToUse,
-          messages: [{ role: "system", content: systemPrompt }, ...enrichedMessages],
-          max_completion_tokens: 8000, // Increased to account for reasoning tokens
-        };
-        
-        const retryResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${lovableApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(retryRequestBody),
-        });
-        
-        if (retryResponse.ok) {
-          const retryData = await retryResponse.json();
-          console.log("Retry successful");
-          
-          const retryMessage = retryData.choices?.[0]?.message?.content || "";
-          if (retryMessage) {
-            // Replace with retry response and continue processing
-            Object.assign(data.choices[0], {
-              message: { role: "assistant", content: retryMessage },
-              error: undefined
-            });
-          } else {
-            // Retry also failed - return friendly error
-            const errorMessage = userLanguage === 'es'
-              ? "Disculpa, tuve un problema técnico. ¿Podrías intentar de nuevo?"
-              : "Sorry, I had a technical issue. Could you try again?";
-            
-            return new Response(
-              JSON.stringify({ message: errorMessage }),
-              { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-            );
-          }
-        } else {
-          console.error("Retry also failed:", await retryResponse.text());
-          const errorMessage = userLanguage === 'es'
-            ? "Disculpa, tuve un problema técnico. ¿Podrías intentar de nuevo en unos segundos?"
-            : "Sorry, I had a technical issue. Could you try again in a few seconds?";
-          
-          return new Response(
-            JSON.stringify({ message: errorMessage }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      } else {
-        // Other errors - return conversational fallback
-        console.error("Unhandled AI error type:", firstChoice.error);
-        const errorMessage = userLanguage === 'es'
-          ? "Disculpa, tuve un problema al procesar tu solicitud. ¿Podrías reformularla?"
-          : "Sorry, I had trouble processing your request. Could you rephrase it?";
-        
-        return new Response(
-          JSON.stringify({ message: errorMessage }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
-
     // Check if we got a tool call response (structured recommendations)
-    const toolCall = firstChoice?.message?.tool_calls?.[0];
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     let message: string;
 
     if (toolCall && toolCall.function?.name === "provide_recommendations") {
@@ -760,16 +676,8 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       console.log("AI response (structured):", message);
     } else {
       // Regular conversational response
-      message = firstChoice?.message?.content || "";
-      
-      if (!message) {
-        console.error(
-          "AI returned empty content. Full message object:",
-          JSON.stringify(firstChoice?.message, null, 2),
-        );
-      }
-      
-      console.log("AI response (conversational):", message.substring(0, 200));
+      message = data.choices?.[0]?.message?.content || "";
+      console.log("AI response (conversational):", message);
 
       // FALLBACK: Check if AI detected no database matches
       if (message.startsWith("NO_DATABASE_MATCH:")) {
