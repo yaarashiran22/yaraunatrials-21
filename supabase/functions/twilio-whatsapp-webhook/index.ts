@@ -202,9 +202,9 @@ Deno.serve(async (req) => {
 
         if (wasAskingForName) {
           // If we just asked for name, be more flexible in extracting it
-          // Match: "Sarah", "It's Sarah", "My name is Sarah", "I'm Sarah and...", "Call me Sarah"
-          // This now allows for additional text after the name
-          const flexibleNamePattern = /(?:it'?s\s+|my name is\s+|i'?m\s+|i am\s+|me llamo\s+|call me\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i;
+          // Match: "Sarah", "It's Sarah", "My name is Sarah", "I'm Sarah", "Call me Sarah"
+          // Stop at common connectors like "and", commas, or "I'm" appearing again
+          const flexibleNamePattern = /(?:it'?s\s+|my name is\s+|i'?m\s+|i am\s+|me llamo\s+|call me\s+)?([A-Z][a-z]+)(?:\s+and|,|\s+i'?m|\s+\d)/i;
           const nameMatch = body.match(flexibleNamePattern);
           
           if (nameMatch) {
@@ -448,10 +448,24 @@ Deno.serve(async (req) => {
       });
     }
 
+    // After collecting name/age, check if there was a pending recommendation request in history
+    const hasRecentRecommendationRequest = conversationHistory
+      .slice(-5)  // Check last 5 messages
+      .some(msg => 
+        msg.role === 'user' && 
+        /\b(recommend|suggest|show me|find me|looking for|i'm looking for|im looking for|i want|i need|parties|events|bars|clubs)\b/i.test(msg.content)
+      );
+
     // Detect if this is a recommendation request
     const recommendationKeywords =
       /\b(recommend|suggest|show me|find me|looking for|i'm looking for|im looking for|i want|i need|can you find|help me find|gimme|dame|quiero|busco|necesito|muéstrame|muestrame)\b/i;
-    const isRecommendationRequest = recommendationKeywords.test(body);
+    let isRecommendationRequest = recommendationKeywords.test(body);
+
+    // If user just provided name/age and there was a recent recommendation request, treat this as recommendation request
+    if (hasRecentRecommendationRequest && !isRecommendationRequest && !isGreeting) {
+      console.log('Detected pending recommendation request after name/age collection - processing it');
+      isRecommendationRequest = true;
+    }
 
     // Progressive profiling: Ask for neighborhood on second recommendation (only if not mentioned)
     if (isRecommendationRequest && whatsappUser) {
