@@ -533,6 +533,12 @@ Deno.serve(async (req) => {
             content: askNeighborhoodMessage,
           });
 
+          // Increment recommendation count so we don't ask again
+          await supabase
+            .from("whatsapp_users")
+            .update({ recommendation_count: recCount + 1 })
+            .eq("id", whatsappUser.id);
+
           const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>${askNeighborhoodMessage}</Message>
@@ -561,6 +567,12 @@ Deno.serve(async (req) => {
           role: "assistant",
           content: askBudgetMessage,
         });
+
+        // Increment recommendation count so we don't ask again
+        await supabase
+          .from("whatsapp_users")
+          .update({ recommendation_count: recCount + 1 })
+          .eq("id", whatsappUser.id);
 
         const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
