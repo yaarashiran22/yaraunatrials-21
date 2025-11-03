@@ -88,19 +88,27 @@ Deno.serve(async (req) => {
 
     // Detect language from user message
     if (whatsappUser) {
-      const spanishPatterns = /\b(hola|buenas|qué|que|donde|dónde|necesito|quiero|busco|me llamo|tengo|años|gracias|por favor|día|noche|evento|eventos|música|arte|comida|bar|fiesta|estoy|buscando)\b/i;
+      const spanishPatterns =
+        /\b(hola|buenas|qué|que|donde|dónde|necesito|quiero|busco|me llamo|tengo|años|gracias|por favor|día|noche|evento|eventos|música|arte|comida|bar|fiesta|estoy|buscando)\b/i;
       const isSpanish = spanishPatterns.test(body);
-      
+
       // Update language preference if not set or if it changed
-      if (!whatsappUser.preferred_language || (isSpanish && whatsappUser.preferred_language !== 'es') || (!isSpanish && whatsappUser.preferred_language !== 'en')) {
-        const detectedLanguage = isSpanish ? 'es' : 'en';
-        await supabase.from("whatsapp_users").update({ preferred_language: detectedLanguage }).eq("id", whatsappUser.id);
+      if (
+        !whatsappUser.preferred_language ||
+        (isSpanish && whatsappUser.preferred_language !== "es") ||
+        (!isSpanish && whatsappUser.preferred_language !== "en")
+      ) {
+        const detectedLanguage = isSpanish ? "es" : "en";
+        await supabase
+          .from("whatsapp_users")
+          .update({ preferred_language: detectedLanguage })
+          .eq("id", whatsappUser.id);
         whatsappUser.preferred_language = detectedLanguage;
         console.log(`Detected language: ${detectedLanguage}`);
       }
     }
 
-    const userLanguage = whatsappUser?.preferred_language || 'en';
+    const userLanguage = whatsappUser?.preferred_language || "en";
 
     // Handle greetings - respond immediately without calling AI
     // For ALL greetings (new or existing conversations), just send a friendly response
@@ -116,22 +124,25 @@ Deno.serve(async (req) => {
 
       // Different greeting for first-time users vs returning users
       let greetingMessage;
-      
+
       if (isFirstTimeUser) {
         // Special welcome message for first-time users
-        greetingMessage = userLanguage === 'es'
-          ? "Hola 👋 Bienvenido a underground BA. Soy tu guía de IA para todo lo boutique, indie y local, que no aparece en Google 😉 ¿Qué estás buscando?"
-          : "Hey 👋 Welcome to underground BA. I'm your AI guide for anything boutique, indie, and local, that doesn't show up on Google 😉 What are you looking for?";
+        greetingMessage =
+          userLanguage === "es"
+            ? "Hola 👋 Bienvenido a underground BA. Soy tu guía de IA para todo lo boutique, indie y local, que no aparece en Google 😉 ¿Qué estás buscando?"
+            : "Hey 👋 Welcome to underground BA. I'm your AI guide for anything boutique, indie, and local, that doesn't show up on Google 😉 What are you looking for?";
       } else if (whatsappUser?.name) {
         // Personalized greeting for known users
-        greetingMessage = userLanguage === 'es' 
-          ? `¡Hola ${whatsappUser.name}! 👋 ¿Qué estás buscando hoy?`
-          : `Hey ${whatsappUser.name}! 👋 What are you looking for today?`;
+        greetingMessage =
+          userLanguage === "es"
+            ? `¡Hola ${whatsappUser.name}! 👋 ¿Qué estás buscando hoy?`
+            : `Hey ${whatsappUser.name}! 👋 What are you looking for today?`;
       } else {
         // Generic greeting for returning users without name
-        greetingMessage = userLanguage === 'es'
-          ? "¡Hola! 👋 ¿En qué puedo ayudarte a encontrar en Buenos Aires?"
-          : "Hey there! 👋 What can I help you find in Buenos Aires?";
+        greetingMessage =
+          userLanguage === "es"
+            ? "¡Hola! 👋 ¿En qué puedo ayudarte a encontrar en Buenos Aires?"
+            : "Hey there! 👋 What can I help you find in Buenos Aires?";
       }
 
       // Store greeting response
@@ -193,21 +204,24 @@ Deno.serve(async (req) => {
       // Detect name from user message
       if (!whatsappUser.name) {
         // Check if the previous message was asking for name
-        const lastAssistantMessage = conversationHistory.length > 0 
-          ? conversationHistory[conversationHistory.length - 1]
-          : null;
-        
-        const wasAskingForName = lastAssistantMessage?.role === 'assistant' && 
-          /what'?s your name|can i ask what your name is|what is your name|tell me your name/i.test(lastAssistantMessage.content);
+        const lastAssistantMessage =
+          conversationHistory.length > 0 ? conversationHistory[conversationHistory.length - 1] : null;
+
+        const wasAskingForName =
+          lastAssistantMessage?.role === "assistant" &&
+          /what'?s your name|can i ask what your name is|what is your name|tell me your name/i.test(
+            lastAssistantMessage.content,
+          );
 
         let detectedName = null;
 
         if (wasAskingForName) {
           // If we just asked for name, be more flexible in extracting it
           // Match: "Sarah", "It's Sarah", "My name is Sarah", "I'm Sarah", "Call me Sarah"
-          const flexibleNamePattern = /^(?:it'?s\s+|my name is\s+|i'?m\s+|i am\s+|me llamo\s+|call me\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)[\s!.]*$/i;
+          const flexibleNamePattern =
+            /^(?:it'?s\s+|my name is\s+|i'?m\s+|i am\s+|me llamo\s+|call me\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)[\s!.]*$/i;
           const nameMatch = body.match(flexibleNamePattern);
-          
+
           if (nameMatch) {
             detectedName = nameMatch[1].trim();
             console.log(`Detected name from direct response: ${detectedName}`);
@@ -427,12 +441,13 @@ Deno.serve(async (req) => {
     // Smart name/age collection for ANY new user (not just on recommendation requests)
     if (whatsappUser && (!whatsappUser.name || !whatsappUser.age)) {
       const messageCount = conversationHistory.length;
-      
-      // Ask for name/age on first or second message (to avoid asking on greeting)
-      if (messageCount === 1 || messageCount === 2) {
-        const askBothMessage = userLanguage === 'es'
-          ? "¡Hola! Soy Yara, tu guía de Buenos Aires 🎭 Para darte las mejores recomendaciones personalizadas, ¿cómo te llamas y cuántos años tenés? (ej: Matias, 25) 😊"
-          : "Hi! I'm Yara, your Buenos Aires guide 🎭 To give you the best personalized recommendations, what's your name and age? (e.g., Matias, 25) 😊";
+
+      // Ask for name/age on second message (to avoid asking on greeting)
+      if (messageCount === 1) {
+        const askBothMessage =
+          userLanguage === "es"
+            ? "Para darte las mejores recomendaciones personalizadas, ¿cómo te llamas y cuántos años tenés?😊"
+            : "To give you the best personalized recommendations, what's your name and age?😊";
 
         await supabase.from("whatsapp_conversations").insert({
           phone_number: from,
@@ -624,32 +639,32 @@ Deno.serve(async (req) => {
     // Handle recommendations response (even if empty - don't show raw JSON)
     if (parsedResponse && parsedResponse.recommendations && Array.isArray(parsedResponse.recommendations)) {
       console.log(`Found ${parsedResponse.recommendations.length} recommendations to send`);
-      
+
       // CRITICAL FIX: Filter out jam sessions when user asks for workshops
       const userAskedForWorkshops = /\b(workshop|workshops|class|classes|course|courses|taller|talleres)\b/i.test(body);
-      
+
       if (userAskedForWorkshops) {
         // Remove jam sessions and other non-workshop events
         const workshopKeywords = /\b(workshop|class|course|taller|masterclass|training|seminar|lesson|tutorial)\b/i;
-        
-        parsedResponse.recommendations = parsedResponse.recommendations.filter(rec => {
+
+        parsedResponse.recommendations = parsedResponse.recommendations.filter((rec) => {
           // Check if title or description contains workshop keywords
           const titleHasWorkshop = workshopKeywords.test(rec.title || "");
           const descHasWorkshop = workshopKeywords.test(rec.description || "");
           const whyHasWorkshop = workshopKeywords.test(rec.why_recommended || "");
-          
+
           // Explicitly exclude jam sessions
           const isJamSession = /\bjam\s+session\b/i.test(rec.title || "");
-          
+
           if (isJamSession) {
             console.log(`Filtering out jam session: ${rec.title}`);
             return false;
           }
-          
+
           // Only include if it has workshop keywords
           return titleHasWorkshop || descHasWorkshop || whyHasWorkshop;
         });
-        
+
         console.log(`After workshop filtering: ${parsedResponse.recommendations.length} recommendations`);
       }
 
@@ -790,7 +805,7 @@ ${twimlMessages}
       });
     } catch (storageError) {
       console.error("Error storing or sending conversational response:", storageError);
-      
+
       // Still try to send the message even if storage fails
       const escapedMessage = assistantMessage
         .replace(/&/g, "&amp;")
