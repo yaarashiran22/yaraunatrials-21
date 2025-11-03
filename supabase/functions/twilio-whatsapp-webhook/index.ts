@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
         greetingMessage =
           userLanguage === "es"
             ? "¡Hola! 👋 ¿En qué puedo ayudarte a encontrar en Buenos Aires?"
-            : "Hey there! 👋 What can I help you find in Buenos Aires?";
+            : "Hey, welcome to Yara! I'm your AI guide for finding indie events, and anything in the local underground scene. Tell me- what are you looking for?";
       }
 
       // Store greeting response
