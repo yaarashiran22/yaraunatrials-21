@@ -412,33 +412,29 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Smart name/age collection for ANY new user (not just on recommendation requests)
+    // CRITICAL: Always ask for name/age FIRST before handling ANY requests
     if (whatsappUser && (!whatsappUser.name || !whatsappUser.age)) {
-      // conversationHistory doesn't include current message, so add 1 to get total message count
-      const totalMessages = conversationHistory.length + 1;
+      const askBothMessage = userLanguage === 'es'
+        ? "¡Hola! Soy Yara, tu guía de Buenos Aires 🎭 Para darte las mejores recomendaciones personalizadas, ¿cómo te llamas y cuántos años tenés? (ej: Matias, 25) 😊"
+        : "Hi! I'm Yara, your Buenos Aires guide 🎭 To give you the best personalized recommendations, what's your name and age? (e.g., Matias, 25) 😊";
       
-      // Ask for name/age on first or second message (to avoid asking on greeting)
-      if (totalMessages === 1 || totalMessages === 2) {
-        const askBothMessage = userLanguage === 'es'
-          ? "¡Hola! Soy Yara, tu guía de Buenos Aires 🎭 Para darte las mejores recomendaciones personalizadas, ¿cómo te llamas y cuántos años tenés? (ej: Matias, 25) 😊"
-          : "Hi! I'm Yara, your Buenos Aires guide 🎭 To give you the best personalized recommendations, what's your name and age? (e.g., Matias, 25) 😊";
+      console.log('User missing name/age - asking BEFORE handling any requests');
 
-        await supabase.from("whatsapp_conversations").insert({
-          phone_number: from,
-          role: "assistant",
-          content: askBothMessage,
-        });
+      await supabase.from("whatsapp_conversations").insert({
+        phone_number: from,
+        role: "assistant",
+        content: askBothMessage,
+      });
 
-        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+      const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Message>${askBothMessage}</Message>
+  <Message>${escapeXml(askBothMessage)}</Message>
 </Response>`;
 
-        return new Response(twimlResponse, {
-          headers: { ...corsHeaders, "Content-Type": "text/xml" },
-          status: 200,
-        });
-      }
+      return new Response(twimlResponse, {
+        headers: { ...corsHeaders, "Content-Type": "text/xml" },
+        status: 200,
+      });
     }
 
     // Detect if this is a recommendation request
