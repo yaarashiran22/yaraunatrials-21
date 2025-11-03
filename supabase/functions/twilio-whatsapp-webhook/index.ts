@@ -202,8 +202,9 @@ Deno.serve(async (req) => {
 
         if (wasAskingForName) {
           // If we just asked for name, be more flexible in extracting it
-          // Match: "Sarah", "It's Sarah", "My name is Sarah", "I'm Sarah", "Call me Sarah"
-          const flexibleNamePattern = /^(?:it'?s\s+|my name is\s+|i'?m\s+|i am\s+|me llamo\s+|call me\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)[\s!.]*$/i;
+          // Match: "Sarah", "It's Sarah", "My name is Sarah", "I'm Sarah and...", "Call me Sarah"
+          // This now allows for additional text after the name
+          const flexibleNamePattern = /(?:it'?s\s+|my name is\s+|i'?m\s+|i am\s+|me llamo\s+|call me\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i;
           const nameMatch = body.match(flexibleNamePattern);
           
           if (nameMatch) {
