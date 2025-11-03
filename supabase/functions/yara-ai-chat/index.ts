@@ -568,7 +568,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     const requestBody: any = {
       model: "google/gemini-2.5-flash",
       messages: [{ role: "system", content: systemPrompt }, ...enrichedMessages],
-      max_completion_tokens: 4000,
+      max_completion_tokens: 8000, // Increased to account for reasoning tokens which count toward limit
     };
 
     // Check if this is likely a recommendation request
@@ -679,7 +679,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         const retryRequestBody = {
           model: modelToUse,
           messages: [{ role: "system", content: systemPrompt }, ...enrichedMessages],
-          max_completion_tokens: 4000,
+          max_completion_tokens: 8000, // Increased to account for reasoning tokens
         };
         
         const retryResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

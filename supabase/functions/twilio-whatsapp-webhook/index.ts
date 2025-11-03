@@ -617,6 +617,15 @@ Deno.serve(async (req) => {
 
     // Try to parse as JSON - extract JSON from text if needed
     let cleanedMessage = assistantMessage.trim();
+    let wasJsonAttempt = false;
+
+    // Check if response looks like it was meant to be JSON (has markdown fence or starts with {)
+    if (cleanedMessage.startsWith('```json') || cleanedMessage.startsWith('```') || cleanedMessage.startsWith('{')) {
+      wasJsonAttempt = true;
+      
+      // Strip markdown code fences
+      cleanedMessage = cleanedMessage.replace(/^```json\n?/i, '').replace(/^```\n?/, '').replace(/```$/, '').trim();
+    }
 
     // Try to extract JSON from the response
     // Look for a JSON object starting with { and ending with }
@@ -635,6 +644,28 @@ Deno.serve(async (req) => {
         "recommendations",
       );
     } catch (e) {
+      // If this was meant to be JSON but failed to parse, send error message instead
+      if (wasJsonAttempt) {
+        console.error("Failed to parse JSON response:", e);
+        const errorMessage = "Sorry, I'm having trouble processing that right now. Can you try asking again?";
+        
+        await supabase.from("whatsapp_conversations").insert({
+          phone_number: from,
+          role: "assistant",
+          content: errorMessage,
+        });
+
+        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${errorMessage}</Message>
+</Response>`;
+
+        return new Response(twimlResponse, {
+          headers: { ...corsHeaders, "Content-Type": "text/xml" },
+          status: 200,
+        });
+      }
+      
       // Not JSON, just a regular conversational response
       console.log("Response is not valid JSON, treating as conversational text");
       parsedResponse = null;
