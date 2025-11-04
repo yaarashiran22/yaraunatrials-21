@@ -23,6 +23,7 @@ import MarketplacePage from "./pages/MarketplacePage";
 import NeighborhoodProfilePage from "./pages/NeighborhoodProfilePage";
 import NeighborsPage from "./pages/NeighborsPage";
 import TopListsPage from "./pages/TopListsPage";
+import JoinMePage from "./pages/JoinMePage";
 
 import RegisterPage from "./pages/RegisterPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -83,6 +84,7 @@ const AppContent = () => {
               <Route path="/neighbors" element={<NeighborsPage />} />
               <Route path="/neighborhood/:id" element={<NeighborhoodProfilePage />} />
               <Route path="/top-lists" element={<TopListsPage />} />
+              <Route path="/join-me" element={<JoinMePage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/favorites" element={<FavoritesPage />} />
               <Route path="/create-post" element={<CreatePostPage />} />
@@ -137,6 +139,7 @@ const AppContent = () => {
             <Route path="/neighbors" element={<NeighborsPage />} />
             <Route path="/neighborhood/:id" element={<NeighborhoodProfilePage />} />
             <Route path="/top-lists" element={<TopListsPage />} />
+            <Route path="/join-me" element={<JoinMePage />} />
             
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/favorites" element={<FavoritesPage />} />

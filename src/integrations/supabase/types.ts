@@ -288,6 +288,39 @@ export type Database = {
         }
         Relationships: []
       }
+      join_requests: {
+        Row: {
+          age: number | null
+          created_at: string
+          description: string | null
+          expires_at: string
+          id: string
+          name: string
+          phone_number: string
+          photo_url: string | null
+        }
+        Insert: {
+          age?: number | null
+          created_at?: string
+          description?: string | null
+          expires_at?: string
+          id?: string
+          name: string
+          phone_number: string
+          photo_url?: string | null
+        }
+        Update: {
+          age?: number | null
+          created_at?: string
+          description?: string | null
+          expires_at?: string
+          id?: string
+          name?: string
+          phone_number?: string
+          photo_url?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string | null

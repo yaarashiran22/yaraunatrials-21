@@ -413,6 +413,13 @@ AGE COLLECTION - FIRST PRIORITY:
   - If they mention going "with friends", "with people", or "we", ask: "Quick question - what are your ages? (e.g., 25, 28, 30)"
   - If they're asking just for themselves, ask: "Quick question - how old are you? This helps me recommend the perfect spots for you 😊"
 
+JOIN ME FEATURE - FINDING COMPANIONS:
+- **IF** the user mentions wanting to find people/companions to go out with (e.g., "looking for someone to go with", "want to find people to join", "anyone to go out with"), respond with:
+  "I'll add you to our Join Me board! Other people looking to make plans will be able to see you there. Here's the link: ${Deno.env.get('SUPABASE_URL')?.replace('//', '//').replace('nxtfugcmatkiqjzxucgh.supabase.co', 'una-social.lovable.app')}/join-me
+  
+  You can edit your profile on that page to add a photo and description (including your Instagram link if you'd like people to connect with you)."
+- Then mark the response with "JOIN_ME_REQUEST" in your thinking so the backend saves it to the database
+
 NAME COLLECTION - AFTER FIRST RECOMMENDATION:
 - **IMPORTANT**: The user's messages may include their profile information in parentheses at the start (e.g., "(By the way, my name is Matias, I'm 33 years old.)")
 - **IF** you see their name in their message or in the User Profile Context, you ALREADY KNOW it - use their name and DO NOT ask for it again
@@ -902,6 +909,28 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         }
       } catch (e) {
         console.log("Could not parse recommendations:", e);
+      }
+    }
+
+    // Check if this is a JOIN ME request and save it
+    if (phoneNumber && message.toLowerCase().includes('join me board')) {
+      // Extract user info from userProfile or set defaults
+      const userName = userProfile?.name || 'Anonymous';
+      const userAge = userProfile?.age || null;
+      
+      // Create join request in database
+      const { error: joinError } = await supabase
+        .from('join_requests')
+        .insert({
+          phone_number: phoneNumber,
+          name: userName,
+          age: userAge
+        });
+      
+      if (joinError) {
+        console.error('Error creating join request:', joinError);
+      } else {
+        console.log(`Created join request for ${userName} (${phoneNumber})`);
       }
     }
 
