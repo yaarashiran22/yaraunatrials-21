@@ -422,6 +422,11 @@ JOIN ME FEATURE - FINDING COMPANIONS:
   On that page, you can add a photo and description (including your Instagram link if you'd like people to connect with you)."
 - The backend will automatically save the request to the database
 
+JOIN ME REMOVAL:
+- **IF** the user mentions wanting to be removed from the Join Me board (e.g., "remove me from join me", "delete my join me request", "take me off the board"), respond with:
+  "I've removed you from the Join Me board. You won't be visible to others anymore. You can always ask me to add you back anytime!"
+- The backend will automatically delete their join request from the database
+
 NAME COLLECTION - AFTER FIRST RECOMMENDATION:
 - **IMPORTANT**: The user's messages may include their profile information in parentheses at the start (e.g., "(By the way, my name is Matias, I'm 33 years old.)")
 - **IF** you see their name in their message or in the User Profile Context, you ALREADY KNOW it - use their name and DO NOT ask for it again
@@ -933,6 +938,20 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         console.error('Error creating join request:', joinError);
       } else {
         console.log(`Created join request for ${userName} (${phoneNumber})`);
+      }
+    }
+
+    // Check if this is a JOIN ME REMOVAL request
+    if (phoneNumber && /\b(remove me from join me|delete my join me|take me off the board|remove (my )?join (me )?request)\b/i.test(message.toLowerCase())) {
+      const { error: deleteError } = await supabase
+        .from('join_requests')
+        .delete()
+        .eq('phone_number', phoneNumber);
+      
+      if (deleteError) {
+        console.error('Error deleting join request:', deleteError);
+      } else {
+        console.log(`Deleted join request for ${phoneNumber}`);
       }
     }
 
