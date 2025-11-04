@@ -204,7 +204,7 @@ serve(async (req) => {
         id: e.id,
         title: e.title,
         description: e.description,
-        date: e.date, // Already transformed date
+        date: formatDate(e.date), // Format date to "Month DDth" (e.g., "November 10th")
         originalDate: e.originalDate, // Keep original for AI to see (e.g., "every monday")
         time: e.time,
         location: e.location,
