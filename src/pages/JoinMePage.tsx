@@ -138,6 +138,19 @@ const JoinMePage = () => {
             <p className="text-foreground/80 text-lg">
               Find people looking to make plans and go out together
             </p>
+            {phoneNumber && (
+              <div className="mt-4 p-3 bg-primary/10 rounded-lg">
+                <p className="text-sm font-semibold">Your phone: {phoneNumber}</p>
+                <p className="text-xs text-muted-foreground">You can edit your card</p>
+              </div>
+            )}
+            {!phoneNumber && (
+              <div className="mt-4 p-3 bg-yellow-100 rounded-lg">
+                <p className="text-sm font-semibold text-yellow-800">⚠️ No phone number detected in URL</p>
+                <p className="text-xs text-yellow-700">The link should include ?phone=YOUR_NUMBER</p>
+                <p className="text-xs text-yellow-700 mt-1">Current URL: {window.location.href}</p>
+              </div>
+            )}
           </div>
 
           {isLoading ? (
