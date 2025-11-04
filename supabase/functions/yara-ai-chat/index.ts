@@ -95,7 +95,7 @@ serve(async (req) => {
     };
 
     // Fetch ALL events first, then filter in code
-    const [eventsResult, itemsResult, couponsResult] = await Promise.all([
+    const [eventsResult, itemsResult, couponsResult, topListsResult] = await Promise.all([
       supabase
         .from("events")
         .select(
@@ -115,11 +115,29 @@ serve(async (req) => {
         .eq("is_active", true)
         .order("created_at", { ascending: false })
         .limit(50),
+      supabase
+        .from("top_lists")
+        .select(`
+          id,
+          title,
+          category,
+          description,
+          top_list_items (
+            id,
+            name,
+            description,
+            location,
+            display_order
+          )
+        `)
+        .order("created_at", { ascending: false })
+        .limit(100),
     ]);
 
     let allEvents = eventsResult.data || [];
     const businesses = itemsResult.data || [];
     const coupons = couponsResult.data || [];
+    const topLists = topListsResult.data || [];
 
     // Helper function to calculate next occurrence of recurring event
     const getNextOccurrence = (dayName: string, fromDate: Date = new Date()): string => {
@@ -196,7 +214,7 @@ serve(async (req) => {
     const ageFilteredEvents = filteredByDateEvents.filter(event => isAgeAppropriate(event.target_audience, userAge));
     
     console.log(`Filtered ${filteredByDateEvents.length} date-matched events to ${ageFilteredEvents.length} age-appropriate events for age ${userAge}`);
-    console.log(`Also fetched ${businesses.length} businesses, ${coupons.length} coupons`);
+    console.log(`Also fetched ${businesses.length} businesses, ${coupons.length} coupons, ${topLists.length} top lists`);
 
     // Build context for AI - dates are already transformed above
     const contextData = {
@@ -235,6 +253,19 @@ serve(async (req) => {
         neighborhood: c.neighborhood,
         valid_until: c.valid_until,
         image_url: c.image_url,
+      })),
+      topLists: topLists.map((list: any) => ({
+        id: list.id,
+        title: list.title,
+        category: list.category,
+        description: list.description,
+        items: (list.top_list_items || [])
+          .sort((a: any, b: any) => a.display_order - b.display_order)
+          .map((item: any) => ({
+            name: item.name,
+            description: item.description,
+            location: item.location,
+          })),
       })),
     };
 
@@ -349,6 +380,13 @@ ${userContext}
 
 Available data:
 ${JSON.stringify(contextData, null, 2)}
+
+**CURATED TOP LISTS - COMMUNITY RECOMMENDATIONS:**
+The "topLists" section contains curated lists created by registered users about the best places in Buenos Aires. When users ask for recommendations about bars, clubs, art centers, workshops, or cafés, you can reference these community-curated lists:
+- Each list has a category (Bars, Clubs, Art Centers, Workshops, Cafés) and contains ranked items
+- Use these lists to provide authentic, community-endorsed recommendations
+- Example: "According to our community's top list for bars, here are some highly recommended spots: [list items]"
+- Combine database events with these top lists when relevant to give comprehensive recommendations
 
 CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 

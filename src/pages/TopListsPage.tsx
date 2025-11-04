@@ -33,14 +33,11 @@ const TopListsPage = () => {
   });
 
   const categories = [
-    "Best Bars",
-    "Best Cafés",
-    "Best Clubs",
-    "Best Restaurants",
-    "Best Parks",
-    "Best Museums",
-    "Best Shops",
-    "Other"
+    "Bars",
+    "Clubs",
+    "Art Centers",
+    "Workshops",
+    "Cafés"
   ];
 
   // Fetch all top lists
@@ -55,6 +52,22 @@ const TopListsPage = () => {
       if (error) throw error;
       return data;
     },
+  });
+
+  // Fetch user's list count
+  const { data: userListCount } = useQuery({
+    queryKey: ["userListCount", user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const { count, error } = await supabase
+        .from("top_lists")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!user,
   });
 
   // Fetch items for a specific list
@@ -177,7 +190,12 @@ const TopListsPage = () => {
 
   const handleCreateList = () => {
     if (!user) {
+      toast.error("Please log in to create a list");
       navigate("/login");
+      return;
+    }
+    if (userListCount && userListCount >= 10) {
+      toast.error("You can only create up to 10 lists");
       return;
     }
     createListMutation.mutate();
@@ -198,9 +216,10 @@ const TopListsPage = () => {
             <Button
               onClick={() => setShowCreateDialog(true)}
               className="gap-2"
+              disabled={userListCount !== undefined && userListCount >= 10}
             >
               <Plus className="h-4 w-4" />
-              Create List
+              Create List {userListCount !== undefined && `(${userListCount}/10)`}
             </Button>
           )}
         </div>
