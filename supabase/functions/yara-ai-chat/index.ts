@@ -383,14 +383,22 @@ ${JSON.stringify(contextData, null, 2)}
 
 **CURATED TOP LISTS - COMMUNITY RECOMMENDATIONS:**
 The "topLists" section contains curated lists created by registered users about the best places in Buenos Aires. Each list has items with name, description, and location:
-- **WHEN USERS ASK FOR BARS**: Recommend individual bars FROM the items in bar-related top lists. Don't just recommend the list - recommend the actual bars listed in the items.
-- **WHEN USERS ASK FOR CLUBS**: Recommend individual clubs FROM the items in club-related top lists
-- **WHEN USERS ASK FOR CAFÉS**: Recommend individual cafés FROM the items in café-related top lists
+
+**CRITICAL - BARS, CAFÉS, CLUBS REQUESTS = USE TOP LISTS FIRST**:
+- **WHEN USERS ASK FOR BARS**: You MUST recommend individual bars FROM the items in bar-related top lists. Don't recommend the list - recommend the actual bars listed in the items as separate recommendations.
+- **WHEN USERS ASK FOR CLUBS**: You MUST recommend individual clubs FROM the items in club-related top lists
+- **WHEN USERS ASK FOR CAFÉS**: You MUST recommend individual cafés FROM the items in café-related top lists
 - **WHEN USERS ASK FOR ART CENTERS**: Recommend individual art centers FROM the items in art center-related top lists
-- **WHEN USERS ASK FOR WORKSHOPS**: Recommend individual workshops FROM the items in workshop-related top lists
-- Example: If a user asks "recommend me bars", look through top lists with category "Bars", extract the individual bar items from those lists, and recommend those specific bars with their descriptions and locations
-- You can combine these top list items with relevant events to give comprehensive recommendations
-- The items array contains: name, description, and location for each place
+- **WHEN USERS ASK FOR RESTAURANTS**: Recommend individual restaurants FROM the items in restaurant-related top lists
+
+**HOW TO USE TOP LISTS**:
+1. Look through the topLists array for lists matching the category the user requested (e.g., "Bars", "Clubs", "Cafés")
+2. Extract the individual items from those lists
+3. Create a separate topListItem recommendation for each bar/café/club/restaurant
+4. Use type: "topListItem", id: topList.id, title: item.name, description: item.description + item.location
+5. You can combine top list items with relevant events to give comprehensive recommendations
+
+Example: User asks "recommend bars" → Look for topLists with category "Bars" → Extract all bar items → Recommend each bar as a separate topListItem with its name, description, and location
 
 CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 
