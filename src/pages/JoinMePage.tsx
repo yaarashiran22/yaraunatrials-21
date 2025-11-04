@@ -21,6 +21,15 @@ interface JoinRequest {
   created_at: string;
   expires_at: string;
   additional_photos: string[] | null;
+  event_id: string | null;
+  events?: {
+    id: string;
+    title: string;
+    date: string | null;
+    time: string | null;
+    location: string | null;
+    image_url: string | null;
+  };
 }
 
 const JoinMePage = () => {
@@ -44,13 +53,23 @@ const JoinMePage = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<JoinRequest | null>(null);
 
-  // Fetch all active join requests
+  // Fetch all active join requests with event details
   const { data: joinRequests, isLoading } = useQuery({
     queryKey: ["joinRequests"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("join_requests")
-        .select("*")
+        .select(`
+          *,
+          events (
+            id,
+            title,
+            date,
+            time,
+            location,
+            image_url
+          )
+        `)
         .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false });
 
@@ -400,6 +419,39 @@ const JoinMePage = () => {
                           </Button>
                         </div>
 
+                        {/* Event Information */}
+                        {request.events && (
+                          <div className="bg-accent/20 rounded-xl p-3 border border-border/50">
+                            <div className="flex gap-3">
+                              {request.events.image_url && (
+                                <img
+                                  src={request.events.image_url}
+                                  alt={request.events.title}
+                                  className="w-16 h-16 rounded-lg object-cover"
+                                />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs text-muted-foreground mb-1">Wants to go to:</p>
+                                <h4 className="font-semibold text-sm text-foreground truncate">
+                                  {request.events.title}
+                                </h4>
+                                <div className="flex flex-col gap-0.5 mt-1">
+                                  {request.events.date && (
+                                    <p className="text-xs text-muted-foreground">
+                                      📅 {request.events.date}
+                                    </p>
+                                  )}
+                                  {request.events.location && (
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      📍 {request.events.location}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {request.description && (
                           <p className="text-sm lg:text-base text-foreground/80 leading-relaxed">
                             {request.description}
@@ -500,6 +552,39 @@ const JoinMePage = () => {
                     <p className="text-lg text-foreground">
                       <span className="font-semibold">{selectedRequest.age}</span> years old
                     </p>
+                  </div>
+                )}
+
+                {/* Event Information in Popup */}
+                {selectedRequest.events && (
+                  <div className="bg-gradient-to-br from-[#E91E63]/10 to-[#9C27B0]/10 rounded-2xl p-4 border-2 border-[#E91E63]/30">
+                    <h4 className="font-semibold text-foreground mb-3 text-center">Wants to go to:</h4>
+                    <div className="space-y-3">
+                      {selectedRequest.events.image_url && (
+                        <img
+                          src={selectedRequest.events.image_url}
+                          alt={selectedRequest.events.title}
+                          className="w-full h-32 rounded-xl object-cover"
+                        />
+                      )}
+                      <h3 className="font-bold text-lg text-foreground text-center">
+                        {selectedRequest.events.title}
+                      </h3>
+                      <div className="space-y-2">
+                        {selectedRequest.events.date && (
+                          <div className="flex items-center gap-2 text-foreground/80">
+                            <span className="text-lg">📅</span>
+                            <span>{selectedRequest.events.date} {selectedRequest.events.time && `at ${selectedRequest.events.time}`}</span>
+                          </div>
+                        )}
+                        {selectedRequest.events.location && (
+                          <div className="flex items-center gap-2 text-foreground/80">
+                            <span className="text-lg">📍</span>
+                            <span>{selectedRequest.events.location}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
 
