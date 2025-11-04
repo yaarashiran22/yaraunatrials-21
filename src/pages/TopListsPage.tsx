@@ -209,10 +209,12 @@ const TopListsPage = () => {
     <div className="min-h-screen bg-background pb-20 lg:pb-0">
       <Header />
       
-      <main className="px-4 pt-16 pb-6 lg:pt-24 max-w-4xl mx-auto">
+      <main className="px-4 pt-12 pb-6 lg:pt-16 max-w-4xl mx-auto">
         {/* Header Section */}
         <div className="mb-6 space-y-4">
-          <h1 className="text-2xl font-bold text-foreground">Yara's Top Lists</h1>
+          <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E91E63] to-[#9C27B0] bg-clip-text text-transparent">
+            Yara's Top Lists
+          </h1>
           {user && (
             <Button
               onClick={() => setShowCreateDialog(true)}
@@ -237,22 +239,26 @@ const TopListsPage = () => {
             {topLists.map((list) => (
               <div
                 key={list.id}
-                className="bg-card rounded-2xl p-5 border border-border active:bg-accent/20 transition-colors cursor-pointer shadow-none"
+                className="group bg-gradient-to-br from-card to-accent/10 rounded-2xl p-5 border border-border/50 hover:border-[#E91E63]/30 active:bg-accent/20 transition-all duration-300 cursor-pointer hover:shadow-lg hover:scale-[1.01] shadow-none"
                 onClick={() => setSelectedListId(list.id)}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-lg text-foreground truncate">{list.title}</h3>
+                    <h3 className="font-bold text-lg text-foreground truncate group-hover:text-[#E91E63] transition-colors">
+                      {list.title}
+                    </h3>
                     <p className="text-sm text-muted-foreground mt-0.5">{list.category}</p>
                     {list.description && (
-                      <p className="text-sm text-foreground/80 mt-2 line-clamp-2">{list.description}</p>
+                      <p className="text-sm text-foreground/80 mt-2 line-clamp-2 leading-relaxed">
+                        {list.description}
+                      </p>
                     )}
                   </div>
                   {user?.id === list.user_id && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="flex-shrink-0 h-9 w-9 p-0 shadow-none hover:bg-destructive/10"
+                      className="flex-shrink-0 h-9 w-9 p-0 shadow-none hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteListMutation.mutate(list.id);
@@ -266,12 +272,15 @@ const TopListsPage = () => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-16 px-4">
-            <p className="text-base text-muted-foreground mb-6">No lists yet</p>
+          <div className="text-center py-16 px-4 bg-gradient-to-br from-accent/20 to-accent/5 rounded-2xl border-2 border-dashed border-border/50">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#E91E63]/20 to-[#9C27B0]/20 flex items-center justify-center">
+              <Plus className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <p className="text-base text-foreground font-medium mb-2">No lists yet</p>
             {user && (
               <Button 
                 onClick={() => setShowCreateDialog(true)}
-                className="min-h-touch px-8 shadow-none"
+                className="min-h-touch px-8 shadow-none mt-4 bg-gradient-to-r from-[#E91E63] to-[#9C27B0] hover:from-[#D81B60] hover:to-[#8E24AA] text-white"
               >
                 Create Your First List
               </Button>
