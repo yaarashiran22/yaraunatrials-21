@@ -132,9 +132,12 @@ const JoinMePage = () => {
       if (isAdditional) {
         // Add to additional photos (max 2)
         if (editForm.additional_photos.length < 2) {
+          const updatedPhotos = [...editForm.additional_photos, publicUrl];
+          console.log('Adding additional photo:', publicUrl);
+          console.log('Updated photos array:', updatedPhotos);
           setEditForm({ 
             ...editForm, 
-            additional_photos: [...editForm.additional_photos, publicUrl] 
+            additional_photos: updatedPhotos
           });
           toast.success("Additional photo uploaded!");
         } else {
@@ -161,9 +164,17 @@ const JoinMePage = () => {
 
   const handleSave = () => {
     if (!editingId) return;
+    
+    console.log('Saving with additional_photos:', editForm.additional_photos);
+    
     updateRequestMutation.mutate({
       id: editingId,
-      updates: editForm,
+      updates: {
+        name: editForm.name,
+        photo_url: editForm.photo_url,
+        description: editForm.description,
+        additional_photos: editForm.additional_photos,
+      },
     });
   };
 
