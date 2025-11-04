@@ -37,6 +37,7 @@ const JoinMePage = () => {
     photo_url: "",
     description: "",
   });
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Fetch all active join requests
   const { data: joinRequests, isLoading } = useQuery({
@@ -99,6 +100,36 @@ const JoinMePage = () => {
       photo_url: request.photo_url || "",
       description: request.description || "",
     });
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingPhoto(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('profile-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-images')
+        .getPublicUrl(filePath);
+
+      setEditForm({ ...editForm, photo_url: publicUrl });
+      toast.success("Photo uploaded!");
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error("Failed to upload photo");
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   const handleSave = () => {
@@ -184,15 +215,29 @@ const JoinMePage = () => {
                       <div className="space-y-4">
                         <div>
                           <label className="text-sm font-semibold text-foreground mb-2 block">
-                            Photo URL
+                            Photo
                           </label>
-                          <Input
-                            value={editForm.photo_url}
-                            onChange={(e) =>
-                              setEditForm({ ...editForm, photo_url: e.target.value })
-                            }
-                            placeholder="https://..."
-                          />
+                          <div className="flex items-center gap-4">
+                            {editForm.photo_url && (
+                              <img
+                                src={editForm.photo_url}
+                                alt="Preview"
+                                className="w-20 h-20 rounded-full object-cover border-2 border-primary"
+                              />
+                            )}
+                            <div className="flex-1">
+                              <Input
+                                type="file"
+                                accept="image/*"
+                                onChange={handlePhotoUpload}
+                                disabled={uploadingPhoto}
+                                className="cursor-pointer"
+                              />
+                              {uploadingPhoto && (
+                                <p className="text-xs text-muted-foreground mt-1">Uploading...</p>
+                              )}
+                            </div>
+                          </div>
                         </div>
                         <div>
                           <label className="text-sm font-semibold text-foreground mb-2 block">
