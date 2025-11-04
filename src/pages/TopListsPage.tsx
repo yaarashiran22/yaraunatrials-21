@@ -278,7 +278,7 @@ const TopListsPage = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Title</label>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Title</label>
               <Input
                 value={newList.title}
                 onChange={(e) => setNewList({ ...newList, title: e.target.value })}
@@ -286,7 +286,7 @@ const TopListsPage = () => {
               />
             </div>
             <div>
-              <label className="text-sm font-medium">Category</label>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Category</label>
               <Select
                 value={newList.category}
                 onValueChange={(value) => setNewList({ ...newList, category: value })}
@@ -304,7 +304,7 @@ const TopListsPage = () => {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium">Description (optional)</label>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Description (optional)</label>
               <Textarea
                 value={newList.description}
                 onChange={(e) => setNewList({ ...newList, description: e.target.value })}
@@ -391,7 +391,7 @@ const TopListsPage = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Name</label>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Name</label>
               <Input
                 value={newItem.name}
                 onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
@@ -399,7 +399,7 @@ const TopListsPage = () => {
               />
             </div>
             <div>
-              <label className="text-sm font-medium">Location</label>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Location</label>
               <Input
                 value={newItem.location}
                 onChange={(e) => setNewItem({ ...newItem, location: e.target.value })}
@@ -407,7 +407,7 @@ const TopListsPage = () => {
               />
             </div>
             <div>
-              <label className="text-sm font-medium">Description (optional)</label>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Description (optional)</label>
               <Textarea
                 value={newItem.description}
                 onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
