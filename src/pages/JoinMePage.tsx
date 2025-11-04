@@ -194,28 +194,29 @@ const JoinMePage = () => {
                     ) : (
                       // View mode
                       <div className="space-y-4">
-                        <div className="flex items-start gap-4">
+                        <div className="flex items-start gap-4" style={{ filter: 'none', boxShadow: 'none', textShadow: 'none' }}>
                           {request.photo_url ? (
                             <img
                               src={request.photo_url}
                               alt={request.name}
                               className="w-20 h-20 rounded-full object-cover border-2 border-primary"
+                              style={{ filter: 'none', boxShadow: 'none' }}
                             />
                           ) : (
-                            <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center border-2 border-primary">
+                            <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center border-2 border-primary" style={{ filter: 'none', boxShadow: 'none' }}>
                               <UserPlus className="h-10 w-10 text-primary" />
                             </div>
                           )}
-                          <div className="flex-1">
-                            <h3 className="font-bold text-xl text-foreground" style={{ textShadow: 'none' }}>
+                          <div className="flex-1" style={{ filter: 'none', textShadow: 'none' }}>
+                            <h3 className="font-bold text-2xl text-foreground" style={{ textShadow: 'none', filter: 'none', opacity: 1 }}>
                               {request.name}
                             </h3>
                             {request.age && (
-                              <p className="text-base text-foreground" style={{ textShadow: 'none' }}>{request.age} years old</p>
+                              <p className="text-lg font-semibold text-foreground mt-1" style={{ textShadow: 'none', filter: 'none', opacity: 1 }}>{request.age} years old</p>
                             )}
-                            <div className="flex items-center gap-2 mt-1 text-sm text-foreground" style={{ textShadow: 'none' }}>
-                              <Clock className="h-4 w-4" />
-                              <span>{getTimeRemaining(request.expires_at)}</span>
+                            <div className="flex items-center gap-2 mt-2 text-base font-medium text-foreground" style={{ textShadow: 'none', filter: 'none', opacity: 1 }}>
+                              <Clock className="h-5 w-5" />
+                              <span style={{ textShadow: 'none', filter: 'none' }}>{getTimeRemaining(request.expires_at)}</span>
                             </div>
                           </div>
                           {phoneNumber === request.phone_number && (
