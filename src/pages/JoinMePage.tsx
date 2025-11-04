@@ -169,23 +169,12 @@ const JoinMePage = () => {
       <main className="container mx-auto px-4 pt-20 lg:pt-24">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-foreground mb-2">Join Me</h1>
-            <p className="text-foreground/80 text-lg">
+            <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E91E63] to-[#9C27B0] bg-clip-text text-transparent mb-3">
+              Join Me
+            </h1>
+            <p className="text-foreground/80 text-base lg:text-lg">
               Find people looking to make plans and go out together
             </p>
-            {phoneNumber && (
-              <div className="mt-4 p-3 bg-primary/10 rounded-lg">
-                <p className="text-sm font-semibold">Your phone: {phoneNumber}</p>
-                <p className="text-xs text-muted-foreground">You can edit your card</p>
-              </div>
-            )}
-            {!phoneNumber && (
-              <div className="mt-4 p-3 bg-yellow-100 rounded-lg">
-                <p className="text-sm font-semibold text-yellow-800">⚠️ No phone number detected in URL</p>
-                <p className="text-xs text-yellow-700">The link should include ?phone=YOUR_NUMBER</p>
-                <p className="text-xs text-yellow-700 mt-1">Current URL: {window.location.href}</p>
-              </div>
-            )}
           </div>
 
           {isLoading ? (
@@ -210,7 +199,7 @@ const JoinMePage = () => {
                 return (
                   <div
                     key={request.id}
-                    className="rounded-2xl p-6 border-2 border-border bg-white"
+                    className="group rounded-2xl p-5 lg:p-6 border border-border/50 bg-gradient-to-br from-card to-accent/10 hover:border-[#E91E63]/30 transition-all duration-300 hover:shadow-lg shadow-none"
                   >
                     {isEditing ? (
                       // Edit mode
@@ -282,80 +271,44 @@ const JoinMePage = () => {
                     ) : (
                       // View mode
                       <div className="space-y-4">
-                        {/* DEBUG INFO */}
-                        <div className="p-2 bg-blue-50 rounded text-xs">
-                          <p><strong>URL Phone:</strong> {phoneNumber || 'NULL'}</p>
-                          <p><strong>Card Phone:</strong> {request.phone_number}</p>
-                          <p><strong>Match:</strong> {phoneNumber === request.phone_number ? 'YES' : 'NO'}</p>
-                        </div>
-                        
-                        <div className="flex items-start gap-4" style={{ filter: 'none', boxShadow: 'none', textShadow: 'none' }}>
+                        <div className="flex items-start gap-4">
                           {request.photo_url ? (
                             <img
                               src={request.photo_url}
                               alt={request.name}
-                              className="w-20 h-20 rounded-full object-cover border-2 border-primary"
-                              style={{ filter: 'none', boxShadow: 'none' }}
+                              className="w-16 h-16 lg:w-20 lg:h-20 rounded-full object-cover border-2 border-[#E91E63] shadow-md"
                             />
                           ) : (
-                            <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center border-2 border-primary" style={{ filter: 'none', boxShadow: 'none' }}>
-                              <UserPlus className="h-10 w-10 text-primary" />
+                            <div className="w-16 h-16 lg:w-20 lg:h-20 rounded-full bg-gradient-to-br from-[#E91E63]/20 to-[#9C27B0]/20 flex items-center justify-center border-2 border-[#E91E63]">
+                              <UserPlus className="h-8 w-8 lg:h-10 lg:w-10 text-[#E91E63]" />
                             </div>
                           )}
-                          <div className="flex-1" style={{ filter: 'none', textShadow: 'none' }}>
-                            <h3 
-                              className="font-bold text-2xl" 
-                              style={{ 
-                                color: '#000000',
-                                textShadow: 'none', 
-                                filter: 'none', 
-                                opacity: 1,
-                                fontWeight: 700
-                              }}
-                            >
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-xl lg:text-2xl text-foreground truncate">
                               {request.name}
                             </h3>
                             {request.age && (
-                              <p 
-                                className="text-lg font-semibold mt-1" 
-                                style={{ 
-                                  color: '#000000',
-                                  textShadow: 'none', 
-                                  filter: 'none', 
-                                  opacity: 1,
-                                  fontWeight: 600
-                                }}
-                              >
+                              <p className="text-base lg:text-lg text-muted-foreground mt-0.5">
                                 {request.age} years old
                               </p>
                             )}
-                            <div 
-                              className="flex items-center gap-2 mt-2 text-base font-medium" 
-                              style={{ 
-                                color: '#000000',
-                                textShadow: 'none', 
-                                filter: 'none', 
-                                opacity: 1 
-                              }}
-                            >
-                              <Clock className="h-5 w-5" style={{ color: '#000000' }} />
-                              <span style={{ color: '#000000', textShadow: 'none', filter: 'none' }}>
-                                {getTimeRemaining(request.expires_at)}
-                              </span>
+                            <div className="flex items-center gap-2 mt-2 text-sm lg:text-base text-muted-foreground">
+                              <Clock className="h-4 w-4 lg:h-5 lg:w-5" />
+                              <span>{getTimeRemaining(request.expires_at)}</span>
                             </div>
                           </div>
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
                             onClick={() => handleEdit(request)}
-                            className="shrink-0 border-2 hover:bg-primary hover:text-primary-foreground"
+                            className="shrink-0 h-9 w-9 p-0 hover:bg-[#E91E63]/10 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
-                            <Edit className="h-5 w-5" />
+                            <Edit className="h-4 w-4 text-[#E91E63]" />
                           </Button>
                         </div>
 
                         {request.description && (
-                          <p className="text-base" style={{ color: '#000000', textShadow: 'none', filter: 'none', opacity: 1 }}>
+                          <p className="text-sm lg:text-base text-foreground/80 leading-relaxed">
                             {request.description}
                           </p>
                         )}
@@ -365,10 +318,10 @@ const JoinMePage = () => {
                             href={instagramLink.startsWith('http') ? instagramLink : `https://${instagramLink}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 text-primary hover:underline"
+                            className="inline-flex items-center gap-2 text-[#E91E63] hover:text-[#D81B60] font-medium transition-colors"
                           >
                             <Instagram className="h-5 w-5" />
-                            Connect on Instagram
+                            <span className="text-sm lg:text-base">Connect on Instagram</span>
                           </a>
                         )}
 
@@ -377,7 +330,7 @@ const JoinMePage = () => {
                             variant="destructive"
                             size="sm"
                             onClick={() => deleteRequestMutation.mutate(request.id)}
-                            className="w-full"
+                            className="w-full mt-2"
                           >
                             Remove My Request
                           </Button>
@@ -390,10 +343,12 @@ const JoinMePage = () => {
               })()}
             </div>
           ) : (
-            <div className="text-center py-12 bg-card rounded-2xl border-2 border-border">
-              <UserPlus className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-foreground/80 text-lg mb-2">No one is looking to connect right now</p>
-              <p className="text-foreground/60">Check back later or ask Yara to add you to the board!</p>
+            <div className="text-center py-16 px-4 bg-gradient-to-br from-accent/20 to-accent/5 rounded-2xl border-2 border-dashed border-border/50">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#E91E63]/20 to-[#9C27B0]/20 flex items-center justify-center">
+                <UserPlus className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <p className="text-foreground text-base lg:text-lg font-medium mb-2">No one is looking to connect right now</p>
+              <p className="text-muted-foreground text-sm lg:text-base">Check back later or ask Yara to add you to the board!</p>
             </div>
           )}
         </div>
