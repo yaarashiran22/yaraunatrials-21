@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Edit } from "lucide-react";
+import { Plus, Trash2, Edit, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import BottomNavigation from "@/components/BottomNavigation";
@@ -336,19 +336,21 @@ const TopListsPage = () => {
 
       {/* List Details Dialog */}
       <Dialog open={!!selectedListId} onOpenChange={() => setSelectedListId(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto shadow-none rounded-3xl mx-4">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto shadow-none rounded-3xl mx-4 bg-gradient-to-br from-background to-accent/10 border-2 border-border/50">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold pr-8">
+            <DialogTitle className="text-2xl font-bold pr-8 bg-gradient-to-r from-[#E91E63] to-[#9C27B0] bg-clip-text text-transparent">
               {topLists?.find(l => l.id === selectedListId)?.title}
             </DialogTitle>
+            <p className="text-muted-foreground text-sm mt-1">
+              {topLists?.find(l => l.id === selectedListId)?.description}
+            </p>
           </DialogHeader>
           
           <div className="space-y-4 -mt-2">
             {user?.id === topLists?.find(l => l.id === selectedListId)?.user_id && (
               <Button
                 onClick={() => setShowAddItemDialog(true)}
-                variant="outline"
-                className="w-full min-h-touch gap-2 text-base font-semibold shadow-none"
+                className="w-full min-h-touch gap-2 text-base font-semibold bg-gradient-to-r from-[#E91E63] to-[#9C27B0] hover:from-[#D81B60] hover:to-[#8E24AA] text-white shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
               >
                 <Plus className="h-5 w-5" />
                 Add Item
@@ -360,37 +362,48 @@ const TopListsPage = () => {
                 {listItems.map((item, index) => (
                   <div
                     key={item.id}
-                    className="bg-accent/30 rounded-2xl p-4 flex gap-3 border-0 shadow-none"
+                    className="group bg-gradient-to-br from-card to-accent/20 rounded-2xl p-5 flex gap-4 border border-border/50 hover:border-[#E91E63]/30 transition-all duration-300 hover:shadow-lg hover:scale-[1.01] shadow-none"
                   >
-                    <div className="flex-shrink-0 w-9 h-9 rounded-full bg-primary flex items-center justify-center font-bold text-base text-primary-foreground">
+                    <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-[#E91E63] to-[#9C27B0] flex items-center justify-center font-bold text-lg text-white shadow-md group-hover:scale-110 transition-transform duration-300">
                       {index + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-base text-foreground">{item.name}</h4>
+                      <h4 className="font-bold text-lg text-foreground group-hover:text-[#E91E63] transition-colors">{item.name}</h4>
                       {item.location && (
-                        <p className="text-sm text-muted-foreground mt-0.5">{item.location}</p>
+                        <div className="flex items-center gap-1 mt-1">
+                          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">{item.location}</p>
+                        </div>
                       )}
                       {item.description && (
-                        <p className="text-sm text-foreground/80 mt-2">{item.description}</p>
+                        <p className="text-sm text-foreground/80 mt-2 leading-relaxed">{item.description}</p>
                       )}
                     </div>
                     {user?.id === topLists?.find(l => l.id === selectedListId)?.user_id && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="flex-shrink-0 h-9 w-9 p-0 shadow-none"
+                        className="flex-shrink-0 h-9 w-9 p-0 shadow-none hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={() => deleteItemMutation.mutate(item.id)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     )}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-center text-muted-foreground py-12 text-base">
-                No items in this list yet
-              </p>
+              <div className="text-center py-16 px-4 bg-gradient-to-br from-accent/20 to-accent/5 rounded-2xl border-2 border-dashed border-border/50">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#E91E63]/20 to-[#9C27B0]/20 flex items-center justify-center">
+                  <Plus className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground text-base font-medium">
+                  No items in this list yet
+                </p>
+                <p className="text-muted-foreground/70 text-sm mt-1">
+                  Start building your list by adding items!
+                </p>
+              </div>
             )}
           </div>
         </DialogContent>
