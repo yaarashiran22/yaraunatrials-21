@@ -272,7 +272,7 @@ const TopListsPage = () => {
 
       {/* Create List Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
+        <DialogContent className="!shadow-none">
           <DialogHeader>
             <DialogTitle>Create New List</DialogTitle>
           </DialogHeader>
@@ -324,7 +324,7 @@ const TopListsPage = () => {
 
       {/* List Details Dialog */}
       <Dialog open={!!selectedListId} onOpenChange={() => setSelectedListId(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto !shadow-none">
           <DialogHeader>
             <DialogTitle>
               {topLists?.find(l => l.id === selectedListId)?.title}
@@ -385,7 +385,7 @@ const TopListsPage = () => {
 
       {/* Add Item Dialog */}
       <Dialog open={showAddItemDialog} onOpenChange={setShowAddItemDialog}>
-        <DialogContent>
+        <DialogContent className="!shadow-none">
           <DialogHeader>
             <DialogTitle>Add Item to List</DialogTitle>
           </DialogHeader>
