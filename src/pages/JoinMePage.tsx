@@ -142,7 +142,18 @@ const JoinMePage = () => {
             <div className="text-center py-12 text-muted-foreground">Loading...</div>
           ) : joinRequests && joinRequests.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2">
-              {joinRequests.map((request) => {
+              {(() => {
+                // Filter to show only one card per phone number (most recent)
+                const seenPhones = new Set<string>();
+                const uniqueRequests = joinRequests.filter(request => {
+                  if (seenPhones.has(request.phone_number)) {
+                    return false;
+                  }
+                  seenPhones.add(request.phone_number);
+                  return true;
+                });
+                
+                return uniqueRequests.map((request) => {
                 const isEditing = editingId === request.id;
                 const instagramLink = extractInstagramLink(request.description);
 
@@ -298,7 +309,8 @@ const JoinMePage = () => {
                     )}
                   </div>
                 );
-              })}
+                });
+              })()}
             </div>
           ) : (
             <div className="text-center py-12 bg-card rounded-2xl border-2 border-border">
