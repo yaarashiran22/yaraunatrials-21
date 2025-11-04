@@ -34,6 +34,7 @@ const JoinMePage = () => {
   
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
+    name: "",
     photo_url: "",
     description: "",
   });
@@ -97,6 +98,7 @@ const JoinMePage = () => {
   const handleEdit = (request: JoinRequest) => {
     setEditingId(request.id);
     setEditForm({
+      name: request.name || "",
       photo_url: request.photo_url || "",
       description: request.description || "",
     });
@@ -213,6 +215,18 @@ const JoinMePage = () => {
                     {isEditing ? (
                       // Edit mode
                       <div className="space-y-4">
+                        <div>
+                          <label className="text-sm font-semibold text-foreground mb-2 block">
+                            Name
+                          </label>
+                          <Input
+                            value={editForm.name}
+                            onChange={(e) =>
+                              setEditForm({ ...editForm, name: e.target.value })
+                            }
+                            placeholder="Your name"
+                          />
+                        </div>
                         <div>
                           <label className="text-sm font-semibold text-foreground mb-2 block">
                             Photo
