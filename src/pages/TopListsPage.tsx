@@ -211,7 +211,7 @@ const TopListsPage = () => {
       
       <main className="container mx-auto px-4 pt-20 lg:pt-24">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Yara's Top Lists</h1>
+          <h1 className="text-4xl font-bold text-foreground">Yara's Top Lists</h1>
           {user && (
             <Button
               onClick={() => setShowCreateDialog(true)}
@@ -231,13 +231,13 @@ const TopListsPage = () => {
             {topLists.map((list) => (
               <div
                 key={list.id}
-                className="bg-card rounded-xl p-6 border border-border hover:border-primary/50 transition-colors cursor-pointer"
+                className="bg-card rounded-xl p-6 border-2 border-border hover:border-primary transition-colors cursor-pointer"
                 onClick={() => setSelectedListId(list.id)}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="font-semibold text-lg">{list.title}</h3>
-                    <p className="text-sm text-muted-foreground">{list.category}</p>
+                    <h3 className="font-bold text-xl text-foreground">{list.title}</h3>
+                    <p className="text-base text-foreground/80 mt-1">{list.category}</p>
                   </div>
                   {user?.id === list.user_id && (
                     <Button
@@ -253,7 +253,7 @@ const TopListsPage = () => {
                   )}
                 </div>
                 {list.description && (
-                  <p className="text-sm text-muted-foreground">{list.description}</p>
+                  <p className="text-base text-foreground/90">{list.description}</p>
                 )}
               </div>
             ))}
@@ -348,18 +348,18 @@ const TopListsPage = () => {
                 {listItems.map((item, index) => (
                   <div
                     key={item.id}
-                    className="bg-muted/50 rounded-lg p-4 flex gap-4"
+                    className="bg-card rounded-lg p-5 flex gap-4 border border-border"
                   >
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center font-semibold text-primary">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-lg text-primary">
                       {index + 1}
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold">{item.name}</h4>
+                      <h4 className="font-bold text-lg text-foreground">{item.name}</h4>
                       {item.location && (
-                        <p className="text-sm text-muted-foreground">{item.location}</p>
+                        <p className="text-base text-foreground/80 mt-1">{item.location}</p>
                       )}
                       {item.description && (
-                        <p className="text-sm mt-2">{item.description}</p>
+                        <p className="text-base text-foreground/90 mt-2">{item.description}</p>
                       )}
                     </div>
                     {user?.id === topLists?.find(l => l.id === selectedListId)?.user_id && (
