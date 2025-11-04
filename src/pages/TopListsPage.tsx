@@ -231,7 +231,7 @@ const TopListsPage = () => {
             {topLists.map((list) => (
               <div
                 key={list.id}
-                className="bg-card rounded-xl p-6 border-2 border-border hover:border-primary transition-colors cursor-pointer"
+                className="bg-card rounded-xl p-6 border-2 border-border hover:border-primary transition-colors cursor-pointer !shadow-none"
                 onClick={() => setSelectedListId(list.id)}
               >
                 <div className="flex items-start justify-between mb-3">
@@ -348,7 +348,7 @@ const TopListsPage = () => {
                 {listItems.map((item, index) => (
                   <div
                     key={item.id}
-                    className="bg-card rounded-lg p-5 flex gap-4 border border-border"
+                    className="bg-card rounded-lg p-5 flex gap-4 border border-border !shadow-none"
                   >
                     <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-lg text-primary">
                       {index + 1}
