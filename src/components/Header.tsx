@@ -70,7 +70,7 @@ const Header = ({
             </h1>
           </div>
           
-          {/* Center - Neighborhood Dropdown & Join Me Button */}
+          {/* Center - Neighborhood Dropdown */}
           <div className="flex-1 flex justify-center items-center gap-3 px-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -97,18 +97,17 @@ const Header = ({
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            
+          </div>
+          
+          {/* Right side - Join Button */}
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Button
               onClick={() => navigate('/join-me')}
               className="bg-gradient-to-r from-[#E91E63] to-[#9C27B0] text-white hover:opacity-90 px-3 py-2 h-9 gap-1 text-sm font-semibold"
             >
               <Users className="h-4 w-4" />
-              Join Me
+              Join
             </Button>
-          </div>
-          
-          {/* Right side - Empty spacer for layout balance */}
-          <div className="flex items-center gap-2 flex-shrink-0 w-9">
           </div>
           
         </div>
