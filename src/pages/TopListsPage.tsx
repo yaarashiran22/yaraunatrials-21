@@ -252,13 +252,13 @@ const TopListsPage = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="flex-shrink-0 h-9 w-9 p-0 shadow-none"
+                      className="flex-shrink-0 h-9 w-9 p-0 shadow-none hover:bg-destructive/10"
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteListMutation.mutate(list.id);
                       }}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   )}
                 </div>
