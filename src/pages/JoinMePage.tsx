@@ -166,9 +166,9 @@ const JoinMePage = () => {
     <div className="min-h-screen bg-background pb-20 lg:pb-0">
       <Header />
       
-      <main className="container mx-auto px-4 pt-16 lg:pt-20">
+      <main className="container mx-auto px-4 pt-12 lg:pt-16">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-6">
+          <div className="mb-5">
             <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E91E63] to-[#9C27B0] bg-clip-text text-transparent mb-3">
               Join Me
             </h1>
