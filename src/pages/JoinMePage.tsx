@@ -24,10 +24,12 @@ interface JoinRequest {
 const JoinMePage = () => {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const phoneNumber = searchParams.get("phone");
+  const phoneNumberRaw = searchParams.get("phone");
+  // Remove "whatsapp:" prefix if present
+  const phoneNumber = phoneNumberRaw?.replace(/^whatsapp:/, '') || null;
   
   console.log("Full URL:", window.location.href);
-  console.log("Phone number from URL:", phoneNumber);
+  console.log("Phone number from URL (cleaned):", phoneNumber);
   console.log("All URL params:", Object.fromEntries(searchParams.entries()));
   
   const [editingId, setEditingId] = useState<string | null>(null);
