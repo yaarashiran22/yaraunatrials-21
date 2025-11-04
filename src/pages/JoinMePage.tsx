@@ -228,6 +228,13 @@ const JoinMePage = () => {
                     ) : (
                       // View mode
                       <div className="space-y-4">
+                        {/* DEBUG INFO */}
+                        <div className="p-2 bg-blue-50 rounded text-xs">
+                          <p><strong>URL Phone:</strong> {phoneNumber || 'NULL'}</p>
+                          <p><strong>Card Phone:</strong> {request.phone_number}</p>
+                          <p><strong>Match:</strong> {phoneNumber === request.phone_number ? 'YES' : 'NO'}</p>
+                        </div>
+                        
                         <div className="flex items-start gap-4" style={{ filter: 'none', boxShadow: 'none', textShadow: 'none' }}>
                           {request.photo_url ? (
                             <img
@@ -283,15 +290,14 @@ const JoinMePage = () => {
                               </span>
                             </div>
                           </div>
-                          {phoneNumber && phoneNumber === request.phone_number && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(request)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(request)}
+                            className="shrink-0"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
                         </div>
 
                         {request.description && (
