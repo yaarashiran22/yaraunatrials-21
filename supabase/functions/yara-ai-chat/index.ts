@@ -417,7 +417,7 @@ JOIN ME FEATURE - FINDING COMPANIONS:
 - **IF** the user mentions wanting to find people/companions to go out with (e.g., "looking for someone to go with", "want to find people to join", "anyone to go out with"), respond with:
   "I'll add you to our Join Me board! Other people looking to make plans will be able to see you there. 
   
-  Visit this link to see everyone and edit your profile: https://una-social.lovable.app/join-me?phone=${phoneNumber || ''}
+  Visit this link to see everyone and edit your profile: https://theunahub.com/join-me?phone=${phoneNumber || ''}
   
   On that page, you can add a photo and description (including your Instagram link if you'd like people to connect with you)."
 - The backend will automatically save the request to the database
