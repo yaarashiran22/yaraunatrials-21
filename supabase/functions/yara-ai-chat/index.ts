@@ -262,9 +262,11 @@ serve(async (req) => {
         items: (list.top_list_items || [])
           .sort((a: any, b: any) => a.display_order - b.display_order)
           .map((item: any) => ({
+            id: item.id,
             name: item.name,
             description: item.description,
             location: item.location,
+            image_url: item.image_url,
           })),
       })),
     };
@@ -395,10 +397,12 @@ The "topLists" section contains curated lists created by registered users about 
 1. Look through the topLists array for lists matching the category the user requested (e.g., "Bars", "Clubs", "Cafés")
 2. Extract the individual items from those lists
 3. Create a separate topListItem recommendation for each bar/café/club/restaurant
-4. Use type: "topListItem", id: topList.id, title: item.name, description: item.description + item.location
-5. You can combine top list items with relevant events to give comprehensive recommendations
+4. **CRITICAL**: Use type: "topListItem", id: item.id (the individual item's ID, NOT the topList.id), title: item.name, description: item.description + item.location, image_url: item.image_url
+5. **NEVER** use the topList.id as the recommendation ID - always use the individual item.id
+6. **NEVER** reuse the same image_url for multiple items - each item has its own image_url (or null if no image)
+7. You can combine top list items with relevant events to give comprehensive recommendations
 
-Example: User asks "recommend bars" → Look for topLists with category "Bars" → Extract all bar items → Recommend each bar as a separate topListItem with its name, description, and location
+Example: User asks "recommend bars" → Look for topLists with category "Bars" → Extract all bar items → For each item, recommend it as a topListItem with id: item.id, title: item.name, description: item.description, image_url: item.image_url
 
 CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 
