@@ -209,40 +209,50 @@ const TopListsPage = () => {
     <div className="min-h-screen bg-background pb-20 lg:pb-0">
       <Header />
       
-      <main className="container mx-auto px-4 pt-20 lg:pt-24">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-4xl font-bold text-foreground">Yara's Top Lists</h1>
+      <main className="px-4 pt-16 pb-6 lg:pt-24 max-w-4xl mx-auto">
+        {/* Header Section */}
+        <div className="mb-6 space-y-4">
+          <h1 className="text-2xl font-bold text-foreground">Yara's Top Lists</h1>
           {user && (
             <Button
               onClick={() => setShowCreateDialog(true)}
-              className="gap-2"
+              className="w-full min-h-touch gap-2 shadow-none"
               disabled={userListCount !== undefined && userListCount >= 10}
             >
-              <Plus className="h-4 w-4" />
-              Create List {userListCount !== undefined && `(${userListCount}/10)`}
+              <Plus className="h-5 w-5" />
+              <span className="text-base font-semibold">
+                Create List {userListCount !== undefined && `(${userListCount}/10)`}
+              </span>
             </Button>
           )}
         </div>
 
+        {/* Lists Grid */}
         {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">Loading...</div>
+          <div className="text-center py-16">
+            <p className="text-base text-muted-foreground">Loading...</p>
+          </div>
         ) : topLists && topLists.length > 0 ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-3">
             {topLists.map((list) => (
               <div
                 key={list.id}
-                className="bg-card rounded-xl p-6 border-2 border-border hover:border-primary transition-colors cursor-pointer !shadow-none"
+                className="bg-card rounded-2xl p-5 border border-border active:bg-accent/20 transition-colors cursor-pointer shadow-none"
                 onClick={() => setSelectedListId(list.id)}
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-bold text-xl text-foreground">{list.title}</h3>
-                    <p className="text-base text-foreground/80 mt-1">{list.category}</p>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-lg text-foreground truncate">{list.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-0.5">{list.category}</p>
+                    {list.description && (
+                      <p className="text-sm text-foreground/80 mt-2 line-clamp-2">{list.description}</p>
+                    )}
                   </div>
                   {user?.id === list.user_id && (
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="flex-shrink-0 h-9 w-9 p-0 shadow-none"
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteListMutation.mutate(list.id);
@@ -252,17 +262,17 @@ const TopListsPage = () => {
                     </Button>
                   )}
                 </div>
-                {list.description && (
-                  <p className="text-base text-foreground/90">{list.description}</p>
-                )}
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground mb-4">No lists yet</p>
+          <div className="text-center py-16 px-4">
+            <p className="text-base text-muted-foreground mb-6">No lists yet</p>
             {user && (
-              <Button onClick={() => setShowCreateDialog(true)}>
+              <Button 
+                onClick={() => setShowCreateDialog(true)}
+                className="min-h-touch px-8 shadow-none"
+              >
                 Create Your First List
               </Button>
             )}
@@ -272,17 +282,18 @@ const TopListsPage = () => {
 
       {/* Create List Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="!shadow-none">
+        <DialogContent className="shadow-none rounded-3xl mx-4">
           <DialogHeader>
-            <DialogTitle>Create New List</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Create New List</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
               <label className="text-sm font-semibold text-foreground mb-2 block">Title</label>
               <Input
                 value={newList.title}
                 onChange={(e) => setNewList({ ...newList, title: e.target.value })}
                 placeholder="e.g., Best Coffee Spots in Palermo"
+                className="h-12 text-base shadow-none"
               />
             </div>
             <div>
@@ -291,12 +302,12 @@ const TopListsPage = () => {
                 value={newList.category}
                 onValueChange={(value) => setNewList({ ...newList, category: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-12 text-base shadow-none">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="shadow-none">
                   {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
+                    <SelectItem key={cat} value={cat} className="text-base">
                       {cat}
                     </SelectItem>
                   ))}
@@ -309,12 +320,13 @@ const TopListsPage = () => {
                 value={newList.description}
                 onChange={(e) => setNewList({ ...newList, description: e.target.value })}
                 placeholder="What makes this list special?"
+                className="min-h-24 text-base shadow-none"
               />
             </div>
             <Button
               onClick={handleCreateList}
               disabled={!newList.title || !newList.category}
-              className="w-full"
+              className="w-full min-h-touch text-base font-semibold shadow-none"
             >
               Create List
             </Button>
@@ -324,21 +336,21 @@ const TopListsPage = () => {
 
       {/* List Details Dialog */}
       <Dialog open={!!selectedListId} onOpenChange={() => setSelectedListId(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto !shadow-none">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto shadow-none rounded-3xl mx-4">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-xl font-bold pr-8">
               {topLists?.find(l => l.id === selectedListId)?.title}
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4">
+          <div className="space-y-4 -mt-2">
             {user?.id === topLists?.find(l => l.id === selectedListId)?.user_id && (
               <Button
                 onClick={() => setShowAddItemDialog(true)}
                 variant="outline"
-                className="w-full gap-2"
+                className="w-full min-h-touch gap-2 text-base font-semibold shadow-none"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-5 w-5" />
                 Add Item
               </Button>
             )}
@@ -348,24 +360,25 @@ const TopListsPage = () => {
                 {listItems.map((item, index) => (
                   <div
                     key={item.id}
-                    className="bg-card rounded-lg p-5 flex gap-4 border border-border !shadow-none"
+                    className="bg-accent/30 rounded-2xl p-4 flex gap-3 border-0 shadow-none"
                   >
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-lg text-primary">
+                    <div className="flex-shrink-0 w-9 h-9 rounded-full bg-primary flex items-center justify-center font-bold text-base text-primary-foreground">
                       {index + 1}
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-lg text-foreground">{item.name}</h4>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-base text-foreground">{item.name}</h4>
                       {item.location && (
-                        <p className="text-base text-foreground/80 mt-1">{item.location}</p>
+                        <p className="text-sm text-muted-foreground mt-0.5">{item.location}</p>
                       )}
                       {item.description && (
-                        <p className="text-base text-foreground/90 mt-2">{item.description}</p>
+                        <p className="text-sm text-foreground/80 mt-2">{item.description}</p>
                       )}
                     </div>
                     {user?.id === topLists?.find(l => l.id === selectedListId)?.user_id && (
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="flex-shrink-0 h-9 w-9 p-0 shadow-none"
                         onClick={() => deleteItemMutation.mutate(item.id)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -375,7 +388,7 @@ const TopListsPage = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-center text-muted-foreground py-8">
+              <p className="text-center text-muted-foreground py-12 text-base">
                 No items in this list yet
               </p>
             )}
@@ -385,17 +398,18 @@ const TopListsPage = () => {
 
       {/* Add Item Dialog */}
       <Dialog open={showAddItemDialog} onOpenChange={setShowAddItemDialog}>
-        <DialogContent className="!shadow-none">
+        <DialogContent className="shadow-none rounded-3xl mx-4">
           <DialogHeader>
-            <DialogTitle>Add Item to List</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Add Item to List</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
               <label className="text-sm font-semibold text-foreground mb-2 block">Name</label>
               <Input
                 value={newItem.name}
                 onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                 placeholder="e.g., Café Tortoni"
+                className="h-12 text-base shadow-none"
               />
             </div>
             <div>
@@ -404,6 +418,7 @@ const TopListsPage = () => {
                 value={newItem.location}
                 onChange={(e) => setNewItem({ ...newItem, location: e.target.value })}
                 placeholder="e.g., Palermo Soho"
+                className="h-12 text-base shadow-none"
               />
             </div>
             <div>
@@ -412,12 +427,13 @@ const TopListsPage = () => {
                 value={newItem.description}
                 onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                 placeholder="Why is this place special?"
+                className="min-h-24 text-base shadow-none"
               />
             </div>
             <Button
               onClick={handleAddItem}
               disabled={!newItem.name}
-              className="w-full"
+              className="w-full min-h-touch text-base font-semibold shadow-none"
             >
               Add Item
             </Button>
