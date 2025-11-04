@@ -436,7 +436,15 @@ AGE COLLECTION - FIRST PRIORITY:
   - If they're asking just for themselves, ask: "Quick question - how old are you? This helps me recommend the perfect spots for you 😊"
 
 JOIN ME FEATURE - FINDING COMPANIONS:
-- **IF** the user mentions wanting to find people/companions to go out with (e.g., "looking for someone to go with", "want to find people to join", "anyone to go out with"), respond with:
+- **IF** the user mentions wanting to find people/companions to go to a SPECIFIC event with them (e.g., "looking for someone to go with me to the jazz night", "want to find people to join me at this event"), respond with conversational text that includes a special marker:
+  "I'll add you to our Join Me board for this event! Other people looking to make plans will be able to see you there and the specific event you want to attend.
+  
+  Visit this link to see everyone and edit your profile: https://theunahub.com/join-me?phone=${phoneNumber || ''}
+  
+  [JOIN_REQUEST_EVENT:{event_id_here}]"
+  - Replace {event_id_here} with the actual event ID from the database if you can identify which event they're referring to from the conversation context
+  - If they just mentioned a specific event in this message or previous messages, use that event's ID
+- **IF** the user mentions wanting to find people/companions GENERALLY (not for a specific event), respond with:
   "I'll add you to our Join Me board! Other people looking to make plans will be able to see you there. 
   
   Visit this link to see everyone and edit your profile: https://theunahub.com/join-me?phone=${phoneNumber || ''}
@@ -949,6 +957,14 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       const userName = userProfile?.name || 'Anonymous';
       const userAge = userProfile?.age || null;
       
+      // Try to extract event_id from the message if it contains the special marker
+      let eventId: string | null = null;
+      const eventIdMatch = message.match(/\[JOIN_REQUEST_EVENT:([a-f0-9-]+)\]/);
+      if (eventIdMatch) {
+        eventId = eventIdMatch[1];
+        console.log(`Extracted event_id from join request: ${eventId}`);
+      }
+      
       // Check if there's already an active join request (not expired)
       const { data: existingRequest } = await supabase
         .from('join_requests')
@@ -960,34 +976,48 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       if (existingRequest) {
         // Update existing request with new expiration time (refresh the 8-hour timer)
         const newExpiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
+        const updateData: any = {
+          name: userName,
+          age: userAge,
+          expires_at: newExpiresAt
+        };
+        
+        // Add event_id if we extracted one
+        if (eventId) {
+          updateData.event_id = eventId;
+        }
+        
         const { error: updateError } = await supabase
           .from('join_requests')
-          .update({
-            name: userName,
-            age: userAge,
-            expires_at: newExpiresAt
-          })
+          .update(updateData)
           .eq('id', existingRequest.id);
         
         if (updateError) {
           console.error('Error updating join request:', updateError);
         } else {
-          console.log(`Updated existing join request for ${userName} (${phoneNumber}), refreshed timer`);
+          console.log(`Updated existing join request for ${userName} (${phoneNumber})${eventId ? ` with event_id: ${eventId}` : ''}, refreshed timer`);
         }
       } else {
         // Create new join request
+        const insertData: any = {
+          phone_number: phoneNumber,
+          name: userName,
+          age: userAge
+        };
+        
+        // Add event_id if we extracted one
+        if (eventId) {
+          insertData.event_id = eventId;
+        }
+        
         const { error: joinError } = await supabase
           .from('join_requests')
-          .insert({
-            phone_number: phoneNumber,
-            name: userName,
-            age: userAge
-          });
+          .insert(insertData);
         
         if (joinError) {
           console.error('Error creating join request:', joinError);
         } else {
-          console.log(`Created new join request for ${userName} (${phoneNumber})`);
+          console.log(`Created new join request for ${userName} (${phoneNumber})${eventId ? ` with event_id: ${eventId}` : ''}`);
         }
       }
     }
