@@ -177,12 +177,7 @@ const JoinMePage = () => {
                 return (
                   <div
                     key={request.id}
-                    className="rounded-2xl p-6 border-2 border-border"
-                    style={{ 
-                      boxShadow: 'none', 
-                      backgroundColor: '#FFFFFF',
-                      filter: 'none'
-                    }}
+                    className="rounded-2xl p-6 border-2 border-border bg-white"
                   >
                     {isEditing ? (
                       // Edit mode
@@ -291,12 +286,12 @@ const JoinMePage = () => {
                             </div>
                           </div>
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => handleEdit(request)}
-                            className="shrink-0"
+                            className="shrink-0 border-2 hover:bg-primary hover:text-primary-foreground"
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-5 w-5" />
                           </Button>
                         </div>
 
