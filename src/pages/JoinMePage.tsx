@@ -26,6 +26,8 @@ const JoinMePage = () => {
   const queryClient = useQueryClient();
   const phoneNumber = searchParams.get("phone");
   
+  console.log("Phone number from URL:", phoneNumber);
+  
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     photo_url: "",
@@ -253,7 +255,7 @@ const JoinMePage = () => {
                               </span>
                             </div>
                           </div>
-                          {phoneNumber === request.phone_number && (
+                          {phoneNumber && phoneNumber === request.phone_number && (
                             <Button
                               variant="ghost"
                               size="sm"
