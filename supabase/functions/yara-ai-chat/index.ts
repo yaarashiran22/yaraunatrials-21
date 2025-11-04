@@ -382,11 +382,15 @@ Available data:
 ${JSON.stringify(contextData, null, 2)}
 
 **CURATED TOP LISTS - COMMUNITY RECOMMENDATIONS:**
-The "topLists" section contains curated lists created by registered users about the best places in Buenos Aires. When users ask for recommendations about bars, clubs, art centers, workshops, or cafés, you can reference these community-curated lists:
-- Each list has a category (Bars, Clubs, Art Centers, Workshops, Cafés) and contains ranked items
-- Use these lists to provide authentic, community-endorsed recommendations
-- Example: "According to our community's top list for bars, here are some highly recommended spots: [list items]"
-- Combine database events with these top lists when relevant to give comprehensive recommendations
+The "topLists" section contains curated lists created by registered users about the best places in Buenos Aires. Each list has items with name, description, and location:
+- **WHEN USERS ASK FOR BARS**: Recommend individual bars FROM the items in bar-related top lists. Don't just recommend the list - recommend the actual bars listed in the items.
+- **WHEN USERS ASK FOR CLUBS**: Recommend individual clubs FROM the items in club-related top lists
+- **WHEN USERS ASK FOR CAFÉS**: Recommend individual cafés FROM the items in café-related top lists
+- **WHEN USERS ASK FOR ART CENTERS**: Recommend individual art centers FROM the items in art center-related top lists
+- **WHEN USERS ASK FOR WORKSHOPS**: Recommend individual workshops FROM the items in workshop-related top lists
+- Example: If a user asks "recommend me bars", look through top lists with category "Bars", extract the individual bar items from those lists, and recommend those specific bars with their descriptions and locations
+- You can combine these top list items with relevant events to give comprehensive recommendations
+- The items array contains: name, description, and location for each place
 
 CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 
@@ -442,6 +446,11 @@ Example conversational responses:
 
 SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, etc.):
 **ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST return PURE JSON ONLY.
+
+**FOR TOP LIST ITEMS (bars, cafés, clubs, etc.)**:
+- When recommending bars/cafés/clubs from top lists, use type "topListItem"
+- Extract individual items from the topLists array and recommend them as separate recommendations
+- Include the bar/café/club name as the title and its description and location
 
 **CRITICAL - WHEN NO DATABASE MATCHES:**
 - **ONLY use NO_DATABASE_MATCH for truly unrelated requests** - like cafes, restaurants, gyms, or very specific niches not in the database
@@ -530,16 +539,24 @@ REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
   "intro_message": "Here are some [type] you might like:",
   "recommendations": [
     {
-      "type": "event",
-      "id": "actual-event-id-from-database",
-      "title": "Event Title from database",
-      "description": "MANDATORY - MUST ALWAYS BE INCLUDED. Format: Location: [location]. Address: [address if available]. Date: [use originalDate field to show the original pattern like 'every monday', or if it's a one-time event use the date field]. Time: [time]. Music Type: [music_type if available]. Instagram: [external_link if available]. CRITICAL: Only include the FIRST 2 SENTENCES from the event description field - truncate the rest.",
+      "type": "event" | "business" | "coupon" | "topListItem",
+      "id": "actual-event-id-from-database OR topList.id for topListItem type",
+      "title": "Event Title from database OR bar/café name from topList items",
+      "description": "MANDATORY - For events: Location: [location]. Address: [address]. Date: [originalDate]. Time: [time]. Music Type: [music_type]. Instagram: [external_link]. For topListItem: the item's description and location from the topList",
       "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
       "personalized_note": "CRITICAL - A custom personal message based on their profile data (age, budget, interests, neighborhoods). Examples: 'Perfect for your age group (33) and high budget preference', 'This matches your interest in jazz and is in your favorite neighborhood Palermo', 'Great for someone your age (25) looking for affordable nightlife'. ALWAYS reference specific profile data when available.",
-      "image_url": "CRITICAL - YOU MUST COPY THE EXACT image_url VALUE FROM THE DATABASE EVENT - this is the event photo URL that will be sent via WhatsApp. DO NOT omit this field or the images won't be sent!"
+      "image_url": "CRITICAL - For events/businesses/coupons: copy EXACT image_url from database. For topListItem: use the topList's image_url if available, or null if not"
     }
   ]
 }
+
+**FOR TOP LIST ITEMS (when recommending bars, cafés, clubs, etc.)**:
+- Use type: "topListItem"
+- id: use the topList.id (not the individual item id)
+- title: use the bar/café/club name from the item
+- description: include "Location: [item.location]" and the item.description
+- Extract individual items from relevant topLists and recommend them as separate recommendations
+- Example: If user asks for "bars" and there's a topList with category "Bars" containing 5 bar items, recommend each bar as a separate topListItem recommendation
 
 **CRITICAL IMAGE_URL REQUIREMENT:**
 - The "image_url" field is MANDATORY for every recommendation
@@ -643,16 +660,16 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                   type: "array",
                   items: {
                     type: "object",
-                    properties: {
-                      type: { type: "string", enum: ["event", "business", "coupon"] },
-                      id: { type: "string", description: "The actual ID from the database" },
-                      title: { type: "string", description: "The event/item title from the database" },
-                      description: { type: "string", description: "MANDATORY - NEVER SKIP THIS. Include: Location, address, date, time, and brief event details" },
+                     properties: {
+                      type: { type: "string", enum: ["event", "business", "coupon", "topListItem"] },
+                      id: { type: "string", description: "The actual ID from the database or topList.id for topListItem" },
+                      title: { type: "string", description: "The event/item title from database OR bar/café name from topList items" },
+                      description: { type: "string", description: "MANDATORY - For events: Location, address, date, time. For topListItem: item description and location" },
                       why_recommended: { type: "string", description: "Why this matches their request" },
                       personalized_note: { type: "string", description: "Personal message based on their profile" },
                       image_url: {
                         type: "string",
-                        description: "REQUIRED - The exact image_url from the database event",
+                        description: "The image_url from database or topList, can be null for topListItems",
                       },
                     },
                     required: [
@@ -862,12 +879,23 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
           Array.isArray(parsed.recommendations) &&
           parsed.recommendations.length > 0
         ) {
-          const interactions = parsed.recommendations.map((rec: any) => ({
-            phone_number: phoneNumber,
-            item_type: rec.type,
-            item_id: rec.id,
-            interaction_type: "recommended",
-          }));
+          const interactions = parsed.recommendations.map((rec: any) => {
+            // For topListItem, track the topList id
+            if (rec.type === 'topListItem') {
+              return {
+                phone_number: phoneNumber,
+                item_type: 'topList',
+                item_id: rec.id, // This is the topList.id
+                interaction_type: "recommended",
+              };
+            }
+            return {
+              phone_number: phoneNumber,
+              item_type: rec.type,
+              item_id: rec.id,
+              interaction_type: "recommended",
+            };
+          });
           supabase.from("whatsapp_user_interactions").insert(interactions).then();
 
           console.log(`Tracked ${parsed.recommendations.length} database event recommendations`);
