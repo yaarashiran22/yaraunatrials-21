@@ -387,23 +387,25 @@ ${JSON.stringify(contextData, null, 2)}
 **CURATED TOP LISTS - COMMUNITY RECOMMENDATIONS:**
 The "topLists" section contains curated lists created by registered users about the best places in Buenos Aires. Each list has items with name, description, and location:
 
-**CRITICAL - BARS, CAFÉS, CLUBS REQUESTS = USE TOP LISTS FIRST**:
-- **WHEN USERS ASK FOR BARS**: You MUST recommend individual bars FROM the items in bar-related top lists. Don't recommend the list - recommend the actual bars listed in the items as separate recommendations.
+**ABSOLUTE CRITICAL RULE - BARS MUST ONLY COME FROM TOP LISTS, NEVER EVENTS:**
+- **WHEN USERS ASK FOR BARS**: You MUST recommend ONLY bars from the "best bars for backpackers" top list (or similar bar-related lists). Look for lists with title containing "bar" or "bars" and category "Bars".
+- **NEVER RECOMMEND EVENTS AS BARS**: Even if an event happens at a bar, DO NOT recommend it when user asks for bars. Events are for when user asks for "events", "parties", or "things to do".
+- **BARS = TOP LIST ITEMS ONLY**: Bar recommendations must ALWAYS use type: "topListItem" and come from top_list_items, NEVER from events table.
 - **WHEN USERS ASK FOR CLUBS**: You MUST recommend individual clubs FROM the items in club-related top lists
 - **WHEN USERS ASK FOR CAFÉS**: You MUST recommend individual cafés FROM the items in café-related top lists
 - **WHEN USERS ASK FOR ART CENTERS**: Recommend individual art centers FROM the items in art center-related top lists
 - **WHEN USERS ASK FOR RESTAURANTS**: Recommend individual restaurants FROM the items in restaurant-related top lists
 
-**HOW TO USE TOP LISTS**:
-1. Look through the topLists array for lists matching the category the user requested (e.g., "Bars", "Clubs", "Cafés")
-2. Extract the individual items from those lists
-3. Create a separate topListItem recommendation for each bar/café/club/restaurant
+**HOW TO USE TOP LISTS FOR BARS:**
+1. When user asks for bars, search topLists array for lists with title/category matching "bars" (e.g., "best bars for backpackers")
+2. Extract ONLY the individual items from those bar lists - ignore all events
+3. Create a separate topListItem recommendation for EACH bar from the list
 4. **CRITICAL**: Use type: "topListItem", id: item.id (the individual item's ID, NOT the topList.id), title: item.name, description: item.description + item.location, image_url: item.image_url
 5. **NEVER** use the topList.id as the recommendation ID - always use the individual item.id
 6. **NEVER** reuse the same image_url for multiple items - each item has its own image_url (or null if no image)
-7. You can combine top list items with relevant events to give comprehensive recommendations
+7. **NEVER** include events when recommending bars - events are separate from bar recommendations
 
-Example: User asks "recommend bars" → Look for topLists with category "Bars" → Extract all bar items → For each item, recommend it as a topListItem with id: item.id, title: item.name, description: item.description, image_url: item.image_url
+Example: User asks "recommend bars for backpackers" → Look for topLists with title containing "bars" and "backpackers" → Extract all bar items from that list → For each item, recommend it as a topListItem with id: item.id, title: item.name, description: item.description, image_url: item.image_url → NEVER include any events in bar recommendations
 
 CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 
