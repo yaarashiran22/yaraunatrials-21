@@ -934,25 +934,52 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       }
     }
 
-    // Check if this is a JOIN ME request and save it
+    // Check if this is a JOIN ME request and save/update it
     if (phoneNumber && message.toLowerCase().includes('join me board')) {
       // Extract user info from userProfile or set defaults
       const userName = userProfile?.name || 'Anonymous';
       const userAge = userProfile?.age || null;
       
-      // Create join request in database
-      const { error: joinError } = await supabase
+      // Check if there's already an active join request (not expired)
+      const { data: existingRequest } = await supabase
         .from('join_requests')
-        .insert({
-          phone_number: phoneNumber,
-          name: userName,
-          age: userAge
-        });
+        .select('id, expires_at')
+        .eq('phone_number', phoneNumber)
+        .gt('expires_at', new Date().toISOString())
+        .maybeSingle();
       
-      if (joinError) {
-        console.error('Error creating join request:', joinError);
+      if (existingRequest) {
+        // Update existing request with new expiration time (refresh the 8-hour timer)
+        const newExpiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
+        const { error: updateError } = await supabase
+          .from('join_requests')
+          .update({
+            name: userName,
+            age: userAge,
+            expires_at: newExpiresAt
+          })
+          .eq('id', existingRequest.id);
+        
+        if (updateError) {
+          console.error('Error updating join request:', updateError);
+        } else {
+          console.log(`Updated existing join request for ${userName} (${phoneNumber}), refreshed timer`);
+        }
       } else {
-        console.log(`Created join request for ${userName} (${phoneNumber})`);
+        // Create new join request
+        const { error: joinError } = await supabase
+          .from('join_requests')
+          .insert({
+            phone_number: phoneNumber,
+            name: userName,
+            age: userAge
+          });
+        
+        if (joinError) {
+          console.error('Error creating join request:', joinError);
+        } else {
+          console.log(`Created new join request for ${userName} (${phoneNumber})`);
+        }
       }
     }
 
