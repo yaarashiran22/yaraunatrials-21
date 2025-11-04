@@ -107,28 +107,8 @@ const Header = ({
             </Button>
           </div>
           
-          {/* Right side - Language & Profile */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <LanguageSelector />
-            {user ? (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="p-2.5 h-9 w-9 bg-white text-primary hover:bg-gray-100 border-gray-200 rounded-full"
-                onClick={() => navigate('/profile/1')}
-              >
-                <User className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="p-2.5 h-9 w-9 bg-white text-primary hover:bg-gray-100 border-gray-200 rounded-full"
-                onClick={() => navigate('/login')}
-              >
-                <User className="h-4 w-4" />
-              </Button>
-            )}
+          {/* Right side - Empty spacer for layout balance */}
+          <div className="flex items-center gap-2 flex-shrink-0 w-9">
           </div>
           
         </div>
