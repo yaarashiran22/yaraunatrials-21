@@ -436,6 +436,12 @@ AGE COLLECTION - FIRST PRIORITY:
   - If they're asking just for themselves, ask: "Quick question - how old are you? This helps me recommend the perfect spots for you 😊"
 
 JOIN ME FEATURE - FINDING COMPANIONS:
+- **IF** the user says "join me board" (triggered automatically when they respond positively to matchmaking), respond with:
+  "Great! I've added you to our Join Me board for this event. Other people will be able to see you and the event you want to attend.
+  
+  Visit this link to see everyone and edit your profile: https://theunahub.com/join-me?phone=${phoneNumber || ''}
+  
+  On that page, you can add photos and your Instagram link so people can connect with you!"
 - **IF** the user mentions wanting to find people/companions to go to a SPECIFIC event with them (e.g., "looking for someone to go with me to the jazz night", "want to find people to join me at this event"), respond with conversational text that includes a special marker:
   "I'll add you to our Join Me board for this event! Other people looking to make plans will be able to see you there and the specific event you want to attend.
   
@@ -444,12 +450,6 @@ JOIN ME FEATURE - FINDING COMPANIONS:
   [JOIN_REQUEST_EVENT:{event_id_here}]"
   - Replace {event_id_here} with the actual event ID from the database if you can identify which event they're referring to from the conversation context
   - If they just mentioned a specific event in this message or previous messages, use that event's ID
-- **IF** the user mentions wanting to find people/companions GENERALLY (not for a specific event), respond with:
-  "I'll add you to our Join Me board! Other people looking to make plans will be able to see you there. 
-  
-  Visit this link to see everyone and edit your profile: https://theunahub.com/join-me?phone=${phoneNumber || ''}
-  
-  On that page, you can add a photo and description (including your Instagram link if you'd like people to connect with you)."
 - The backend will automatically save the request to the database
 
 JOIN ME REMOVAL:
@@ -951,73 +951,112 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       }
     }
 
-    // Check if this is a JOIN ME request and save/update it
-    if (phoneNumber && message.toLowerCase().includes('join me board')) {
-      // Extract user info from userProfile or set defaults
-      const userName = userProfile?.name || 'Anonymous';
-      const userAge = userProfile?.age || null;
+    // Check if this is a JOIN ME request (explicit request or positive response to matchmaking)
+    if (phoneNumber) {
+      const lowerMessage = message.toLowerCase();
       
-      // Try to extract event_id from the message if it contains the special marker
-      let eventId: string | null = null;
-      const eventIdMatch = message.match(/\[JOIN_REQUEST_EVENT:([a-f0-9-]+)\]/);
-      if (eventIdMatch) {
-        eventId = eventIdMatch[1];
-        console.log(`Extracted event_id from join request: ${eventId}`);
+      // Check if this is a positive response to the matchmaking question
+      const positiveResponses = /\b(yes|yeah|yea|yep|sure|absolutely|definitely|of course|sounds good|i'd like that|i would like that|si|sí|claro|por supuesto|me interesa|me gustaria|me gustaría)\b/i;
+      const isPositiveResponse = positiveResponses.test(lowerMessage);
+      
+      // Check if the last assistant message was asking about matchmaking
+      const recentMessages = await supabase
+        .from('whatsapp_conversations')
+        .select('role, content, created_at')
+        .eq('phone_number', phoneNumber)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      const lastAssistantMessage = recentMessages.data?.find(m => m.role === 'assistant');
+      const wasAskingAboutMatchmaking = lastAssistantMessage?.content?.toLowerCase().includes('looking for someone to go with');
+      
+      // Look for the matchmaking event marker
+      const matchmakingMarker = recentMessages.data?.find(m => m.role === 'system' && m.content?.includes('[MATCHMAKING_EVENT:'));
+      let matchmakingEventId: string | null = null;
+      
+      if (matchmakingMarker) {
+        const eventIdMatch = matchmakingMarker.content.match(/\[MATCHMAKING_EVENT:([a-f0-9-]+)\]/);
+        if (eventIdMatch) {
+          matchmakingEventId = eventIdMatch[1];
+          console.log(`Found matchmaking event ID from recent conversation: ${matchmakingEventId}`);
+        }
       }
       
-      // Check if there's already an active join request (not expired)
-      const { data: existingRequest } = await supabase
-        .from('join_requests')
-        .select('id, expires_at')
-        .eq('phone_number', phoneNumber)
-        .gt('expires_at', new Date().toISOString())
-        .maybeSingle();
+      // If this is a positive response to matchmaking, or explicit join me request
+      const shouldAddToJoinMe = (isPositiveResponse && wasAskingAboutMatchmaking) || lowerMessage.includes('join me board');
       
-      if (existingRequest) {
-        // Update existing request with new expiration time (refresh the 8-hour timer)
-        const newExpiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
-        const updateData: any = {
-          name: userName,
-          age: userAge,
-          expires_at: newExpiresAt
-        };
+      if (shouldAddToJoinMe) {
+        // Extract user info from userProfile or set defaults
+        const userName = userProfile?.name || 'Anonymous';
+        const userAge = userProfile?.age || null;
         
-        // Add event_id if we extracted one
-        if (eventId) {
-          updateData.event_id = eventId;
+        // Try to extract event_id from the message if it contains the special marker (explicit request)
+        let eventId: string | null = matchmakingEventId; // Use matchmaking event by default
+        const eventIdMatch = message.match(/\[JOIN_REQUEST_EVENT:([a-f0-9-]+)\]/);
+        if (eventIdMatch) {
+          eventId = eventIdMatch[1];
+          console.log(`Extracted event_id from explicit join request: ${eventId}`);
         }
         
-        const { error: updateError } = await supabase
+        // Check if there's already an active join request (not expired)
+        const { data: existingRequest } = await supabase
           .from('join_requests')
-          .update(updateData)
-          .eq('id', existingRequest.id);
+          .select('id, expires_at')
+          .eq('phone_number', phoneNumber)
+          .gt('expires_at', new Date().toISOString())
+          .maybeSingle();
         
-        if (updateError) {
-          console.error('Error updating join request:', updateError);
+        if (existingRequest) {
+          // Update existing request with new expiration time (refresh the 8-hour timer)
+          const newExpiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
+          const updateData: any = {
+            name: userName,
+            age: userAge,
+            expires_at: newExpiresAt
+          };
+          
+          // Add event_id if we have one
+          if (eventId) {
+            updateData.event_id = eventId;
+          }
+          
+          const { error: updateError } = await supabase
+            .from('join_requests')
+            .update(updateData)
+            .eq('id', existingRequest.id);
+          
+          if (updateError) {
+            console.error('Error updating join request:', updateError);
+          } else {
+            console.log(`Updated existing join request for ${userName} (${phoneNumber})${eventId ? ` with event_id: ${eventId}` : ''}, refreshed timer`);
+          }
         } else {
-          console.log(`Updated existing join request for ${userName} (${phoneNumber})${eventId ? ` with event_id: ${eventId}` : ''}, refreshed timer`);
+          // Create new join request
+          const insertData: any = {
+            phone_number: phoneNumber,
+            name: userName,
+            age: userAge
+          };
+          
+          // Add event_id if we have one
+          if (eventId) {
+            insertData.event_id = eventId;
+          }
+          
+          const { error: joinError } = await supabase
+            .from('join_requests')
+            .insert(insertData);
+          
+          if (joinError) {
+            console.error('Error creating join request:', joinError);
+          } else {
+            console.log(`Created new join request for ${userName} (${phoneNumber})${eventId ? ` with event_id: ${eventId}` : ''}`);
+          }
         }
-      } else {
-        // Create new join request
-        const insertData: any = {
-          phone_number: phoneNumber,
-          name: userName,
-          age: userAge
-        };
         
-        // Add event_id if we extracted one
-        if (eventId) {
-          insertData.event_id = eventId;
-        }
-        
-        const { error: joinError } = await supabase
-          .from('join_requests')
-          .insert(insertData);
-        
-        if (joinError) {
-          console.error('Error creating join request:', joinError);
-        } else {
-          console.log(`Created new join request for ${userName} (${phoneNumber})${eventId ? ` with event_id: ${eventId}` : ''}`);
+        // If this was a positive response to matchmaking, modify the message to trigger the join me response
+        if (isPositiveResponse && wasAskingAboutMatchmaking) {
+          message = "join me board"; // This will trigger the AI to send the link
         }
       }
     }

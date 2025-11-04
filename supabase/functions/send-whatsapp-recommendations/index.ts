@@ -166,6 +166,61 @@ Deno.serve(async (req) => {
 
     console.log('✅ Finished sending all recommendations');
     
+    // After sending all recommendations, send a follow-up matchmaking question
+    if (uniqueRecs.length > 0 && uniqueRecs[0].type === 'event') {
+      try {
+        // Store the first event ID in the conversation for later use
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        const firstEventId = uniqueRecs[0].id;
+        
+        // Store a special marker message with the event ID for matchmaking
+        await supabase.from('whatsapp_conversations').insert({
+          phone_number: toNumber,
+          role: 'system',
+          content: `[MATCHMAKING_EVENT:${firstEventId}]`
+        });
+        
+        // Send matchmaking question
+        const matchmakingMessage = "Are you looking for someone to go with? I can help matchmake you with someone in the same vibe as you 😊";
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const matchmakingResponse = await fetch(
+          `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              From: cleanFrom,
+              To: cleanTo,
+              Body: matchmakingMessage
+            }).toString()
+          }
+        );
+        
+        if (matchmakingResponse.ok) {
+          console.log('✅ Matchmaking question sent successfully');
+          
+          // Store the matchmaking question in conversation history
+          await supabase.from('whatsapp_conversations').insert({
+            phone_number: toNumber,
+            role: 'assistant',
+            content: matchmakingMessage
+          });
+        } else {
+          console.error('❌ Failed to send matchmaking question:', await matchmakingResponse.text());
+        }
+      } catch (error) {
+        console.error('❌ Error sending matchmaking question:', error);
+      }
+    }
+    
     return new Response(
       JSON.stringify({ success: true, results }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
