@@ -415,7 +415,9 @@ AGE COLLECTION - FIRST PRIORITY:
 
 JOIN ME FEATURE - FINDING COMPANIONS:
 - **IF** the user mentions wanting to find people/companions to go out with (e.g., "looking for someone to go with", "want to find people to join", "anyone to go out with"), respond with:
-  "I'll add you to our Join Me board! Other people looking to make plans will be able to see you there. Here's the link: ${Deno.env.get('SUPABASE_URL')?.replace('//', '//').replace('nxtfugcmatkiqjzxucgh.supabase.co', 'una-social.lovable.app')}/join-me
+  "I'll add you to our Join Me board! Other people looking to make plans will be able to see you there. 
+  
+  Visit: https://una-social.lovable.app/join-me?phone=${phoneNumber || 'YOUR_PHONE'}
   
   You can edit your profile on that page to add a photo and description (including your Instagram link if you'd like people to connect with you)."
 - Then mark the response with "JOIN_ME_REQUEST" in your thinking so the backend saves it to the database
