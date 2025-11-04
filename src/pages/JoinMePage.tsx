@@ -131,20 +131,23 @@ const JoinMePage = () => {
 
       if (isAdditional) {
         // Add to additional photos (max 2)
-        if (editForm.additional_photos.length < 2) {
-          const updatedPhotos = [...editForm.additional_photos, publicUrl];
-          console.log('Adding additional photo:', publicUrl);
-          console.log('Updated photos array:', updatedPhotos);
-          setEditForm({ 
-            ...editForm, 
-            additional_photos: updatedPhotos
-          });
-          toast.success("Additional photo uploaded!");
-        } else {
-          toast.error("Maximum 2 additional photos allowed");
-        }
+        setEditForm(prev => {
+          if (prev.additional_photos.length < 2) {
+            const updatedPhotos = [...prev.additional_photos, publicUrl];
+            console.log('Adding additional photo:', publicUrl);
+            console.log('Updated photos array:', updatedPhotos);
+            toast.success("Additional photo uploaded!");
+            return { 
+              ...prev, 
+              additional_photos: updatedPhotos
+            };
+          } else {
+            toast.error("Maximum 2 additional photos allowed");
+            return prev;
+          }
+        });
       } else {
-        setEditForm({ ...editForm, photo_url: publicUrl });
+        setEditForm(prev => ({ ...prev, photo_url: publicUrl }));
         toast.success("Photo uploaded!");
       }
     } catch (error) {
@@ -156,10 +159,10 @@ const JoinMePage = () => {
   };
 
   const removeAdditionalPhoto = (index: number) => {
-    setEditForm({
-      ...editForm,
-      additional_photos: editForm.additional_photos.filter((_, i) => i !== index)
-    });
+    setEditForm(prev => ({
+      ...prev,
+      additional_photos: prev.additional_photos.filter((_, i) => i !== index)
+    }));
   };
 
   const handleSave = () => {
