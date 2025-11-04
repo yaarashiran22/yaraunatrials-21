@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Edit, UserPlus, Clock, Instagram } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
@@ -39,6 +40,7 @@ const JoinMePage = () => {
     description: "",
   });
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<JoinRequest | null>(null);
 
   // Fetch all active join requests
   const { data: joinRequests, isLoading } = useQuery({
@@ -199,7 +201,8 @@ const JoinMePage = () => {
                 return (
                   <div
                     key={request.id}
-                    className="group rounded-2xl p-5 lg:p-6 border border-border/50 bg-gradient-to-br from-card to-accent/10 hover:border-[#E91E63]/30 transition-all duration-300 hover:shadow-lg shadow-none"
+                    className="group rounded-2xl p-5 lg:p-6 border border-border/50 bg-gradient-to-br from-card to-accent/10 hover:border-[#E91E63]/30 transition-all duration-300 hover:shadow-lg shadow-none cursor-pointer"
+                    onClick={() => setSelectedRequest(request)}
                   >
                     {isEditing ? (
                       // Edit mode
@@ -300,7 +303,10 @@ const JoinMePage = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleEdit(request)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(request);
+                            }}
                             className="shrink-0 h-9 w-9 p-0 hover:bg-[#E91E63]/10 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             <Edit className="h-4 w-4 text-[#E91E63]" />
@@ -329,7 +335,10 @@ const JoinMePage = () => {
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => deleteRequestMutation.mutate(request.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteRequestMutation.mutate(request.id);
+                            }}
                             className="w-full mt-2"
                           >
                             Remove My Request
@@ -353,6 +362,77 @@ const JoinMePage = () => {
           )}
         </div>
       </main>
+
+      {/* View Request Details Dialog */}
+      <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-lg shadow-none rounded-3xl bg-gradient-to-br from-card to-accent/10 border-2 border-border/50">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-[#E91E63] to-[#9C27B0] bg-clip-text text-transparent">
+              {selectedRequest?.name}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedRequest && (
+            <div className="space-y-6 py-4">
+              {/* Large Profile Photo */}
+              <div className="flex justify-center">
+                {selectedRequest.photo_url ? (
+                  <img
+                    src={selectedRequest.photo_url}
+                    alt={selectedRequest.name}
+                    className="w-48 h-48 rounded-full object-cover border-4 border-[#E91E63] shadow-xl"
+                  />
+                ) : (
+                  <div className="w-48 h-48 rounded-full bg-gradient-to-br from-[#E91E63]/20 to-[#9C27B0]/20 flex items-center justify-center border-4 border-[#E91E63]">
+                    <UserPlus className="h-24 w-24 text-[#E91E63]" />
+                  </div>
+                )}
+              </div>
+
+              {/* Details */}
+              <div className="space-y-4">
+                {selectedRequest.age && (
+                  <div className="text-center">
+                    <p className="text-lg text-foreground">
+                      <span className="font-semibold">{selectedRequest.age}</span> years old
+                    </p>
+                  </div>
+                )}
+
+                {selectedRequest.description && (
+                  <div className="bg-accent/20 rounded-2xl p-4">
+                    <h4 className="font-semibold text-foreground mb-2">About</h4>
+                    <p className="text-foreground/80 leading-relaxed whitespace-pre-wrap">
+                      {selectedRequest.description}
+                    </p>
+                  </div>
+                )}
+
+                {extractInstagramLink(selectedRequest.description) && (
+                  <a
+                    href={
+                      extractInstagramLink(selectedRequest.description)?.startsWith('http')
+                        ? extractInstagramLink(selectedRequest.description)!
+                        : `https://${extractInstagramLink(selectedRequest.description)}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 text-[#E91E63] hover:text-[#D81B60] font-medium transition-colors bg-[#E91E63]/10 rounded-xl py-3"
+                  >
+                    <Instagram className="h-5 w-5" />
+                    <span>Connect on Instagram</span>
+                  </a>
+                )}
+
+                <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm bg-accent/20 rounded-xl py-2">
+                  <Clock className="h-4 w-4" />
+                  <span>{getTimeRemaining(selectedRequest.expires_at)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <BottomNavigation />
     </div>
