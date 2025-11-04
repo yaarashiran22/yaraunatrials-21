@@ -147,8 +147,12 @@ const JoinMePage = () => {
                 return (
                   <div
                     key={request.id}
-                    className="bg-card rounded-2xl p-6 border-2 border-border"
-                    style={{ boxShadow: 'none' }}
+                    className="rounded-2xl p-6 border-2 border-border"
+                    style={{ 
+                      boxShadow: 'none', 
+                      backgroundColor: '#FFFFFF',
+                      filter: 'none'
+                    }}
                   >
                     {isEditing ? (
                       // Edit mode
@@ -208,15 +212,45 @@ const JoinMePage = () => {
                             </div>
                           )}
                           <div className="flex-1" style={{ filter: 'none', textShadow: 'none' }}>
-                            <h3 className="font-bold text-2xl text-foreground" style={{ textShadow: 'none', filter: 'none', opacity: 1 }}>
+                            <h3 
+                              className="font-bold text-2xl" 
+                              style={{ 
+                                color: '#000000',
+                                textShadow: 'none', 
+                                filter: 'none', 
+                                opacity: 1,
+                                fontWeight: 700
+                              }}
+                            >
                               {request.name}
                             </h3>
                             {request.age && (
-                              <p className="text-lg font-semibold text-foreground mt-1" style={{ textShadow: 'none', filter: 'none', opacity: 1 }}>{request.age} years old</p>
+                              <p 
+                                className="text-lg font-semibold mt-1" 
+                                style={{ 
+                                  color: '#000000',
+                                  textShadow: 'none', 
+                                  filter: 'none', 
+                                  opacity: 1,
+                                  fontWeight: 600
+                                }}
+                              >
+                                {request.age} years old
+                              </p>
                             )}
-                            <div className="flex items-center gap-2 mt-2 text-base font-medium text-foreground" style={{ textShadow: 'none', filter: 'none', opacity: 1 }}>
-                              <Clock className="h-5 w-5" />
-                              <span style={{ textShadow: 'none', filter: 'none' }}>{getTimeRemaining(request.expires_at)}</span>
+                            <div 
+                              className="flex items-center gap-2 mt-2 text-base font-medium" 
+                              style={{ 
+                                color: '#000000',
+                                textShadow: 'none', 
+                                filter: 'none', 
+                                opacity: 1 
+                              }}
+                            >
+                              <Clock className="h-5 w-5" style={{ color: '#000000' }} />
+                              <span style={{ color: '#000000', textShadow: 'none', filter: 'none' }}>
+                                {getTimeRemaining(request.expires_at)}
+                              </span>
                             </div>
                           </div>
                           {phoneNumber === request.phone_number && (
@@ -231,7 +265,9 @@ const JoinMePage = () => {
                         </div>
 
                         {request.description && (
-                          <p className="text-base text-foreground" style={{ textShadow: 'none' }}>{request.description}</p>
+                          <p className="text-base" style={{ color: '#000000', textShadow: 'none', filter: 'none', opacity: 1 }}>
+                            {request.description}
+                          </p>
                         )}
 
                         {instagramLink && (
