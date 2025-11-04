@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, Home, Settings, ChevronDown, Heart, Plus, MapPin, Search, Zap, MessageCircle } from "lucide-react";
+import { LogOut, User, Home, Settings, ChevronDown, Heart, Plus, MapPin, Search, Zap, MessageCircle, Users } from "lucide-react";
 import logoImage from "@/assets/reference-image.png";
 import { useNewItem } from "@/contexts/NewItemContext";
 import { useSearch } from "@/contexts/SearchContext";
@@ -70,8 +70,8 @@ const Header = ({
             </h1>
           </div>
           
-          {/* Center - Neighborhood Dropdown */}
-          <div className="flex-1 flex justify-center px-4">
+          {/* Center - Neighborhood Dropdown & Join Me Button */}
+          <div className="flex-1 flex justify-center items-center gap-3 px-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
@@ -97,6 +97,14 @@ const Header = ({
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+            
+            <Button
+              onClick={() => navigate('/join-me')}
+              className="bg-gradient-to-r from-[#E91E63] to-[#9C27B0] text-white hover:opacity-90 px-3 py-2 h-9 gap-1 text-sm font-semibold"
+            >
+              <Users className="h-4 w-4" />
+              Join Me
+            </Button>
           </div>
           
           {/* Right side - Language & Profile */}

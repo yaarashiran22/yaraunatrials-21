@@ -147,7 +147,8 @@ const JoinMePage = () => {
                 return (
                   <div
                     key={request.id}
-                    className="bg-card rounded-2xl p-6 border-2 border-border !shadow-none"
+                    className="bg-card rounded-2xl p-6 border-2 border-border"
+                    style={{ boxShadow: 'none' }}
                   >
                     {isEditing ? (
                       // Edit mode
@@ -206,13 +207,13 @@ const JoinMePage = () => {
                             </div>
                           )}
                           <div className="flex-1">
-                            <h3 className="font-bold text-xl text-foreground">
+                            <h3 className="font-bold text-xl text-foreground" style={{ textShadow: 'none' }}>
                               {request.name}
                             </h3>
                             {request.age && (
-                              <p className="text-base text-foreground/80">{request.age} years old</p>
+                              <p className="text-base text-foreground" style={{ textShadow: 'none' }}>{request.age} years old</p>
                             )}
-                            <div className="flex items-center gap-2 mt-1 text-sm text-foreground/60">
+                            <div className="flex items-center gap-2 mt-1 text-sm text-foreground" style={{ textShadow: 'none' }}>
                               <Clock className="h-4 w-4" />
                               <span>{getTimeRemaining(request.expires_at)}</span>
                             </div>
@@ -229,7 +230,7 @@ const JoinMePage = () => {
                         </div>
 
                         {request.description && (
-                          <p className="text-base text-foreground/90">{request.description}</p>
+                          <p className="text-base text-foreground" style={{ textShadow: 'none' }}>{request.description}</p>
                         )}
 
                         {instagramLink && (
