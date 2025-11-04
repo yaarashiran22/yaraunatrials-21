@@ -243,7 +243,7 @@ const JoinMePage = () => {
                   >
                     {isEditing ? (
                       // Edit mode
-                      <div className="space-y-4">
+                      <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
                         <div>
                           <label className="text-sm font-semibold text-foreground mb-2 block">
                             Name
@@ -254,6 +254,7 @@ const JoinMePage = () => {
                               setEditForm({ ...editForm, name: e.target.value })
                             }
                             placeholder="Your name"
+                            onClick={(e) => e.stopPropagation()}
                           />
                         </div>
                         <div>
@@ -275,6 +276,7 @@ const JoinMePage = () => {
                                 onChange={(e) => handlePhotoUpload(e, false)}
                                 disabled={uploadingPhoto}
                                 className="cursor-pointer"
+                                onClick={(e) => e.stopPropagation()}
                               />
                               {uploadingPhoto && (
                                 <p className="text-xs text-muted-foreground mt-1">Uploading...</p>
@@ -298,7 +300,10 @@ const JoinMePage = () => {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => removeAdditionalPhoto(index)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeAdditionalPhoto(index);
+                                  }}
                                   className="text-destructive hover:bg-destructive/10"
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -312,6 +317,7 @@ const JoinMePage = () => {
                                 onChange={(e) => handlePhotoUpload(e, true)}
                                 disabled={uploadingPhoto}
                                 className="cursor-pointer"
+                                onClick={(e) => e.stopPropagation()}
                               />
                             )}
                           </div>
@@ -327,15 +333,25 @@ const JoinMePage = () => {
                             }
                             placeholder="Looking for people to explore the nightlife! Instagram: @yourhandle or https://instagram.com/yourhandle"
                             rows={3}
+                            onClick={(e) => e.stopPropagation()}
                           />
                         </div>
                         <div className="flex gap-2">
-                          <Button onClick={handleSave} className="flex-1">
+                          <Button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSave();
+                            }} 
+                            className="flex-1"
+                          >
                             Save
                           </Button>
                           <Button
                             variant="outline"
-                            onClick={() => setEditingId(null)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingId(null);
+                            }}
                             className="flex-1"
                           >
                             Cancel
