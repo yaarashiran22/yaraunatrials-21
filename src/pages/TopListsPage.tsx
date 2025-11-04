@@ -212,21 +212,20 @@ const TopListsPage = () => {
       <main className="px-4 pt-12 pb-6 lg:pt-16 max-w-4xl mx-auto">
         {/* Header Section */}
         <div className="mb-6 space-y-4">
-          <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E91E63] to-[#9C27B0] bg-clip-text text-transparent">
-            Yara's Top Lists
-          </h1>
-          {user && (
-            <Button
-              onClick={() => setShowCreateDialog(true)}
-              className="w-full min-h-touch gap-2 bg-gradient-to-r from-[#E91E63] to-[#9C27B0] hover:from-[#D81B60] hover:to-[#8E24AA] text-white font-semibold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
-              disabled={userListCount !== undefined && userListCount >= 10}
-            >
-              <Plus className="h-5 w-5" />
-              <span className="text-base font-semibold">
-                Create List {userListCount !== undefined && `(${userListCount}/10)`}
-              </span>
-            </Button>
-          )}
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#E91E63] to-[#9C27B0] bg-clip-text text-transparent">
+              Yara's Top Lists
+            </h1>
+            {user && (
+              <Button
+                onClick={() => setShowCreateDialog(true)}
+                className="h-12 w-12 rounded-full bg-gradient-to-r from-[#E91E63] to-[#9C27B0] hover:from-[#D81B60] hover:to-[#8E24AA] text-white font-semibold shadow-lg hover:shadow-xl hover:scale-[1.1] transition-all duration-300 flex items-center justify-center p-0"
+                disabled={userListCount !== undefined && userListCount >= 10}
+              >
+                <Plus className="h-6 w-6" />
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Lists Grid */}
