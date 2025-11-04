@@ -1,7 +1,6 @@
 import BottomNavigation from "@/components/BottomNavigation";
 import Header from "@/components/Header";
 import DesktopHeader from "@/components/DesktopHeader";
-import MoodFilterStrip from "@/components/MoodFilterStrip";
 import FilterPopup from "@/components/FilterPopup";
 import EventPopup from "@/components/EventPopup";
 import EventVerticalPopup from "@/components/EventVerticalPopup";
@@ -125,9 +124,6 @@ const Index = () => {
     preloadData();
   }, []); // Removed preloadData dependency
 
-  // Mood filter state
-  const [selectedMoodFilter, setSelectedMoodFilter] = useState<string>("all");
-
   // Popup states
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
@@ -214,7 +210,7 @@ const Index = () => {
       profilesList.push(...otherProfiles);
     }
     return profilesList;
-  }, [user, currentUserProfile, profiles, selectedMoodFilter]);
+  }, [user, currentUserProfile, profiles]);
 
   // Filter events based on applied filters
   const filteredEvents = useMemo(() => {
@@ -405,10 +401,6 @@ const Index = () => {
       
       {/* Desktop Header */}
       <DesktopHeader title={t('common.home')} />
-      
-      
-      {/* Mood Filter Strip */}
-      <MoodFilterStrip onFilterChange={setSelectedMoodFilter} showTitle={false} />
       
       <main className="px-3 lg:px-6 py-3 lg:py-6 space-y-5 lg:space-y-10 pb-24 lg:pb-8 w-full max-w-md lg:max-w-none mx-auto lg:mx-0">
         {/* AI Assistant Toggle Bar */}
