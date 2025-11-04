@@ -127,6 +127,7 @@ serve(async (req) => {
             name,
             description,
             location,
+            image_url,
             display_order
           )
         `)
