@@ -290,6 +290,7 @@ export type Database = {
       }
       join_requests: {
         Row: {
+          additional_photos: string[] | null
           age: number | null
           created_at: string
           description: string | null
@@ -300,6 +301,7 @@ export type Database = {
           photo_url: string | null
         }
         Insert: {
+          additional_photos?: string[] | null
           age?: number | null
           created_at?: string
           description?: string | null
@@ -310,6 +312,7 @@ export type Database = {
           photo_url?: string | null
         }
         Update: {
+          additional_photos?: string[] | null
           age?: number | null
           created_at?: string
           description?: string | null

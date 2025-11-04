@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Edit, UserPlus, Clock, Instagram } from "lucide-react";
+import { Edit, UserPlus, Clock, Instagram, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 import BottomNavigation from "@/components/BottomNavigation";
@@ -20,6 +20,7 @@ interface JoinRequest {
   description: string | null;
   created_at: string;
   expires_at: string;
+  additional_photos: string[] | null;
 }
 
 const JoinMePage = () => {
@@ -38,6 +39,7 @@ const JoinMePage = () => {
     name: "",
     photo_url: "",
     description: "",
+    additional_photos: [] as string[],
   });
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<JoinRequest | null>(null);
@@ -103,10 +105,11 @@ const JoinMePage = () => {
       name: request.name || "",
       photo_url: request.photo_url || "",
       description: request.description || "",
+      additional_photos: request.additional_photos || [],
     });
   };
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, isAdditional: boolean = false) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -126,14 +129,34 @@ const JoinMePage = () => {
         .from('profile-images')
         .getPublicUrl(filePath);
 
-      setEditForm({ ...editForm, photo_url: publicUrl });
-      toast.success("Photo uploaded!");
+      if (isAdditional) {
+        // Add to additional photos (max 2)
+        if (editForm.additional_photos.length < 2) {
+          setEditForm({ 
+            ...editForm, 
+            additional_photos: [...editForm.additional_photos, publicUrl] 
+          });
+          toast.success("Additional photo uploaded!");
+        } else {
+          toast.error("Maximum 2 additional photos allowed");
+        }
+      } else {
+        setEditForm({ ...editForm, photo_url: publicUrl });
+        toast.success("Photo uploaded!");
+      }
     } catch (error) {
       console.error('Upload error:', error);
       toast.error("Failed to upload photo");
     } finally {
       setUploadingPhoto(false);
     }
+  };
+
+  const removeAdditionalPhoto = (index: number) => {
+    setEditForm({
+      ...editForm,
+      additional_photos: editForm.additional_photos.filter((_, i) => i !== index)
+    });
   };
 
   const handleSave = () => {
@@ -235,7 +258,7 @@ const JoinMePage = () => {
                               <Input
                                 type="file"
                                 accept="image/*"
-                                onChange={handlePhotoUpload}
+                                onChange={(e) => handlePhotoUpload(e, false)}
                                 disabled={uploadingPhoto}
                                 className="cursor-pointer"
                               />
@@ -243,6 +266,40 @@ const JoinMePage = () => {
                                 <p className="text-xs text-muted-foreground mt-1">Uploading...</p>
                               )}
                             </div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-semibold text-foreground mb-2 block">
+                            Additional Photos (up to 2)
+                          </label>
+                          <div className="space-y-3">
+                            {editForm.additional_photos.map((url, index) => (
+                              <div key={index} className="flex items-center gap-3">
+                                <img
+                                  src={url}
+                                  alt={`Additional ${index + 1}`}
+                                  className="w-16 h-16 rounded-lg object-cover border-2 border-border"
+                                />
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeAdditionalPhoto(index)}
+                                  className="text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                            {editForm.additional_photos.length < 2 && (
+                              <Input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => handlePhotoUpload(e, true)}
+                                disabled={uploadingPhoto}
+                                className="cursor-pointer"
+                              />
+                            )}
                           </div>
                         </div>
                         <div>
@@ -374,17 +431,34 @@ const JoinMePage = () => {
           
           {selectedRequest && (
             <div className="space-y-6 py-4">
-              {/* Large Profile Photo */}
-              <div className="flex justify-center">
-                {selectedRequest.photo_url ? (
-                  <img
-                    src={selectedRequest.photo_url}
-                    alt={selectedRequest.name}
-                    className="w-48 h-48 rounded-full object-cover border-4 border-[#E91E63] shadow-xl"
-                  />
-                ) : (
-                  <div className="w-48 h-48 rounded-full bg-gradient-to-br from-[#E91E63]/20 to-[#9C27B0]/20 flex items-center justify-center border-4 border-[#E91E63]">
-                    <UserPlus className="h-24 w-24 text-[#E91E63]" />
+              {/* Photo Gallery */}
+              <div className="space-y-4">
+                {/* Main Profile Photo */}
+                <div className="flex justify-center">
+                  {selectedRequest.photo_url ? (
+                    <img
+                      src={selectedRequest.photo_url}
+                      alt={selectedRequest.name}
+                      className="w-48 h-48 rounded-full object-cover border-4 border-[#E91E63] shadow-xl"
+                    />
+                  ) : (
+                    <div className="w-48 h-48 rounded-full bg-gradient-to-br from-[#E91E63]/20 to-[#9C27B0]/20 flex items-center justify-center border-4 border-[#E91E63]">
+                      <UserPlus className="h-24 w-24 text-[#E91E63]" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Additional Photos */}
+                {selectedRequest.additional_photos && selectedRequest.additional_photos.length > 0 && (
+                  <div className="grid grid-cols-2 gap-3 px-4">
+                    {selectedRequest.additional_photos.map((url, index) => (
+                      <img
+                        key={index}
+                        src={url}
+                        alt={`${selectedRequest.name} photo ${index + 1}`}
+                        className="w-full h-32 rounded-xl object-cover border-2 border-border shadow-md"
+                      />
+                    ))}
                   </div>
                 )}
               </div>
