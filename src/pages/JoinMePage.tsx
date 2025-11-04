@@ -26,7 +26,9 @@ const JoinMePage = () => {
   const queryClient = useQueryClient();
   const phoneNumber = searchParams.get("phone");
   
+  console.log("Full URL:", window.location.href);
   console.log("Phone number from URL:", phoneNumber);
+  console.log("All URL params:", Object.fromEntries(searchParams.entries()));
   
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
@@ -309,7 +311,7 @@ const JoinMePage = () => {
                     )}
                   </div>
                 );
-                });
+              });
               })()}
             </div>
           ) : (
