@@ -336,12 +336,12 @@ const TopListsPage = () => {
 
       {/* List Details Dialog */}
       <Dialog open={!!selectedListId} onOpenChange={() => setSelectedListId(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto shadow-none rounded-3xl mx-4 bg-gradient-to-br from-background to-accent/10 border-2 border-border/50">
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[85vh] overflow-y-auto shadow-none rounded-3xl bg-gradient-to-br from-background to-accent/10 border-2 border-border/50">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold pr-8 bg-gradient-to-r from-[#E91E63] to-[#9C27B0] bg-clip-text text-transparent">
+            <DialogTitle className="text-xl lg:text-2xl font-bold pr-8 bg-gradient-to-r from-[#E91E63] to-[#9C27B0] bg-clip-text text-transparent">
               {topLists?.find(l => l.id === selectedListId)?.title}
             </DialogTitle>
-            <p className="text-muted-foreground text-sm mt-1">
+            <p className="text-foreground text-sm lg:text-base mt-2 leading-relaxed">
               {topLists?.find(l => l.id === selectedListId)?.description}
             </p>
           </DialogHeader>
