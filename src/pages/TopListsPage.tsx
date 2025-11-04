@@ -216,7 +216,7 @@ const TopListsPage = () => {
           {user && (
             <Button
               onClick={() => setShowCreateDialog(true)}
-              className="w-full min-h-touch gap-2 shadow-none"
+              className="w-full min-h-touch gap-2 bg-gradient-to-r from-[#E91E63] to-[#9C27B0] hover:from-[#D81B60] hover:to-[#8E24AA] text-white font-semibold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
               disabled={userListCount !== undefined && userListCount >= 10}
             >
               <Plus className="h-5 w-5" />
