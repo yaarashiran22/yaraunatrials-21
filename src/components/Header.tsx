@@ -5,9 +5,8 @@ import LanguageSelector from "@/components/LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, Home, Settings, ChevronDown, Heart, Plus, MapPin, Search, Zap, MessageCircle, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import logoImage from "@/assets/reference-image.png";
 import { useNewItem } from "@/contexts/NewItemContext";
 import { useSearch } from "@/contexts/SearchContext";
@@ -35,28 +34,6 @@ const Header = ({
   const navigate = useNavigate();
   const { openNewItem } = useNewItem();
   const { openSearch } = useSearch();
-  const [selectedNeighborhood, setSelectedNeighborhood] = React.useState<string>('All');
-
-  const neighborhoods = React.useMemo(() => [
-    'All',
-    'Palermo Soho',
-    'Palermo Hollywood',
-    'Villa Crespo',
-    'San Telmo',
-    'Chacarita'
-  ], []);
-
-  const handleNeighborhoodChange = React.useCallback((neighborhood: string) => {
-    setSelectedNeighborhood(neighborhood);
-    if (onNeighborhoodChange) {
-      onNeighborhoodChange(neighborhood);
-    }
-  }, [onNeighborhoodChange]);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   const handleLogoClick = () => {
     navigate('/');
@@ -75,33 +52,6 @@ const Header = ({
             }}>
               Yara AI
             </h1>
-          </div>
-          
-          {/* Center - Neighborhood Dropdown */}
-          <div className="flex-1 flex justify-center items-center gap-3 px-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  className="bg-white text-black hover:bg-gray-100 border-2 border-purple-500 px-3 py-2 h-9 gap-1 text-sm"
-                >
-                  <MapPin className="h-4 w-4" />
-                  {selectedNeighborhood}
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-white border-border z-[9999]">
-                {neighborhoods.map((neighborhood) => (
-                  <DropdownMenuItem 
-                    key={neighborhood}
-                    onClick={() => handleNeighborhoodChange(neighborhood)}
-                    className="cursor-pointer hover:bg-accent"
-                  >
-                    {neighborhood}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
           
           {/* Right side - Join Button */}
