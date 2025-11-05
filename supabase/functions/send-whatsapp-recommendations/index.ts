@@ -125,12 +125,9 @@ Deno.serve(async (req) => {
           Body: messageBody
         };
         
-        // Only add MediaUrl if image_url is a valid URL (not null, "null", or empty)
-        if (rec.image_url && rec.image_url !== 'null' && rec.image_url.startsWith('http')) {
+        if (rec.image_url) {
           console.log(`Image URL: ${rec.image_url}`);
           requestBody.MediaUrl = rec.image_url;
-        } else if (rec.image_url) {
-          console.log(`Skipping invalid image URL: ${rec.image_url}`);
         }
         
         const twilioResponse = await fetch(

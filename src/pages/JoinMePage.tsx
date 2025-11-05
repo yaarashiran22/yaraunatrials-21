@@ -82,31 +82,19 @@ const JoinMePage = () => {
   // Update join request mutation
   const updateRequestMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<JoinRequest> }) => {
-      console.log('Updating join request with:', { id, updates });
-      const { error, data } = await supabase
+      const { error } = await supabase
         .from("join_requests")
         .update(updates)
-        .eq("id", id)
-        .select()
-        .single();
+        .eq("id", id);
 
       if (error) throw error;
-      console.log('Update result:', data);
-      return data;
     },
-    onSuccess: async (data) => {
-      await queryClient.invalidateQueries({ queryKey: ["joinRequests"] });
-      
-      // Update selectedRequest with the fresh data if it's currently open
-      if (selectedRequest?.id === data.id) {
-        setSelectedRequest(data as JoinRequest);
-      }
-      
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["joinRequests"] });
       toast.success("Profile updated!");
       setEditingId(null);
     },
-    onError: (error) => {
-      console.error('Update error:', error);
+    onError: () => {
       toast.error("Failed to update profile");
     },
   });
@@ -269,18 +257,8 @@ const JoinMePage = () => {
                 return (
                   <div
                     key={request.id}
-                    className="group rounded-2xl p-5 lg:p-6 border border-border/50 bg-gradient-to-br from-card to-accent/10 hover:border-[#E91E63]/30 transition-all duration-300 hover:shadow-lg shadow-none cursor-pointer active:scale-[0.98]"
-                    onClick={(e) => {
-                      // Prevent opening popup when clicking on buttons or inputs in edit mode
-                      if (isEditing) return;
-                      setSelectedRequest(request);
-                    }}
-                    onTouchEnd={(e) => {
-                      // Better mobile touch handling
-                      if (isEditing) return;
-                      e.preventDefault();
-                      setSelectedRequest(request);
-                    }}
+                    className="group rounded-2xl p-5 lg:p-6 border border-border/50 bg-gradient-to-br from-card to-accent/10 hover:border-[#E91E63]/30 transition-all duration-300 hover:shadow-lg shadow-none cursor-pointer"
+                    onClick={() => setSelectedRequest(request)}
                   >
                     {isEditing ? (
                       // Edit mode
@@ -526,13 +504,7 @@ const JoinMePage = () => {
 
       {/* View Request Details Dialog */}
       <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
-        <DialogContent 
-          className="w-[calc(100vw-2rem)] max-w-lg max-h-[85vh] overflow-y-auto shadow-none rounded-3xl bg-gradient-to-br from-card to-accent/10 border-2 border-border/50"
-          aria-describedby="user-profile-description"
-        >
-          <div id="user-profile-description" className="sr-only">
-            User profile details and information
-          </div>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-lg shadow-none rounded-3xl bg-gradient-to-br from-card to-accent/10 border-2 border-border/50">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-[#E91E63] to-[#9C27B0] bg-clip-text text-transparent">
               {selectedRequest?.name}
