@@ -122,7 +122,8 @@ const Index = () => {
   // Preload data immediately on component mount for instant loading
   useEffect(() => {
     preloadData();
-  }, []); // Removed preloadData dependency
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Intentionally empty - only run once on mount
 
   // Popup states
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -149,14 +150,13 @@ const Index = () => {
     dateRange: "All"
   });
 
-  // Set refresh callback for new items - stabilized with useCallback
-  const refreshCallback = useCallback(() => {
-    refetch();
-    refetchEvents();
-  }, [refetch, refetchEvents]);
+  // Set refresh callback for new items
   useEffect(() => {
-    setRefreshCallback(() => refreshCallback);
-  }, [setRefreshCallback, refreshCallback]);
+    setRefreshCallback(() => () => {
+      refetch();
+      refetchEvents();
+    });
+  }, []); // Empty dependency - only set up once
 
   // Global event listener for event updates
   useEffect(() => {
