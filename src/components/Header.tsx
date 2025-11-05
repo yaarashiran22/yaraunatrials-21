@@ -11,7 +11,7 @@ import { LogOut, User, Home, Settings, ChevronDown, Heart, Plus, MapPin, Search,
 import logoImage from "@/assets/reference-image.png";
 import { useNewItem } from "@/contexts/NewItemContext";
 import { useSearch } from "@/contexts/SearchContext";
-import { useState } from "react";
+import React, { useState } from "react";
 
 interface HeaderProps {
   title?: string;
@@ -37,14 +37,14 @@ const Header = ({
   const { openSearch } = useSearch();
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('All');
 
-  const neighborhoods = [
+  const neighborhoods = React.useMemo(() => [
     'All',
     'Palermo Soho',
     'Palermo Hollywood',
     'Villa Crespo',
     'San Telmo',
     'Chacarita'
-  ];
+  ], []);
 
   const handleLogout = () => {
     logout();
