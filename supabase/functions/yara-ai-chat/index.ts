@@ -990,18 +990,6 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         const userName = userProfile?.name || 'Anonymous';
         const userAge = userProfile?.age || null;
         
-        // Get the user's original request from conversation history
-        let userRequest = message;
-        if (isPositiveResponse && wasAskingAboutMatchmaking && recentMessages.data) {
-          // Find the user's message before the matchmaking question
-          const userMessages = recentMessages.data.filter(m => m.role === 'user');
-          if (userMessages.length > 1) {
-            userRequest = userMessages[1].content || message; // Get the second most recent user message
-          }
-        }
-        // Clean up the message by removing any markers
-        userRequest = userRequest.replace(/\[JOIN_REQUEST_EVENT:[a-f0-9-]+\]/g, '').trim();
-        
         // Try to extract event_id from the message if it contains the special marker (explicit request)
         let eventId: string | null = matchmakingEventId; // Use matchmaking event by default
         const eventIdMatch = message.match(/\[JOIN_REQUEST_EVENT:([a-f0-9-]+)\]/);
@@ -1024,8 +1012,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
           const updateData: any = {
             name: userName,
             age: userAge,
-            expires_at: newExpiresAt,
-            description: userRequest // Update with latest request
+            expires_at: newExpiresAt
           };
           
           // Add event_id if we have one
@@ -1048,8 +1035,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
           const insertData: any = {
             phone_number: phoneNumber,
             name: userName,
-            age: userAge,
-            description: userRequest // Save the user's original request
+            age: userAge
           };
           
           // Add event_id if we have one

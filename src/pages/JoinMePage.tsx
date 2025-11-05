@@ -441,7 +441,6 @@ const JoinMePage = () => {
                           </Button>
                         </div>
 
-
                         {/* Event Information */}
                         {request.events && (
                           <div className="bg-accent/20 rounded-xl p-3 border border-border/50">
