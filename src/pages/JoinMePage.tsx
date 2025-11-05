@@ -475,11 +475,6 @@ const JoinMePage = () => {
                           </div>
                         )}
 
-                        {request.description && (
-                          <p className="text-sm lg:text-base text-foreground/80 leading-relaxed">
-                            {request.description}
-                          </p>
-                        )}
 
                         {instagramLink && (
                           <a
