@@ -33,8 +33,6 @@ interface JoinRequest {
 }
 
 const JoinMePage = () => {
-  console.log("🔄 JoinMePage component mounted");
-  
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const phoneNumberRaw = searchParams.get("phone");
@@ -56,10 +54,9 @@ const JoinMePage = () => {
   const [selectedRequest, setSelectedRequest] = useState<JoinRequest | null>(null);
 
   // Fetch all active join requests with event details
-  const { data: joinRequests, isLoading, error, isFetching } = useQuery({
+  const { data: joinRequests, isLoading } = useQuery({
     queryKey: ["joinRequests"],
     queryFn: async () => {
-      console.log("Fetching join requests...");
       const { data, error } = await supabase
         .from("join_requests")
         .select(`
@@ -76,21 +73,11 @@ const JoinMePage = () => {
         .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching join requests:", error);
-        throw error;
-      }
-      console.log("Join requests fetched:", data);
+      if (error) throw error;
       return data as JoinRequest[];
     },
-    refetchInterval: 30000,
-    retry: 1, // Reduced retry for faster failure on mobile
-    staleTime: 5000,
-    gcTime: 60000,
-    networkMode: 'online',
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
-
-  console.log("Join requests state:", { isLoading, isFetching, hasData: !!joinRequests, dataLength: joinRequests?.length, error });
 
   // Update join request mutation
   const updateRequestMutation = useMutation({
@@ -260,24 +247,8 @@ const JoinMePage = () => {
             </p>
           </div>
 
-          {isLoading || isFetching ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <div className="animate-pulse space-y-2">
-                <div className="text-lg mb-2">Loading Join Requests...</div>
-                <div className="text-sm">Please wait</div>
-              </div>
-            </div>
-          ) : error ? (
-            <div className="text-center py-12">
-              <div className="text-destructive text-lg mb-2">⚠️ Error loading requests</div>
-              <div className="text-sm text-muted-foreground">{error instanceof Error ? error.message : 'Unknown error'}</div>
-              <button 
-                onClick={() => window.location.reload()} 
-                className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg"
-              >
-                Retry
-              </button>
-            </div>
+          {isLoading ? (
+            <div className="text-center py-12 text-muted-foreground">Loading...</div>
           ) : joinRequests && joinRequests.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2">
               {(() => {
@@ -504,6 +475,11 @@ const JoinMePage = () => {
                           </div>
                         )}
 
+                        {request.description && (
+                          <p className="text-sm lg:text-base text-foreground/80 leading-relaxed">
+                            {request.description}
+                          </p>
+                        )}
 
                         {instagramLink && (
                           <a

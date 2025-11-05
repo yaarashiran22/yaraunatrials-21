@@ -4,19 +4,17 @@ import App from './App.tsx'
 import './index.css'
 
 console.log('🚀 Main.tsx loaded successfully - Site is working!');
-console.log('📱 User Agent:', navigator.userAgent);
-console.log('🌐 Current URL:', window.location.href);
 
 console.log('🔧 Creating QueryClient...');
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes - reduced for mobile
-      gcTime: 1000 * 60 * 30, // 30 minutes
+      staleTime: 1000 * 60 * 15, // 15 minutes - ultra-aggressive caching
+      gcTime: 1000 * 60 * 60, // 1 hour - keep data in memory much longer  
       refetchOnWindowFocus: false,
       refetchOnMount: false, 
-      refetchOnReconnect: true, // Refetch when connection restored
-      retry: 1, // Single retry for faster mobile experience
+      refetchOnReconnect: false,
+      retry: 0, // No retries for instant loading
       networkMode: 'online',
       placeholderData: (previousData) => previousData,
     },
