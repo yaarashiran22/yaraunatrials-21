@@ -89,8 +89,18 @@ const JoinMePage = () => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["joinRequests"] });
+    onSuccess: async (_, variables) => {
+      await queryClient.invalidateQueries({ queryKey: ["joinRequests"] });
+      
+      // Update selectedRequest if it's the one being edited
+      if (selectedRequest?.id === variables.id) {
+        const updatedRequests = queryClient.getQueryData<JoinRequest[]>(["joinRequests"]);
+        const updatedRequest = updatedRequests?.find(r => r.id === variables.id);
+        if (updatedRequest) {
+          setSelectedRequest(updatedRequest);
+        }
+      }
+      
       toast.success("Profile updated!");
       setEditingId(null);
     },
