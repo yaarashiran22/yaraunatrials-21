@@ -441,6 +441,15 @@ const JoinMePage = () => {
                           </Button>
                         </div>
 
+                        {/* User's Request */}
+                        {request.description && (
+                          <div className="bg-gradient-to-br from-[#E91E63]/5 to-[#9C27B0]/5 rounded-xl p-3 border border-[#E91E63]/20">
+                            <p className="text-sm text-foreground/90 italic line-clamp-2">
+                              "{request.description}"
+                            </p>
+                          </div>
+                        )}
+
                         {/* Event Information */}
                         {request.events && (
                           <div className="bg-accent/20 rounded-xl p-3 border border-border/50">
