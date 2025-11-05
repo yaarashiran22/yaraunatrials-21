@@ -82,29 +82,31 @@ const JoinMePage = () => {
   // Update join request mutation
   const updateRequestMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<JoinRequest> }) => {
-      const { error } = await supabase
+      console.log('Updating join request with:', { id, updates });
+      const { error, data } = await supabase
         .from("join_requests")
         .update(updates)
-        .eq("id", id);
+        .eq("id", id)
+        .select()
+        .single();
 
       if (error) throw error;
+      console.log('Update result:', data);
+      return data;
     },
-    onSuccess: async (_, variables) => {
+    onSuccess: async (data) => {
       await queryClient.invalidateQueries({ queryKey: ["joinRequests"] });
       
-      // Update selectedRequest if it's the one being edited
-      if (selectedRequest?.id === variables.id) {
-        const updatedRequests = queryClient.getQueryData<JoinRequest[]>(["joinRequests"]);
-        const updatedRequest = updatedRequests?.find(r => r.id === variables.id);
-        if (updatedRequest) {
-          setSelectedRequest(updatedRequest);
-        }
+      // Update selectedRequest with the fresh data if it's currently open
+      if (selectedRequest?.id === data.id) {
+        setSelectedRequest(data as JoinRequest);
       }
       
       toast.success("Profile updated!");
       setEditingId(null);
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Update error:', error);
       toast.error("Failed to update profile");
     },
   });
