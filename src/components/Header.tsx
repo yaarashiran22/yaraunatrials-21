@@ -11,7 +11,7 @@ import { LogOut, User, Home, Settings, ChevronDown, Heart, Plus, MapPin, Search,
 import logoImage from "@/assets/reference-image.png";
 import { useNewItem } from "@/contexts/NewItemContext";
 import { useSearch } from "@/contexts/SearchContext";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 interface HeaderProps {
   title?: string;
@@ -36,6 +36,7 @@ const Header = ({
   const { openNewItem } = useNewItem();
   const { openSearch } = useSearch();
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('All');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const neighborhoods = [
     'All',
@@ -46,14 +47,22 @@ const Header = ({
     'Chacarita'
   ];
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     logout();
     navigate('/login');
-  };
+  }, [logout, navigate]);
 
-  const handleLogoClick = () => {
+  const handleLogoClick = useCallback(() => {
     navigate('/');
-  };
+  }, [navigate]);
+
+  const handleNeighborhoodSelect = useCallback((neighborhood: string) => {
+    setSelectedNeighborhood(neighborhood);
+    setDropdownOpen(false);
+    if (onNeighborhoodChange) {
+      onNeighborhoodChange(neighborhood);
+    }
+  }, [onNeighborhoodChange]);
 
   return (
     <header className="header-bar border-b border-border shadow-sm">
@@ -72,7 +81,7 @@ const Header = ({
           
           {/* Center - Neighborhood Dropdown */}
           <div className="flex-1 flex justify-center items-center gap-3 px-4">
-            <DropdownMenu>
+            <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="outline" 
@@ -87,9 +96,7 @@ const Header = ({
                 {neighborhoods.map((neighborhood) => (
                   <DropdownMenuItem 
                     key={neighborhood}
-                    onClick={() => {
-                      setSelectedNeighborhood(neighborhood);
-                    }}
+                    onClick={() => handleNeighborhoodSelect(neighborhood)}
                     className="cursor-pointer hover:bg-accent"
                   >
                     {neighborhood}

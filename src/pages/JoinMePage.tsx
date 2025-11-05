@@ -33,6 +33,8 @@ interface JoinRequest {
 }
 
 const JoinMePage = () => {
+  console.log("🔄 JoinMePage component mounted");
+  
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const phoneNumberRaw = searchParams.get("phone");
@@ -258,15 +260,23 @@ const JoinMePage = () => {
             </p>
           </div>
 
-          {isLoading ? (
+          {isLoading || isFetching ? (
             <div className="text-center py-12 text-muted-foreground">
-              <div className="text-lg mb-2">Loading...</div>
-              <div className="text-sm">Fetching join requests</div>
+              <div className="animate-pulse space-y-2">
+                <div className="text-lg mb-2">Loading Join Requests...</div>
+                <div className="text-sm">Please wait</div>
+              </div>
             </div>
           ) : error ? (
-            <div className="text-center py-12 text-destructive">
-              <div className="text-lg mb-2">Error loading requests</div>
-              <div className="text-sm">{error instanceof Error ? error.message : 'Unknown error'}</div>
+            <div className="text-center py-12">
+              <div className="text-destructive text-lg mb-2">⚠️ Error loading requests</div>
+              <div className="text-sm text-muted-foreground">{error instanceof Error ? error.message : 'Unknown error'}</div>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg"
+              >
+                Retry
+              </button>
             </div>
           ) : joinRequests && joinRequests.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2">
