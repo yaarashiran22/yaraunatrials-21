@@ -1,14 +1,10 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User, Plus, ChevronDown, Settings, MapPin } from "lucide-react";
+import { User } from "lucide-react";
 import { useNewItem } from "@/contexts/NewItemContext";
 import LanguageSelector from "@/components/LanguageSelector";
-import NeighborhoodSelector from "@/components/NeighborhoodSelector";
-import NeighborhoodIndicator from "@/components/NeighborhoodIndicator";
-import { useState } from "react";
 
 interface DesktopHeaderProps {
   title?: string;
@@ -31,16 +27,6 @@ const DesktopHeader = ({
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { openNewItem } = useNewItem();
-  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('All');
-
-  const neighborhoods = [
-    'All',
-    'Palermo Soho',
-    'Palermo Hollywood',
-    'Villa Crespo',
-    'San Telmo',
-    'Chacarita'
-  ];
 
   const handleLogout = () => {
     logout();
@@ -60,33 +46,6 @@ const DesktopHeader = ({
             }}>
               Yara AI
             </h1>
-          </div>
-          
-          {/* Center section - Neighborhood Dropdown */}
-          <div className="flex-1 max-w-2xl mx-8 flex justify-center">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  className="bg-white text-black hover:bg-gray-100 border-2 border-purple-500 px-6 py-3 h-11 gap-2"
-                >
-                  <MapPin className="h-5 w-5" />
-                  {selectedNeighborhood}
-                  <ChevronDown className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-background border-border z-50">
-                {neighborhoods.map((neighborhood) => (
-                  <DropdownMenuItem 
-                    key={neighborhood}
-                    onClick={() => setSelectedNeighborhood(neighborhood)}
-                    className="cursor-pointer hover:bg-accent"
-                  >
-                    {neighborhood}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
           
           {/* Right section - Language & Actions */}
