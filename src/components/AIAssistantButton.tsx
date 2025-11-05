@@ -14,7 +14,7 @@ const AIAssistantButton: React.FC<AIAssistantButtonProps> = ({ variant = 'floati
 
   // WhatsApp redirect handler
   const handleWhatsAppRedirect = () => {
-    const whatsappNumber = '5491158679182'; // Yara AI WhatsApp number
+    const whatsappNumber = '17622513744'; // Yara AI WhatsApp chatbot number
     const message = 'Hi Yara!';
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
