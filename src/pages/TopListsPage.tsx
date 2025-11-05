@@ -52,8 +52,6 @@ const TopListsPage = () => {
       if (error) throw error;
       return data;
     },
-    staleTime: 0,
-    refetchOnMount: true,
   });
 
   // Fetch user's list count

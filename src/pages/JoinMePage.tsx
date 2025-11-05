@@ -76,8 +76,6 @@ const JoinMePage = () => {
       if (error) throw error;
       return data as JoinRequest[];
     },
-    staleTime: 0,
-    refetchOnMount: true,
     refetchInterval: 30000,
   });
 
