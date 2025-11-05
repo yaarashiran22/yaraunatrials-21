@@ -92,21 +92,21 @@ const Index = () => {
     };
   }, []);
 
-  // Use optimized homepage hook with React Query caching
+  // Use optimized homepage hook with React Query caching - DISABLED for speed
   const {
-    profiles,
-    businessProfiles,
-    totalUsersCount,
-    databaseEvents,
-    recommendationItems,
-    artItems,
-    apartmentItems,
-    businessItems,
-    loading,
+    profiles = [],
+    businessProfiles = [],
+    totalUsersCount = 0,
+    databaseEvents = [],
+    recommendationItems = [],
+    artItems = [],
+    apartmentItems = [],
+    businessItems = [],
+    loading = false,
     error,
     refetch,
     preloadData
-  } = useOptimizedHomepage();
+  } = { profiles: [], businessProfiles: [], totalUsersCount: 0, databaseEvents: [], recommendationItems: [], artItems: [], apartmentItems: [], businessItems: [], loading: false, error: null, refetch: () => {}, preloadData: () => {} }; // DISABLED for instant load
 
   // Fetch events separately from the new events table
   const [eventFilter, setEventFilter] = useState<'all' | 'following'>('all');
@@ -115,15 +115,9 @@ const Index = () => {
     refetch: refetchEvents
   } = useEvents('event', eventFilter === 'following');
   const {
-    following,
+    following = [],
     isFollowing
-  } = useFollowing();
-
-  // Preload data immediately on component mount for instant loading
-  useEffect(() => {
-    preloadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Intentionally empty - only run once on mount
+  } = { following: [], isFollowing: () => false }; // DISABLED for instant load
 
   // Popup states
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -150,67 +144,10 @@ const Index = () => {
     dateRange: "All"
   });
 
-  // Set refresh callback for new items
-  useEffect(() => {
-    setRefreshCallback(() => () => {
-      refetch();
-      refetchEvents();
-    });
-  }, []); // Empty dependency - only set up once
+  // REMOVED - causing slow loads
 
-  // Global event listener for event updates
-  useEffect(() => {
-    const handleEventUpdate = () => {
-      refetchEvents();
-    };
-    window.addEventListener('eventUpdated', handleEventUpdate);
-    return () => window.removeEventListener('eventUpdated', handleEventUpdate);
-  }, []); // Removed unstable dependencies
-
-  const [userStoryCounts, setUserStoryCounts] = useState<{
-    [key: string]: number;
-  }>({});
-
-  // Completely disable story fetching for maximum loading speed
-  useEffect(() => {
-    // Stories are disabled for faster initial loading
-    // This eliminates the multiple story API calls seen in network logs
-    return;
-  }, []);
-
-  // Memoize display profiles with mood filtering
-  const displayProfiles = useMemo(() => {
-    const profilesList = [];
-
-    // Always show current user first if logged in - immediate display
-    if (user) {
-      const currentUserDisplayProfile = {
-        id: user.id,
-        name: currentUserProfile?.name || user.email?.split('@')[0] || 'You',
-        image: currentUserProfile?.profile_image_url || user.user_metadata?.avatar_url || "/lovable-uploads/c7d65671-6211-412e-af1d-6e5cfdaa248e.png",
-        isCurrentUser: true,
-        hasStories: false // Skip stories for performance
-      };
-      profilesList.push(currentUserDisplayProfile);
-    }
-
-    // Always show other profiles regardless of mood filter
-    if (profiles.length > 0) {
-      const filteredProfiles = profiles.filter(p => p.id !== user?.id && p.name?.toLowerCase() !== 'juani');
-      
-      const otherProfiles = filteredProfiles.slice(0, 6) // Reduced to 6 for faster loading
-      .map(p => ({
-        id: p.id,
-        name: p.name || "User",
-        image: p.image || "/lovable-uploads/c7d65671-6211-412e-af1d-6e5cfdaa248e.png",
-        hasStories: false,
-        // Skip stories check for performance
-        isCurrentUser: false
-      }));
-      profilesList.push(...otherProfiles);
-    }
-    return profilesList;
-  }, [user, currentUserProfile, profiles]);
+  // PROFILES DISABLED FOR INSTANT LOAD
+  const displayProfiles = useMemo(() => [], []);
 
   // Filter events based on applied filters
   const filteredEvents = useMemo(() => {
