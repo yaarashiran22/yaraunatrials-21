@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo } from 'react';
 
 interface NewItemContextType {
   isOpen: boolean;
@@ -26,25 +26,22 @@ export const NewItemProvider: React.FC<NewItemProviderProps> = ({ children }) =>
   const [isOpen, setIsOpen] = useState(false);
   const [refreshCallback, setRefreshCallback] = useState<(() => void) | null>(null);
 
-  const openNewItem = () => setIsOpen(true);
-  const closeNewItem = () => setIsOpen(false);
-  const refreshItems = () => {
-    if (refreshCallback) {
-      refreshCallback();
+  const value = useMemo(() => ({
+    isOpen,
+    openNewItem: () => setIsOpen(true),
+    closeNewItem: () => setIsOpen(false),
+    refreshItems: () => {
+      if (refreshCallback) {
+        refreshCallback();
+      }
+    },
+    setRefreshCallback: (callback: () => void) => {
+      setRefreshCallback(() => callback);
     }
-  };
-  const setRefreshCallbackFn = (callback: () => void) => {
-    setRefreshCallback(() => callback);
-  };
+  }), [isOpen, refreshCallback]);
 
   return (
-    <NewItemContext.Provider value={{ 
-      isOpen, 
-      openNewItem, 
-      closeNewItem, 
-      refreshItems, 
-      setRefreshCallback: setRefreshCallbackFn 
-    }}>
+    <NewItemContext.Provider value={value}>
       {children}
     </NewItemContext.Provider>
   );
