@@ -35,7 +35,7 @@ const Header = ({
   const navigate = useNavigate();
   const { openNewItem } = useNewItem();
   const { openSearch } = useSearch();
-  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('All');
+  const [selectedNeighborhood, setSelectedNeighborhood] = React.useState<string>('All');
 
   const neighborhoods = React.useMemo(() => [
     'All',
@@ -45,6 +45,13 @@ const Header = ({
     'San Telmo',
     'Chacarita'
   ], []);
+
+  const handleNeighborhoodChange = React.useCallback((neighborhood: string) => {
+    setSelectedNeighborhood(neighborhood);
+    if (onNeighborhoodChange) {
+      onNeighborhoodChange(neighborhood);
+    }
+  }, [onNeighborhoodChange]);
 
   const handleLogout = () => {
     logout();
@@ -87,9 +94,7 @@ const Header = ({
                 {neighborhoods.map((neighborhood) => (
                   <DropdownMenuItem 
                     key={neighborhood}
-                    onClick={() => {
-                      setSelectedNeighborhood(neighborhood);
-                    }}
+                    onClick={() => handleNeighborhoodChange(neighborhood)}
                     className="cursor-pointer hover:bg-accent"
                   >
                     {neighborhood}
