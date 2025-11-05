@@ -122,8 +122,10 @@ const Index = () => {
 
   // Preload data immediately on component mount for instant loading
   useEffect(() => {
-    preloadData();
-  }, []); // Removed preloadData dependency
+    if (preloadData) {
+      preloadData();
+    }
+  }, []); // Empty deps for one-time execution
 
   // Mood filter state
   const [selectedMoodFilter, setSelectedMoodFilter] = useState<string>("all");
@@ -154,22 +156,24 @@ const Index = () => {
   });
 
   // Set refresh callback for new items - stabilized with useCallback
-  const refreshCallback = useCallback(() => {
-    refetch();
-    refetchEvents();
-  }, [refetch, refetchEvents]);
   useEffect(() => {
-    setRefreshCallback(() => refreshCallback);
-  }, [setRefreshCallback, refreshCallback]);
+    const callback = () => {
+      refetch();
+      refetchEvents();
+    };
+    setRefreshCallback(() => callback);
+  }, []); // Empty deps to prevent infinite loop
 
   // Global event listener for event updates
   useEffect(() => {
     const handleEventUpdate = () => {
-      refetchEvents();
+      if (refetchEvents) {
+        refetchEvents();
+      }
     };
     window.addEventListener('eventUpdated', handleEventUpdate);
     return () => window.removeEventListener('eventUpdated', handleEventUpdate);
-  }, []); // Removed unstable dependencies
+  }, []); // Empty deps for stable event listener
 
   const [userStoryCounts, setUserStoryCounts] = useState<{
     [key: string]: number;
