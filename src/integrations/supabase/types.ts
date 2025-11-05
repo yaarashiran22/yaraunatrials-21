@@ -288,42 +288,6 @@ export type Database = {
         }
         Relationships: []
       }
-      join_requests: {
-        Row: {
-          additional_photos: string[] | null
-          age: number | null
-          created_at: string
-          description: string | null
-          expires_at: string
-          id: string
-          name: string
-          phone_number: string
-          photo_url: string | null
-        }
-        Insert: {
-          additional_photos?: string[] | null
-          age?: number | null
-          created_at?: string
-          description?: string | null
-          expires_at?: string
-          id?: string
-          name: string
-          phone_number: string
-          photo_url?: string | null
-        }
-        Update: {
-          additional_photos?: string[] | null
-          age?: number | null
-          created_at?: string
-          description?: string | null
-          expires_at?: string
-          id?: string
-          name?: string
-          phone_number?: string
-          photo_url?: string | null
-        }
-        Relationships: []
-      }
       notifications: {
         Row: {
           created_at: string | null

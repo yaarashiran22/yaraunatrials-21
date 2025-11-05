@@ -5,12 +5,13 @@ import LanguageSelector from "@/components/LanguageSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
-import { Users } from "lucide-react";
+import { LogOut, User, Home, Settings, ChevronDown, Heart, Plus, MapPin, Search, Zap, MessageCircle } from "lucide-react";
 import logoImage from "@/assets/reference-image.png";
 import { useNewItem } from "@/contexts/NewItemContext";
 import { useSearch } from "@/contexts/SearchContext";
-import React, { useState } from "react";
+import { useState } from "react";
 
 interface HeaderProps {
   title?: string;
@@ -34,6 +35,21 @@ const Header = ({
   const navigate = useNavigate();
   const { openNewItem } = useNewItem();
   const { openSearch } = useSearch();
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('All');
+
+  const neighborhoods = [
+    'All',
+    'Palermo Soho',
+    'Palermo Hollywood',
+    'Villa Crespo',
+    'San Telmo',
+    'Chacarita'
+  ];
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const handleLogoClick = () => {
     navigate('/');
@@ -54,15 +70,57 @@ const Header = ({
             </h1>
           </div>
           
-          {/* Right side - Join Button */}
+          {/* Center - Neighborhood Dropdown */}
+          <div className="flex-1 flex justify-center px-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="bg-white text-black hover:bg-gray-100 border-2 border-purple-500 px-3 py-2 h-9 gap-1 text-sm"
+                >
+                  <MapPin className="h-4 w-4" />
+                  {selectedNeighborhood}
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-white border-border z-[9999]">
+                {neighborhoods.map((neighborhood) => (
+                  <DropdownMenuItem 
+                    key={neighborhood}
+                    onClick={() => {
+                      setSelectedNeighborhood(neighborhood);
+                    }}
+                    className="cursor-pointer hover:bg-accent"
+                  >
+                    {neighborhood}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          
+          {/* Right side - Language & Profile */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <Button
-              onClick={() => navigate('/join-me')}
-              className="bg-gradient-to-r from-[#E91E63] to-[#9C27B0] text-white hover:opacity-90 px-3 py-2 h-9 gap-1 text-sm font-semibold"
-            >
-              <Users className="h-4 w-4" />
-              Join
-            </Button>
+            <LanguageSelector />
+            {user ? (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="p-2.5 h-9 w-9 bg-white text-primary hover:bg-gray-100 border-gray-200 rounded-full"
+                onClick={() => navigate('/profile/1')}
+              >
+                <User className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="p-2.5 h-9 w-9 bg-white text-primary hover:bg-gray-100 border-gray-200 rounded-full"
+                onClick={() => navigate('/login')}
+              >
+                <User className="h-4 w-4" />
+              </Button>
+            )}
           </div>
           
         </div>

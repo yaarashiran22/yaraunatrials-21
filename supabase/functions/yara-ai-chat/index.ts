@@ -127,7 +127,6 @@ serve(async (req) => {
             name,
             description,
             location,
-            image_url,
             display_order
           )
         `)
@@ -263,11 +262,9 @@ serve(async (req) => {
         items: (list.top_list_items || [])
           .sort((a: any, b: any) => a.display_order - b.display_order)
           .map((item: any) => ({
-            id: item.id,
             name: item.name,
             description: item.description,
             location: item.location,
-            image_url: item.image_url,
           })),
       })),
     };
@@ -359,17 +356,10 @@ serve(async (req) => {
 
     const userLanguage = userProfile?.preferred_language || 'en';
     const languageInstruction = userLanguage === 'es'
-      ? `🚨 ABSOLUTE CRITICAL RULE - YOU MUST RESPOND IN SPANISH 🚨
-All messages, recommendations, intro_message, descriptions - EVERYTHING must be in Spanish.
-NEVER use English for this user. They specifically requested Spanish.`
-      : `🚨 ABSOLUTE CRITICAL RULE - YOU MUST RESPOND IN ENGLISH 🚨
-All messages, recommendations, intro_message, descriptions - EVERYTHING must be in English.
-NEVER use Spanish for this user. They specifically requested English.
-Even though Buenos Aires is a Spanish-speaking city, this user wants ENGLISH ONLY.`;
+      ? 'CRITICAL: Respond ONLY in Spanish to this user. All messages, recommendations, and questions must be in Spanish.'
+      : 'CRITICAL: Respond ONLY in English to this user. All messages, recommendations, and questions must be in English.';
 
     const systemPrompt = `You are Yara – your vibe is like that friend who actually lives in Buenos Aires and knows where the real action is. You're helpful but keep it chill and authentic. No corporate speak, no try-hard energy. Just straight talk with personality.
-
-${languageInstruction}
 
 Tone:
 - Conversational and natural – like texting a friend who gets the city
@@ -393,26 +383,14 @@ ${JSON.stringify(contextData, null, 2)}
 
 **CURATED TOP LISTS - COMMUNITY RECOMMENDATIONS:**
 The "topLists" section contains curated lists created by registered users about the best places in Buenos Aires. Each list has items with name, description, and location:
-
-**ABSOLUTE CRITICAL RULE - BARS MUST ONLY COME FROM TOP LISTS, NEVER EVENTS:**
-- **WHEN USERS ASK FOR BARS**: You MUST recommend ONLY bars from the "best bars for backpackers" top list (or similar bar-related lists). Look for lists with title containing "bar" or "bars" and category "Bars".
-- **NEVER RECOMMEND EVENTS AS BARS**: Even if an event happens at a bar, DO NOT recommend it when user asks for bars. Events are for when user asks for "events", "parties", or "things to do".
-- **BARS = TOP LIST ITEMS ONLY**: Bar recommendations must ALWAYS use type: "topListItem" and come from top_list_items, NEVER from events table.
-- **WHEN USERS ASK FOR CLUBS**: You MUST recommend individual clubs FROM the items in club-related top lists
-- **WHEN USERS ASK FOR CAFÉS**: You MUST recommend individual cafés FROM the items in café-related top lists
+- **WHEN USERS ASK FOR BARS**: Recommend individual bars FROM the items in bar-related top lists. Don't just recommend the list - recommend the actual bars listed in the items.
+- **WHEN USERS ASK FOR CLUBS**: Recommend individual clubs FROM the items in club-related top lists
+- **WHEN USERS ASK FOR CAFÉS**: Recommend individual cafés FROM the items in café-related top lists
 - **WHEN USERS ASK FOR ART CENTERS**: Recommend individual art centers FROM the items in art center-related top lists
-- **WHEN USERS ASK FOR RESTAURANTS**: Recommend individual restaurants FROM the items in restaurant-related top lists
-
-**HOW TO USE TOP LISTS FOR BARS:**
-1. When user asks for bars, search topLists array for lists with title/category matching "bars" (e.g., "best bars for backpackers")
-2. Extract ONLY the individual items from those bar lists - ignore all events
-3. Create a separate topListItem recommendation for EACH bar from the list
-4. **CRITICAL**: Use type: "topListItem", id: item.id (the individual item's ID, NOT the topList.id), title: item.name, description: item.description + item.location, image_url: item.image_url
-5. **NEVER** use the topList.id as the recommendation ID - always use the individual item.id
-6. **NEVER** reuse the same image_url for multiple items - each item has its own image_url (or null if no image)
-7. **NEVER** include events when recommending bars - events are separate from bar recommendations
-
-Example: User asks "recommend bars for backpackers" → Look for topLists with title containing "bars" and "backpackers" → Extract all bar items from that list → For each item, recommend it as a topListItem with id: item.id, title: item.name, description: item.description, image_url: item.image_url → NEVER include any events in bar recommendations
+- **WHEN USERS ASK FOR WORKSHOPS**: Recommend individual workshops FROM the items in workshop-related top lists
+- Example: If a user asks "recommend me bars", look through top lists with category "Bars", extract the individual bar items from those lists, and recommend those specific bars with their descriptions and locations
+- You can combine these top list items with relevant events to give comprehensive recommendations
+- The items array contains: name, description, and location for each place
 
 CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 
@@ -435,20 +413,6 @@ AGE COLLECTION - FIRST PRIORITY:
   - If they mention going "with friends", "with people", or "we", ask: "Quick question - what are your ages? (e.g., 25, 28, 30)"
   - If they're asking just for themselves, ask: "Quick question - how old are you? This helps me recommend the perfect spots for you 😊"
 
-JOIN ME FEATURE - FINDING COMPANIONS:
-- **IF** the user mentions wanting to find people/companions to go out with (e.g., "looking for someone to go with", "want to find people to join", "anyone to go out with"), respond with:
-  "I'll add you to our Join Me board! Other people looking to make plans will be able to see you there. 
-  
-  Visit this link to see everyone and edit your profile: https://theunahub.com/join-me?phone=${phoneNumber || ''}
-  
-  On that page, you can add a photo and description (including your Instagram link if you'd like people to connect with you)."
-- The backend will automatically save the request to the database
-
-JOIN ME REMOVAL:
-- **IF** the user mentions wanting to be removed from the Join Me board (e.g., "remove me from join me", "delete my join me request", "take me off the board"), respond with:
-  "I've removed you from the Join Me board. You won't be visible to others anymore. You can always ask me to add you back anytime!"
-- The backend will automatically delete their join request from the database
-
 NAME COLLECTION - AFTER FIRST RECOMMENDATION:
 - **IMPORTANT**: The user's messages may include their profile information in parentheses at the start (e.g., "(By the way, my name is Matias, I'm 33 years old.)")
 - **IF** you see their name in their message or in the User Profile Context, you ALREADY KNOW it - use their name and DO NOT ask for it again
@@ -465,8 +429,6 @@ FALLBACK TO AI RECOMMENDATIONS:
 - **CLEAR LABELING**: When providing AI-generated recommendations, clearly indicate they are general suggestions (e.g., "While I don't have specific events in our database, here are some great options typically available in Buenos Aires:")
 - **BE SPECIFIC**: Provide actual venue names, neighborhoods, and types of experiences available in Buenos Aires based on your knowledge
 - **FORMAT**: AI-generated recommendations should still be conversational text (NOT JSON format) since they don't have database IDs
-- **CRITICAL - NEVER MIX DATABASE AND AI RECOMMENDATIONS**: If you return JSON recommendations, ONLY include items from the database with valid IDs. NEVER invent venue names or use database images for venues that don't exist in the database.
-- **ABSOLUTE RULE**: When returning JSON recommendations, each recommendation MUST have a matching ID from the "Available data" above. If you can't find a match, DON'T include it in the JSON.
 - Example: "I couldn't find workshops in our current database, but Buenos Aires has amazing options! Check out El Club de la Milanesa in Palermo for cooking workshops, or Paseo La Plaza for theater classes. Want me to keep an eye out for when specific events get added to our database?"
 
 PROGRESSIVE PROFILING (Build profile gradually):
@@ -940,69 +902,6 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         }
       } catch (e) {
         console.log("Could not parse recommendations:", e);
-      }
-    }
-
-    // Check if this is a JOIN ME request and save/update it
-    if (phoneNumber && message.toLowerCase().includes('join me board')) {
-      // Extract user info from userProfile or set defaults
-      const userName = userProfile?.name || 'Anonymous';
-      const userAge = userProfile?.age || null;
-      
-      // Check if there's already an active join request (not expired)
-      const { data: existingRequest } = await supabase
-        .from('join_requests')
-        .select('id, expires_at')
-        .eq('phone_number', phoneNumber)
-        .gt('expires_at', new Date().toISOString())
-        .maybeSingle();
-      
-      if (existingRequest) {
-        // Update existing request with new expiration time (refresh the 8-hour timer)
-        const newExpiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString();
-        const { error: updateError } = await supabase
-          .from('join_requests')
-          .update({
-            name: userName,
-            age: userAge,
-            expires_at: newExpiresAt
-          })
-          .eq('id', existingRequest.id);
-        
-        if (updateError) {
-          console.error('Error updating join request:', updateError);
-        } else {
-          console.log(`Updated existing join request for ${userName} (${phoneNumber}), refreshed timer`);
-        }
-      } else {
-        // Create new join request
-        const { error: joinError } = await supabase
-          .from('join_requests')
-          .insert({
-            phone_number: phoneNumber,
-            name: userName,
-            age: userAge
-          });
-        
-        if (joinError) {
-          console.error('Error creating join request:', joinError);
-        } else {
-          console.log(`Created new join request for ${userName} (${phoneNumber})`);
-        }
-      }
-    }
-
-    // Check if this is a JOIN ME REMOVAL request
-    if (phoneNumber && /\b(remove me from join me|delete my join me|take me off the board|remove (my )?join (me )?request)\b/i.test(message.toLowerCase())) {
-      const { error: deleteError } = await supabase
-        .from('join_requests')
-        .delete()
-        .eq('phone_number', phoneNumber);
-      
-      if (deleteError) {
-        console.error('Error deleting join request:', deleteError);
-      } else {
-        console.log(`Deleted join request for ${phoneNumber}`);
       }
     }
 

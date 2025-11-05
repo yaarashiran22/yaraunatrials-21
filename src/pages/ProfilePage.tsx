@@ -252,12 +252,17 @@ const ProfilePage = () => {
   useEffect(() => {
     const handleFocus = () => {
       refetch();
-      refetchEvents();
+      refetchEvents(); // Also refresh events when page regains focus
     };
 
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, []); // Empty dependency array - only set up once
+  }, [refetch, refetchEvents]);
+
+  // Also refetch when returning from navigation
+  useEffect(() => {
+    refetch();
+  }, [id, user?.id]);
 
   const handleLogout = () => {
     navigate('/login');
