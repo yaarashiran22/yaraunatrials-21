@@ -35,22 +35,35 @@ export interface OptimizedProfile {
 // Ultra-optimized database queries with aggressive limits for instant mobile loading
 const fetchHomepageData = async () => {
   try {
-    // Batch all queries in a single Promise.all for maximum performance
-    // Reduced data fetching for instant mobile loading
-    const [profilesResult, businessProfilesResult, profilesCountResult] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('id, name, profile_image_url, interests')
-          .not('name', 'is', null)
-          .order('created_at', { ascending: false })
-          .limit(4), // Reduced to 4 for instant loading
-        supabase
-          .from('profiles')
-          .select('id, name, profile_image_url, interests, profile_type')
-          .eq('profile_type', 'business')
-          .not('name', 'is', null)
-          .order('created_at', { ascending: false })
-          .limit(10), // Reduced to 10 for faster loading
+    // Batch all queries - optimized with limits for mobile performance
+    const [eventsResult, recommendationsResult, profilesResult, businessProfilesResult, profilesCountResult] = await Promise.all([
+      supabase
+        .from('items')
+        .select('id, title, image_url, location, user_id')
+        .eq('status', 'active')
+        .eq('category', 'event')
+        .order('created_at', { ascending: false })
+        .limit(20), // Limit for faster loading
+      supabase
+        .from('items')
+        .select('id, title, image_url, location, user_id, created_at')
+        .eq('status', 'active')
+        .eq('category', 'מוזמנים להצטרף')
+        .order('created_at', { ascending: false })
+        .limit(20), // Limit for faster loading
+      supabase
+        .from('profiles')
+        .select('id, name, profile_image_url, interests')
+        .not('name', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(4), // Reduced to 4 for instant loading
+      supabase
+        .from('profiles')
+        .select('id, name, profile_image_url, interests, profile_type')
+        .eq('profile_type', 'business')
+        .not('name', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(10), // Reduced to 10 for faster loading
       supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
@@ -58,9 +71,77 @@ const fetchHomepageData = async () => {
     ]);
 
     // Handle errors gracefully
+    if (eventsResult.error) throw eventsResult.error;
+    if (recommendationsResult.error) throw recommendationsResult.error;
     if (profilesResult.error) throw profilesResult.error;
     if (businessProfilesResult.error) throw businessProfilesResult.error;
     if (profilesCountResult.error) throw profilesCountResult.error;
+
+    const rawEvents = eventsResult.data || [];
+    const rawRecommendationItems = recommendationsResult.data || [];
+    
+    // Initialize with default uploader info
+    let databaseEvents: OptimizedItem[] = rawEvents.map(event => ({
+      ...event,
+      uploader: {
+        name: 'משתמש',
+        image: profile1,
+        small_photo: profile1,
+        location: 'לא צוין'
+      }
+    }));
+
+    let recommendationItems: OptimizedItem[] = rawRecommendationItems.map(item => ({
+      ...item,
+      uploader: {
+        name: 'משתמש',
+        image: profile1,
+        small_photo: profile1,
+        location: 'לא צוין'
+      }
+    }));
+    
+    // Fetch uploader profiles in batch
+    const allUserIds = [...new Set([
+      ...rawEvents.map(event => event.user_id),
+      ...rawRecommendationItems.map(item => item.user_id)
+    ].filter(Boolean))];
+    
+    if (allUserIds.length > 0) {
+      const { data: uploaderProfilesData } = await supabase
+        .from('profiles')
+        .select('id, name, profile_image_url, location')
+        .in('id', allUserIds);
+      
+      const uploaderProfiles = (uploaderProfilesData || []).reduce((acc: any, profile) => {
+        acc[profile.id] = profile;
+        return acc;
+      }, {});
+      
+      // Add uploader info to events
+      databaseEvents = rawEvents.map(event => ({
+        ...event,
+        uploader: {
+          name: uploaderProfiles[event.user_id]?.name || 'משתמש',
+          image: uploaderProfiles[event.user_id]?.profile_image_url || profile1,
+          small_photo: uploaderProfiles[event.user_id]?.profile_image_url || profile1,
+          location: uploaderProfiles[event.user_id]?.location || 'לא צוין',
+          user_id: event.user_id
+        }
+      }));
+
+      // Add uploader info to recommendations
+      recommendationItems = rawRecommendationItems.map(item => ({
+        ...item,
+        uploader: {
+          name: uploaderProfiles[item.user_id]?.name || 'משתמש',
+          image: uploaderProfiles[item.user_id]?.profile_image_url || profile1,
+          small_photo: uploaderProfiles[item.user_id]?.profile_image_url || profile1,
+          location: uploaderProfiles[item.user_id]?.location || 'לא צוין',
+          user_id: item.user_id
+        }
+      }));
+    }
     
     const profiles = (profilesResult.data || []).map((profile) => ({
       id: profile.id,
@@ -78,10 +159,13 @@ const fetchHomepageData = async () => {
 
     const totalUsersCount = profilesCountResult.count || 0;
 
+    // Combine items for backward compatibility
+    const items = [...databaseEvents, ...recommendationItems];
+
     return { 
-      items: [],
-      databaseEvents: [],
-      recommendationItems: [],
+      items,
+      databaseEvents,
+      recommendationItems,
       artItems: [],
       apartmentItems: [],
       businessItems: [], 
@@ -103,28 +187,27 @@ const fetchHomepageData = async () => {
 export const useOptimizedHomepage = () => {
   const queryClient = useQueryClient();
 
-  // Ultra-aggressive preloading for instant loading
+  // Preload data for faster initial render
   const preloadData = () => {
     queryClient.prefetchQuery({
-      queryKey: ['homepage-data-v9'], // Updated for minimal data loading
+      queryKey: ['homepage-data-v10'], // Updated to include restored queries
       queryFn: fetchHomepageData,
-      staleTime: 1000 * 60 * 30, // Match main query stale time
+      staleTime: 1000 * 60 * 5,
     });
   };
 
-  // Ultra-aggressive caching for instant loading
+  // Optimized caching for fast loading with data refresh
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['homepage-data-v9'], // Updated for minimal data loading
+    queryKey: ['homepage-data-v10'], // Updated to include restored queries
     queryFn: fetchHomepageData,
-    staleTime: 1000 * 60 * 30, // 30 minutes - super aggressive
-    gcTime: 1000 * 60 * 120, // 2 hours - keep data much longer
+    staleTime: 1000 * 60 * 5, // 5 minutes - balanced caching
+    gcTime: 1000 * 60 * 30, // 30 minutes cache time
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    retry: 0, // No retries for instant loading
-    enabled: true, // Always enabled for immediate data fetching
+    retry: 1, // One retry for reliability
+    enabled: true,
     placeholderData: (previousData) => previousData,
-    refetchInterval: false, // Disable background refetching
   });
 
   // Extract pre-filtered data for instant mobile loading
