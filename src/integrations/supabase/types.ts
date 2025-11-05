@@ -294,7 +294,6 @@ export type Database = {
           age: number | null
           created_at: string
           description: string | null
-          event_id: string | null
           expires_at: string
           id: string
           name: string
@@ -306,7 +305,6 @@ export type Database = {
           age?: number | null
           created_at?: string
           description?: string | null
-          event_id?: string | null
           expires_at?: string
           id?: string
           name: string
@@ -318,22 +316,13 @@ export type Database = {
           age?: number | null
           created_at?: string
           description?: string | null
-          event_id?: string | null
           expires_at?: string
           id?: string
           name?: string
           phone_number?: string
           photo_url?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "join_requests_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       notifications: {
         Row: {

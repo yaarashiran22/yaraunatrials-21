@@ -23,13 +23,7 @@ export const useUserEvents = (userId?: string) => {
 
     try {
       setLoading(true);
-      
-      // Add timeout for mobile networks
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Request timeout')), 10000)
-      );
-      
-      const fetchPromise = supabase
+      const { data, error } = await supabase
         .from('events')
         .select(`
           id,
@@ -51,12 +45,10 @@ export const useUserEvents = (userId?: string) => {
         .eq('market', 'argentina')
         .order('created_at', { ascending: false });
 
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
-
       if (error) throw error;
       
       setEvents((data || []) as Event[]);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching user events:', error);
       
       // Handle JWT expiration
@@ -64,17 +56,11 @@ export const useUserEvents = (userId?: string) => {
         return;
       }
       
-      // Don't show error toast for empty results or timeout on mobile
-      if (error?.message !== 'Request timeout') {
-        toast({
-          title: "Error",
-          description: "Failed to load events",
-          variant: "destructive",
-        });
-      }
-      
-      // Set empty array on error to allow page to render
-      setEvents([]);
+      toast({
+        title: "Error",
+        description: "Failed to load events",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
