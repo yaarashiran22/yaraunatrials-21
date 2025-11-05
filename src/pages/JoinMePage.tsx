@@ -54,7 +54,7 @@ const JoinMePage = () => {
   const [selectedRequest, setSelectedRequest] = useState<JoinRequest | null>(null);
 
   // Fetch all active join requests with event details
-  const { data: joinRequests, isLoading, error } = useQuery({
+  const { data: joinRequests, isLoading, error, isFetching } = useQuery({
     queryKey: ["joinRequests"],
     queryFn: async () => {
       console.log("Fetching join requests...");
@@ -81,12 +81,14 @@ const JoinMePage = () => {
       console.log("Join requests fetched:", data);
       return data as JoinRequest[];
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
-    retry: 2,
-    staleTime: 10000,
+    refetchInterval: 30000,
+    retry: 1, // Reduced retry for faster failure on mobile
+    staleTime: 5000,
+    gcTime: 60000,
+    networkMode: 'online',
   });
 
-  console.log("Join requests state:", { isLoading, hasData: !!joinRequests, dataLength: joinRequests?.length, error });
+  console.log("Join requests state:", { isLoading, isFetching, hasData: !!joinRequests, dataLength: joinRequests?.length, error });
 
   // Update join request mutation
   const updateRequestMutation = useMutation({
