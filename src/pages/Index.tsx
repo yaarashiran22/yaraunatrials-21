@@ -206,13 +206,12 @@ const Index = () => {
     if (profiles.length > 0) {
       const filteredProfiles = profiles.filter(p => p.id !== user?.id && p.name?.toLowerCase() !== 'juani');
       
-      const otherProfiles = filteredProfiles.slice(0, 6) // Reduced to 6 for faster loading
+      const otherProfiles = filteredProfiles.slice(0, 4) // Reduced to 4 for instant loading
       .map(p => ({
         id: p.id,
         name: p.name || "User",
         image: p.image || "/lovable-uploads/c7d65671-6211-412e-af1d-6e5cfdaa248e.png",
         hasStories: false,
-        // Skip stories check for performance
         isCurrentUser: false
       }));
       profilesList.push(...otherProfiles);

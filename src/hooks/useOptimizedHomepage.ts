@@ -36,32 +36,21 @@ export interface OptimizedProfile {
 const fetchHomepageData = async () => {
   try {
     // Batch all queries in a single Promise.all for maximum performance
-    const [eventsResult, recommendationsResult, profilesResult, businessProfilesResult, profilesCountResult] = await Promise.all([
-      supabase
-        .from('items')
-        .select('id, title, image_url, location, user_id')
-        .eq('status', 'active')
-        .eq('category', 'event')
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('items')
-        .select('id, title, image_url, location, user_id, created_at')
-        .eq('status', 'active')
-        .eq('category', 'מוזמנים להצטרף')
-        .order('created_at', { ascending: false }),
+    // Reduced data fetching for instant mobile loading
+    const [profilesResult, businessProfilesResult, profilesCountResult] = await Promise.all([
         supabase
           .from('profiles')
           .select('id, name, profile_image_url, interests')
           .not('name', 'is', null)
           .order('created_at', { ascending: false })
-          .limit(6), // Reduced to 6 for faster loading
+          .limit(4), // Reduced to 4 for instant loading
         supabase
           .from('profiles')
           .select('id, name, profile_image_url, interests, profile_type')
           .eq('profile_type', 'business')
           .not('name', 'is', null)
           .order('created_at', { ascending: false })
-          .limit(20),
+          .limit(10), // Reduced to 10 for faster loading
       supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
@@ -69,79 +58,9 @@ const fetchHomepageData = async () => {
     ]);
 
     // Handle errors gracefully
-    if (eventsResult.error) throw eventsResult.error;
-    if (recommendationsResult.error) throw recommendationsResult.error;
     if (profilesResult.error) throw profilesResult.error;
     if (businessProfilesResult.error) throw businessProfilesResult.error;
     if (profilesCountResult.error) throw profilesCountResult.error;
-
-    const rawEvents = eventsResult.data || [];
-    const rawRecommendationItems = recommendationsResult.data || [];
-    
-    // Optimized uploader profile fetching for both events and recommendations
-    let databaseEvents: OptimizedItem[] = rawEvents.map(event => ({
-      ...event,
-      uploader: {
-        name: 'משתמש',
-        image: profile1,
-        small_photo: profile1,
-        location: 'לא צוין'
-      }
-    }));
-
-    let recommendationItems: OptimizedItem[] = rawRecommendationItems.map(item => ({
-      ...item,
-      uploader: {
-        name: 'משתמש',
-        image: profile1,
-        small_photo: profile1,
-        location: 'לא צוין'
-      }
-    }));
-    
-    // Fetch uploader profiles for both events and recommendations
-    const allUserIds = [
-      ...rawEvents.map(event => event.user_id),
-      ...rawRecommendationItems.map(item => item.user_id)
-    ].filter(Boolean);
-    
-    if (allUserIds.length > 0) {
-      const [uploaderProfilesResult] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('id, name, profile_image_url, location')
-          .in('id', allUserIds)
-      ]);
-      
-      const uploaderProfiles = (uploaderProfilesResult.data || []).reduce((acc: any, profile) => {
-        acc[profile.id] = profile;
-        return acc;
-      }, {});
-      
-      // Transform events data with uploader info
-      databaseEvents = rawEvents.map(event => ({
-        ...event,
-        uploader: {
-          name: uploaderProfiles[event.user_id]?.name || 'משתמש',
-          image: uploaderProfiles[event.user_id]?.profile_image_url || profile1,
-          small_photo: uploaderProfiles[event.user_id]?.profile_image_url || profile1,
-          location: uploaderProfiles[event.user_id]?.location || 'לא צוין',
-          user_id: event.user_id
-        }
-      }));
-
-      // Transform recommendation items with uploader info
-      recommendationItems = rawRecommendationItems.map(item => ({
-        ...item,
-        uploader: {
-          name: uploaderProfiles[item.user_id]?.name || 'משתמש',
-          image: uploaderProfiles[item.user_id]?.profile_image_url || profile1,
-          small_photo: uploaderProfiles[item.user_id]?.profile_image_url || profile1,
-          location: uploaderProfiles[item.user_id]?.location || 'לא צוין',
-          user_id: item.user_id
-        }
-      }));
-    }
     
     const profiles = (profilesResult.data || []).map((profile) => ({
       id: profile.id,
@@ -159,15 +78,12 @@ const fetchHomepageData = async () => {
 
     const totalUsersCount = profilesCountResult.count || 0;
 
-    // Combine items for backward compatibility - removed marketplace items
-    const items = [...databaseEvents, ...recommendationItems];
-
     return { 
-      items, 
-      databaseEvents, 
-      recommendationItems, 
-      artItems: [], // Empty for faster loading
-      apartmentItems: [], // Empty for faster loading
+      items: [],
+      databaseEvents: [],
+      recommendationItems: [],
+      artItems: [],
+      apartmentItems: [],
       businessItems: [], 
       profiles, 
       businessProfiles,
@@ -190,7 +106,7 @@ export const useOptimizedHomepage = () => {
   // Ultra-aggressive preloading for instant loading
   const preloadData = () => {
     queryClient.prefetchQuery({
-      queryKey: ['homepage-data-v8'], // Updated to force refresh with business profile images
+      queryKey: ['homepage-data-v9'], // Updated for minimal data loading
       queryFn: fetchHomepageData,
       staleTime: 1000 * 60 * 30, // Match main query stale time
     });
@@ -198,10 +114,10 @@ export const useOptimizedHomepage = () => {
 
   // Ultra-aggressive caching for instant loading
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['homepage-data-v8'], // Updated to force refresh with business profile images
+    queryKey: ['homepage-data-v9'], // Updated for minimal data loading
     queryFn: fetchHomepageData,
-    staleTime: 1000 * 60 * 15, // 15 minutes - ultra aggressive
-    gcTime: 1000 * 60 * 60, // 1 hour - keep data longer
+    staleTime: 1000 * 60 * 30, // 30 minutes - super aggressive
+    gcTime: 1000 * 60 * 120, // 2 hours - keep data much longer
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
