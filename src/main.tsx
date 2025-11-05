@@ -9,14 +9,13 @@ console.log('🔧 Creating QueryClient...');
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 15, // 15 minutes - ultra-aggressive caching
-      gcTime: 1000 * 60 * 60, // 1 hour - keep data in memory much longer  
+      staleTime: 1000 * 30, // 30 seconds - reasonable for mobile
+      gcTime: 1000 * 60 * 5, // 5 minutes  
       refetchOnWindowFocus: false,
-      refetchOnMount: false, 
-      refetchOnReconnect: false,
-      retry: 0, // No retries for instant loading
+      refetchOnMount: true, // Always fetch fresh on mount
+      refetchOnReconnect: true, // Refetch when network reconnects (critical for mobile)
+      retry: 2, // Retry failed requests (important for unstable mobile networks)
       networkMode: 'online',
-      placeholderData: (previousData) => previousData,
     },
   },
 });
