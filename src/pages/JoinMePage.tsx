@@ -54,9 +54,10 @@ const JoinMePage = () => {
   const [selectedRequest, setSelectedRequest] = useState<JoinRequest | null>(null);
 
   // Fetch all active join requests with event details
-  const { data: joinRequests, isLoading } = useQuery({
+  const { data: joinRequests, isLoading, error } = useQuery({
     queryKey: ["joinRequests"],
     queryFn: async () => {
+      console.log("Fetching join requests...");
       const { data, error } = await supabase
         .from("join_requests")
         .select(`
@@ -73,11 +74,19 @@ const JoinMePage = () => {
         .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching join requests:", error);
+        throw error;
+      }
+      console.log("Join requests fetched:", data);
       return data as JoinRequest[];
     },
     refetchInterval: 30000, // Refresh every 30 seconds
+    retry: 2,
+    staleTime: 10000,
   });
+
+  console.log("Join requests state:", { isLoading, hasData: !!joinRequests, dataLength: joinRequests?.length, error });
 
   // Update join request mutation
   const updateRequestMutation = useMutation({
@@ -248,7 +257,15 @@ const JoinMePage = () => {
           </div>
 
           {isLoading ? (
-            <div className="text-center py-12 text-muted-foreground">Loading...</div>
+            <div className="text-center py-12 text-muted-foreground">
+              <div className="text-lg mb-2">Loading...</div>
+              <div className="text-sm">Fetching join requests</div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12 text-destructive">
+              <div className="text-lg mb-2">Error loading requests</div>
+              <div className="text-sm">{error instanceof Error ? error.message : 'Unknown error'}</div>
+            </div>
           ) : joinRequests && joinRequests.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2">
               {(() => {
