@@ -76,7 +76,9 @@ const JoinMePage = () => {
       if (error) throw error;
       return data as JoinRequest[];
     },
-    refetchInterval: 30000, // Refresh every 30 seconds
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchInterval: 30000,
   });
 
   // Update join request mutation
