@@ -187,54 +187,46 @@ const fetchHomepageData = async () => {
 export const useOptimizedHomepage = () => {
   const queryClient = useQueryClient();
 
-  // Ultra-aggressive preloading for instant loading
-  const preloadData = () => {
-    queryClient.prefetchQuery({
-      queryKey: ['homepage-data-v8'], // Updated to force refresh with business profile images
-      queryFn: fetchHomepageData,
-      staleTime: 1000 * 60 * 30, // Match main query stale time
-    });
-  };
-
   // Ultra-aggressive caching for instant loading
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['homepage-data-v8'], // Updated to force refresh with business profile images
+    queryKey: ['homepage-data-v8'],
     queryFn: fetchHomepageData,
-    staleTime: 1000 * 60 * 15, // 15 minutes - ultra aggressive
-    gcTime: 1000 * 60 * 60, // 1 hour - keep data longer
+    staleTime: 1000 * 60 * 15,
+    gcTime: 1000 * 60 * 60,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    retry: 0, // No retries for instant loading
-    enabled: true, // Always enabled for immediate data fetching
+    retry: 0,
+    enabled: true,
     placeholderData: (previousData) => previousData,
-    refetchInterval: false, // Disable background refetching
+    refetchInterval: false,
   });
 
-  // Extract pre-filtered data for instant mobile loading
-  const items = data?.items || [];
-  const profiles = data?.profiles || [];
-  const businessProfiles = data?.businessProfiles || [];
-  const totalUsersCount = data?.totalUsersCount || 0;
-  const databaseEvents = data?.databaseEvents || [];
-  const recommendationItems = data?.recommendationItems || [];
-  const artItems = data?.artItems || [];
-  const apartmentItems = data?.apartmentItems || [];
-  const businessItems = data?.businessItems || [];
+  // Memoize preloadData to prevent rerenders
+  const preloadData = useMemo(() => () => {
+    queryClient.prefetchQuery({
+      queryKey: ['homepage-data-v8'],
+      queryFn: fetchHomepageData,
+      staleTime: 1000 * 60 * 30,
+    });
+  }, [queryClient]);
 
-  return {
-    items,
-    profiles,
-    businessProfiles,
-    totalUsersCount,
-    databaseEvents,
-    recommendationItems,
-    artItems,
-    apartmentItems,
-    businessItems,
+  // Extract pre-filtered data for instant mobile loading - memoized
+  const result = useMemo(() => ({
+    items: data?.items || [],
+    profiles: data?.profiles || [],
+    businessProfiles: data?.businessProfiles || [],
+    totalUsersCount: data?.totalUsersCount || 0,
+    databaseEvents: data?.databaseEvents || [],
+    recommendationItems: data?.recommendationItems || [],
+    artItems: data?.artItems || [],
+    apartmentItems: data?.apartmentItems || [],
+    businessItems: data?.businessItems || [],
     loading: isLoading,
     error: error?.message || null,
     refetch,
     preloadData
-  };
+  }), [data, isLoading, error, refetch, preloadData]);
+
+  return result;
 };
