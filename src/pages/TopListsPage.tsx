@@ -237,8 +237,8 @@ const TopListsPage = () => {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="font-bold text-xl text-foreground">{list.title}</h3>
-                    <p className="text-base text-foreground/80 mt-1">{list.category}</p>
+                    <h3 className="font-bold text-xl text-foreground" style={{ textShadow: 'none' }}>{list.title}</h3>
+                    <p className="text-base text-foreground/80 mt-1" style={{ textShadow: 'none' }}>{list.category}</p>
                   </div>
                   {user?.id === list.user_id && (
                     <Button
@@ -254,7 +254,7 @@ const TopListsPage = () => {
                   )}
                 </div>
                 {list.description && (
-                  <p className="text-base text-foreground/90">{list.description}</p>
+                  <p className="text-base text-foreground/90" style={{ textShadow: 'none' }}>{list.description}</p>
                 )}
               </div>
             ))}
