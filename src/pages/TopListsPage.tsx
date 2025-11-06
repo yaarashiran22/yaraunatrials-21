@@ -231,7 +231,7 @@ const TopListsPage = () => {
             {topLists.map((list) => (
               <div
                 key={list.id}
-                className="bg-card rounded-xl p-6 border-2 border-border hover:border-primary transition-colors cursor-pointer !shadow-none"
+                className="bg-card rounded-xl p-6 border border-border hover:border-primary transition-colors cursor-pointer shadow-none"
                 onClick={() => setSelectedListId(list.id)}
               >
                 <div className="flex items-start justify-between mb-3">
@@ -272,7 +272,7 @@ const TopListsPage = () => {
 
       {/* Create List Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="!shadow-none">
+        <DialogContent className="shadow-none">
           <DialogHeader>
             <DialogTitle>Create New List</DialogTitle>
           </DialogHeader>
@@ -324,7 +324,7 @@ const TopListsPage = () => {
 
       {/* List Details Dialog */}
       <Dialog open={!!selectedListId} onOpenChange={() => setSelectedListId(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto !shadow-none">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto shadow-none">
           <DialogHeader>
             <DialogTitle>
               {topLists?.find(l => l.id === selectedListId)?.title}
@@ -348,7 +348,7 @@ const TopListsPage = () => {
                 {listItems.map((item, index) => (
                   <div
                     key={item.id}
-                    className="bg-card rounded-lg p-5 flex gap-4 border border-border !shadow-none"
+                    className="bg-card rounded-lg p-5 flex gap-4 border border-border shadow-none"
                   >
                     <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-lg text-primary">
                       {index + 1}
@@ -385,7 +385,7 @@ const TopListsPage = () => {
 
       {/* Add Item Dialog */}
       <Dialog open={showAddItemDialog} onOpenChange={setShowAddItemDialog}>
-        <DialogContent className="!shadow-none">
+        <DialogContent className="shadow-none">
           <DialogHeader>
             <DialogTitle>Add Item to List</DialogTitle>
           </DialogHeader>
