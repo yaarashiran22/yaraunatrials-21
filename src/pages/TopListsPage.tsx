@@ -209,9 +209,9 @@ const TopListsPage = () => {
     <div className="min-h-screen bg-background pb-20 lg:pb-0">
       <Header />
       
-      <main className="container mx-auto px-4 pt-20 lg:pt-24">
+      <main className="container mx-auto px-4 pt-20 lg:pt-24" style={{ textShadow: 'none' }}>
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-4xl font-bold text-foreground">Yara's Top Lists</h1>
+          <h1 className="text-4xl font-bold text-foreground">Yara&apos;s Top Lists</h1>
           {user && (
             <Button
               onClick={() => setShowCreateDialog(true)}
@@ -232,13 +232,13 @@ const TopListsPage = () => {
               <div
                 key={list.id}
                 className="bg-card rounded-xl p-6 border border-border hover:border-primary transition-colors cursor-pointer"
-                style={{ boxShadow: 'none' }}
+                style={{ boxShadow: 'none', textShadow: 'none' }}
                 onClick={() => setSelectedListId(list.id)}
               >
                 <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-bold text-xl text-foreground" style={{ textShadow: 'none' }}>{list.title}</h3>
-                    <p className="text-base text-foreground/80 mt-1" style={{ textShadow: 'none' }}>{list.category}</p>
+                  <div style={{ textShadow: 'none' }}>
+                    <h3 className="font-bold text-xl text-foreground">{list.title}</h3>
+                    <p className="text-base text-foreground/80 mt-1">{list.category}</p>
                   </div>
                   {user?.id === list.user_id && (
                     <Button
@@ -254,7 +254,7 @@ const TopListsPage = () => {
                   )}
                 </div>
                 {list.description && (
-                  <p className="text-base text-foreground/90" style={{ textShadow: 'none' }}>{list.description}</p>
+                  <p className="text-base text-foreground/90">{list.description}</p>
                 )}
               </div>
             ))}
