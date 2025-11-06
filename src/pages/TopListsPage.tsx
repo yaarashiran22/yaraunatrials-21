@@ -19,13 +19,28 @@ const TopListsPage = () => {
   const queryClient = useQueryClient();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showAddItemDialog, setShowAddItemDialog] = useState(false);
+  const [showEditListDialog, setShowEditListDialog] = useState(false);
+  const [showEditItemDialog, setShowEditItemDialog] = useState(false);
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
+  const [editingListId, setEditingListId] = useState<string | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [newList, setNewList] = useState({
     title: "",
     category: "",
     description: "",
   });
+  const [editList, setEditList] = useState({
+    title: "",
+    category: "",
+    description: "",
+  });
   const [newItem, setNewItem] = useState({
+    name: "",
+    description: "",
+    location: "",
+    image_url: "",
+  });
+  const [editItem, setEditItem] = useState({
     name: "",
     description: "",
     location: "",
@@ -169,6 +184,33 @@ const TopListsPage = () => {
     },
   });
 
+  // Update list mutation
+  const updateListMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingListId) throw new Error("No list selected");
+      
+      const { error } = await supabase
+        .from("top_lists")
+        .update({
+          title: editList.title,
+          category: editList.category,
+          description: editList.description,
+        })
+        .eq("id", editingListId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["topLists"] });
+      toast.success("List updated!");
+      setShowEditListDialog(false);
+      setEditingListId(null);
+    },
+    onError: () => {
+      toast.error("Failed to update list");
+    },
+  });
+
   // Delete item mutation
   const deleteItemMutation = useMutation({
     mutationFn: async (itemId: string) => {
@@ -188,6 +230,34 @@ const TopListsPage = () => {
     },
   });
 
+  // Update item mutation
+  const updateItemMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingItemId) throw new Error("No item selected");
+      
+      const { error } = await supabase
+        .from("top_list_items")
+        .update({
+          name: editItem.name,
+          description: editItem.description,
+          location: editItem.location,
+          image_url: editItem.image_url,
+        })
+        .eq("id", editingItemId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["topListItems"] });
+      toast.success("Item updated!");
+      setShowEditItemDialog(false);
+      setEditingItemId(null);
+    },
+    onError: () => {
+      toast.error("Failed to update item");
+    },
+  });
+
   const handleCreateList = () => {
     if (!user) {
       toast.error("Please log in to create a list");
@@ -203,6 +273,35 @@ const TopListsPage = () => {
 
   const handleAddItem = () => {
     addItemMutation.mutate();
+  };
+
+  const handleEditList = (list: any) => {
+    setEditingListId(list.id);
+    setEditList({
+      title: list.title,
+      category: list.category,
+      description: list.description || "",
+    });
+    setShowEditListDialog(true);
+  };
+
+  const handleUpdateList = () => {
+    updateListMutation.mutate();
+  };
+
+  const handleEditItem = (item: any) => {
+    setEditingItemId(item.id);
+    setEditItem({
+      name: item.name,
+      description: item.description || "",
+      location: item.location || "",
+      image_url: item.image_url || "",
+    });
+    setShowEditItemDialog(true);
+  };
+
+  const handleUpdateItem = () => {
+    updateItemMutation.mutate();
   };
 
   return (
@@ -241,16 +340,28 @@ const TopListsPage = () => {
                     <p className="text-base text-foreground/80 mt-1">{list.category}</p>
                   </div>
                   {user?.id === list.user_id && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteListMutation.mutate(list.id);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditList(list);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteListMutation.mutate(list.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   )}
                 </div>
                 {list.description && (
@@ -365,13 +476,22 @@ const TopListsPage = () => {
                       )}
                     </div>
                     {user?.id === topLists?.find(l => l.id === selectedListId)?.user_id && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteItemMutation.mutate(item.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditItem(item)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteItemMutation.mutate(item.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     )}
                   </div>
                 ))}
@@ -422,6 +542,100 @@ const TopListsPage = () => {
               className="w-full"
             >
               Add Item
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit List Dialog */}
+      <Dialog open={showEditListDialog} onOpenChange={setShowEditListDialog}>
+        <DialogContent style={{ boxShadow: 'none' }}>
+          <DialogHeader>
+            <DialogTitle>Edit List</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Title</label>
+              <Input
+                value={editList.title}
+                onChange={(e) => setEditList({ ...editList, title: e.target.value })}
+                placeholder="e.g., Best Coffee Spots in Palermo"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Category</label>
+              <Select
+                value={editList.category}
+                onValueChange={(value) => setEditList({ ...editList, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Description (optional)</label>
+              <Textarea
+                value={editList.description}
+                onChange={(e) => setEditList({ ...editList, description: e.target.value })}
+                placeholder="What makes this list special?"
+              />
+            </div>
+            <Button
+              onClick={handleUpdateList}
+              disabled={!editList.title || !editList.category}
+              className="w-full"
+            >
+              Update List
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Item Dialog */}
+      <Dialog open={showEditItemDialog} onOpenChange={setShowEditItemDialog}>
+        <DialogContent style={{ boxShadow: 'none' }}>
+          <DialogHeader>
+            <DialogTitle>Edit Item</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Name</label>
+              <Input
+                value={editItem.name}
+                onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
+                placeholder="e.g., Café Tortoni"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Location</label>
+              <Input
+                value={editItem.location}
+                onChange={(e) => setEditItem({ ...editItem, location: e.target.value })}
+                placeholder="e.g., Palermo Soho"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Description (optional)</label>
+              <Textarea
+                value={editItem.description}
+                onChange={(e) => setEditItem({ ...editItem, description: e.target.value })}
+                placeholder="Why is this place special?"
+              />
+            </div>
+            <Button
+              onClick={handleUpdateItem}
+              disabled={!editItem.name}
+              className="w-full"
+            >
+              Update Item
             </Button>
           </div>
         </DialogContent>
