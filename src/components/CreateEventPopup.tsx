@@ -151,6 +151,15 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
       return;
     }
 
+    if (!externalLink.trim()) {
+      toast({
+        title: t('createEvent.error'),
+        description: "Please add an Instagram link",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!selectedFile) {
       toast({
         title: t('createEvent.error'), 
@@ -463,13 +472,13 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
             />
           </div>
 
-          {/* External Link Field */}
+          {/* Instagram Link Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.externalLinkOptional')}</label>
+            <label className="text-sm font-medium text-foreground block text-left">Instagram Link*</label>
             <Input 
               value={externalLink}
               onChange={(e) => setExternalLink(e.target.value)}
-              placeholder={t('createEvent.linkPlaceholder')}
+              placeholder="https://instagram.com/..."
               className="w-full h-12 text-left text-black placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-full"
             />
           </div>
