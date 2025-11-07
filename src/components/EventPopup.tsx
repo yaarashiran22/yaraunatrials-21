@@ -140,9 +140,9 @@ const EventPopup = ({ isOpen, onClose, eventId, event }: EventPopupProps) => {
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className={`bg-background rounded-3xl w-full max-w-3xl ${isMobile ? 'max-h-[95vh]' : 'max-h-[90vh]'} overflow-hidden mx-4 relative shadow-2xl border-0`}>
+      <div className={`bg-background rounded-3xl w-full max-w-3xl ${isMobile ? 'max-h-[90vh]' : 'max-h-[85vh]'} overflow-hidden mx-4 relative shadow-2xl border-0 flex flex-col`}>
         {/* Large Hero Image */}
-        <div className="relative h-80 w-full overflow-hidden">
+        <div className="relative h-64 w-full overflow-hidden flex-shrink-0">
           <img 
             src={displayEvent.image}
             alt={displayEvent.title}
@@ -186,7 +186,7 @@ const EventPopup = ({ isOpen, onClose, eventId, event }: EventPopupProps) => {
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6 overflow-y-auto max-h-[50vh]">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* Title and Description */}
           <div className="text-center space-y-3">
             <h3 className="text-2xl font-bold text-foreground leading-tight">
