@@ -309,15 +309,15 @@ const TopListsPage = () => {
       <Header />
       
       <main className="container mx-auto px-4 pt-20 lg:pt-24" style={{ textShadow: 'none' }}>
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-4xl font-bold text-foreground">Yara&apos;s Top Lists</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-5xl font-bold text-foreground">My Lists</h1>
           {user && (
             <Button
               onClick={() => setShowCreateDialog(true)}
-              className="gap-2"
+              className="gap-2 text-lg px-6 py-6"
               disabled={userListCount !== undefined && userListCount >= 10}
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-5 w-5" />
               Create List {userListCount !== undefined && `(${userListCount}/10)`}
             </Button>
           )}
@@ -326,18 +326,18 @@ const TopListsPage = () => {
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">Loading...</div>
         ) : topLists && topLists.length > 0 ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
             {topLists.map((list) => (
               <div
                 key={list.id}
-                className="bg-card rounded-xl p-6 border border-border hover:border-primary transition-colors cursor-pointer"
+                className="bg-card rounded-2xl p-8 border-2 border-border hover:border-primary hover:shadow-lg transition-all cursor-pointer"
                 style={{ boxShadow: 'none', textShadow: 'none' }}
                 onClick={() => setSelectedListId(list.id)}
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div style={{ textShadow: 'none' }}>
-                    <h3 className="font-bold text-xl text-foreground">{list.title}</h3>
-                    <p className="text-base text-foreground/80 mt-1">{list.category}</p>
+                <div className="flex items-start justify-between mb-4">
+                  <div style={{ textShadow: 'none' }} className="flex-1">
+                    <h3 className="font-bold text-2xl text-foreground mb-2">{list.title}</h3>
+                    <p className="text-lg text-foreground/80 font-medium">{list.category}</p>
                   </div>
                   {user?.id === list.user_id && (
                     <div className="flex gap-1">
@@ -365,7 +365,7 @@ const TopListsPage = () => {
                   )}
                 </div>
                 {list.description && (
-                  <p className="text-base text-foreground/90">{list.description}</p>
+                  <p className="text-lg text-foreground/90 leading-relaxed">{list.description}</p>
                 )}
               </div>
             ))}
@@ -456,23 +456,20 @@ const TopListsPage = () => {
             )}
 
             {listItems && listItems.length > 0 ? (
-              <div className="space-y-3">
-                {listItems.map((item, index) => (
+              <div className="space-y-4">
+                {listItems.map((item) => (
                   <div
                     key={item.id}
-                    className="bg-card rounded-lg p-5 flex gap-4 border border-border"
+                    className="bg-card rounded-xl p-6 flex gap-4 border-2 border-border hover:border-primary/50 transition-colors"
                     style={{ boxShadow: 'none' }}
                   >
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-lg text-primary">
-                      {index + 1}
-                    </div>
                     <div className="flex-1">
-                      <h4 className="font-bold text-lg text-foreground">{item.name}</h4>
+                      <h4 className="font-bold text-xl text-foreground mb-2">{item.name}</h4>
                       {item.location && (
-                        <p className="text-base text-foreground/80 mt-1">{item.location}</p>
+                        <p className="text-lg text-foreground/80 mb-2">📍 {item.location}</p>
                       )}
                       {item.description && (
-                        <p className="text-base text-foreground/90 mt-2">{item.description}</p>
+                        <p className="text-base text-foreground/90 leading-relaxed">{item.description}</p>
                       )}
                     </div>
                     {user?.id === topLists?.find(l => l.id === selectedListId)?.user_id && (
