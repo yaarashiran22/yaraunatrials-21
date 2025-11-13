@@ -513,8 +513,19 @@ const TopListsPage = () => {
                         <h4 className="font-bold text-lg text-foreground mb-1">{item.name}</h4>
                         {item.location && (
                           <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
-                            <span>📍</span>
-                            <span>{item.location}</span>
+                            {topLists?.find(l => l.id === selectedListId)?.category === "Communities" ? (
+                              <>
+                                <span>🔗</span>
+                                <a href={item.location} target="_blank" rel="noopener noreferrer" className="hover:text-primary underline">
+                                  {item.location}
+                                </a>
+                              </>
+                            ) : (
+                              <>
+                                <span>📍</span>
+                                <span>{item.location}</span>
+                              </>
+                            )}
                           </div>
                         )}
                         {item.description && (
@@ -566,20 +577,24 @@ const TopListsPage = () => {
           </DialogHeader>
           <div className="space-y-5 pt-2">
             <div>
-              <label className="text-sm font-semibold text-foreground mb-2 block">Place Name</label>
+              <label className="text-sm font-semibold text-foreground mb-2 block">
+                {topLists?.find(l => l.id === selectedListId)?.category === "Communities" ? "Community Name" : "Place Name"}
+              </label>
               <Input
                 value={newItem.name}
                 onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                placeholder="e.g., Café Tortoni"
+                placeholder={topLists?.find(l => l.id === selectedListId)?.category === "Communities" ? "e.g., Tech Meetup Group" : "e.g., Café Tortoni"}
                 className="h-11"
               />
             </div>
             <div>
-              <label className="text-sm font-semibold text-foreground mb-2 block">Location</label>
+              <label className="text-sm font-semibold text-foreground mb-2 block">
+                {topLists?.find(l => l.id === selectedListId)?.category === "Communities" ? "Join Link" : "Location"}
+              </label>
               <Input
                 value={newItem.location}
                 onChange={(e) => setNewItem({ ...newItem, location: e.target.value })}
-                placeholder="e.g., Palermo Soho"
+                placeholder={topLists?.find(l => l.id === selectedListId)?.category === "Communities" ? "e.g., https://chat.whatsapp.com/..." : "e.g., Palermo Soho"}
                 className="h-11"
               />
             </div>
@@ -667,20 +682,24 @@ const TopListsPage = () => {
           </DialogHeader>
           <div className="space-y-5 pt-2">
             <div>
-              <label className="text-sm font-semibold text-foreground mb-2 block">Place Name</label>
+              <label className="text-sm font-semibold text-foreground mb-2 block">
+                {topLists?.find(l => l.id === selectedListId)?.category === "Communities" ? "Community Name" : "Place Name"}
+              </label>
               <Input
                 value={editItem.name}
                 onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
-                placeholder="e.g., Café Tortoni"
+                placeholder={topLists?.find(l => l.id === selectedListId)?.category === "Communities" ? "e.g., Tech Meetup Group" : "e.g., Café Tortoni"}
                 className="h-11"
               />
             </div>
             <div>
-              <label className="text-sm font-semibold text-foreground mb-2 block">Location</label>
+              <label className="text-sm font-semibold text-foreground mb-2 block">
+                {topLists?.find(l => l.id === selectedListId)?.category === "Communities" ? "Join Link" : "Location"}
+              </label>
               <Input
                 value={editItem.location}
                 onChange={(e) => setEditItem({ ...editItem, location: e.target.value })}
-                placeholder="e.g., Palermo Soho"
+                placeholder={topLists?.find(l => l.id === selectedListId)?.category === "Communities" ? "e.g., https://chat.whatsapp.com/..." : "e.g., Palermo Soho"}
                 className="h-11"
               />
             </div>
