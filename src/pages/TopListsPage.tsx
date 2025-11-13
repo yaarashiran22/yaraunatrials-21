@@ -308,93 +308,126 @@ const TopListsPage = () => {
     <div className="min-h-screen bg-background pb-20 lg:pb-0">
       <Header />
       
-      <main className="container mx-auto px-4 pt-20 lg:pt-24" style={{ textShadow: 'none' }}>
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-5xl font-bold text-foreground">My Lists</h1>
-          {user && (
-            <Button
-              onClick={() => setShowCreateDialog(true)}
-              className="gap-2 text-lg px-6 py-6"
-              disabled={userListCount !== undefined && userListCount >= 10}
-            >
-              <Plus className="h-5 w-5" />
-              Create List {userListCount !== undefined && `(${userListCount}/10)`}
-            </Button>
-          )}
+      <main className="container mx-auto px-4 pt-20 lg:pt-24 max-w-7xl">
+        {/* Header Section */}
+        <div className="mb-10">
+          <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+            <div>
+              <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-2">My Lists</h1>
+              <p className="text-muted-foreground text-lg">Curate and share your favorite places</p>
+            </div>
+            {user && (
+              <Button
+                onClick={() => setShowCreateDialog(true)}
+                className="gap-2 h-12 px-6"
+                size="lg"
+                disabled={userListCount !== undefined && userListCount >= 10}
+              >
+                <Plus className="h-5 w-5" />
+                New List {userListCount !== undefined && `(${userListCount}/10)`}
+              </Button>
+            )}
+          </div>
         </div>
 
+        {/* Lists Grid */}
         {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">Loading...</div>
+          <div className="text-center py-20">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+            <p className="mt-4 text-muted-foreground">Loading your lists...</p>
+          </div>
         ) : topLists && topLists.length > 0 ? (
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
             {topLists.map((list) => (
               <div
                 key={list.id}
-                className="bg-card rounded-2xl p-8 border-2 border-border hover:border-primary hover:shadow-lg transition-all cursor-pointer"
-                style={{ boxShadow: 'none', textShadow: 'none' }}
+                className="group bg-card rounded-xl border border-border hover:border-primary/50 transition-all duration-200 cursor-pointer overflow-hidden"
                 onClick={() => setSelectedListId(list.id)}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div style={{ textShadow: 'none' }} className="flex-1">
-                    <h3 className="font-bold text-2xl text-foreground mb-2">{list.title}</h3>
-                    <p className="text-lg text-foreground/80 font-medium">{list.category}</p>
-                  </div>
-                  {user?.id === list.user_id && (
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditList(list);
-                        }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteListMutation.mutate(list.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                <div className="p-6">
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider mb-3">
+                        {list.category}
+                      </div>
+                      <h3 className="font-bold text-xl text-foreground mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                        {list.title}
+                      </h3>
                     </div>
+                    {user?.id === list.user_id && (
+                      <div className="flex gap-1 flex-shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditList(list);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteListMutation.mutate(list.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  {list.description && (
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                      {list.description}
+                    </p>
                   )}
                 </div>
-                {list.description && (
-                  <p className="text-lg text-foreground/90 leading-relaxed">{list.description}</p>
-                )}
+                <div className="px-6 pb-4 pt-2 border-t border-border/50 bg-muted/20">
+                  <p className="text-xs text-muted-foreground">
+                    Click to view items →
+                  </p>
+                </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground mb-4">No lists yet</p>
-            {user && (
-              <Button onClick={() => setShowCreateDialog(true)}>
-                Create Your First List
-              </Button>
-            )}
+          <div className="text-center py-20 bg-muted/20 rounded-xl border-2 border-dashed border-border">
+            <div className="max-w-sm mx-auto">
+              <Plus className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+              <h3 className="text-xl font-semibold text-foreground mb-2">No lists yet</h3>
+              <p className="text-muted-foreground mb-6">
+                Start creating your curated lists of favorite places
+              </p>
+              {user && (
+                <Button onClick={() => setShowCreateDialog(true)} size="lg">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First List
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </main>
 
       {/* Create List Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent style={{ boxShadow: 'none' }}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create New List</DialogTitle>
+            <DialogTitle className="text-xl">Create New List</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5 pt-2">
             <div>
-              <label className="text-sm font-semibold text-foreground mb-2 block">Title</label>
+              <label className="text-sm font-semibold text-foreground mb-2 block">List Title</label>
               <Input
                 value={newList.title}
                 onChange={(e) => setNewList({ ...newList, title: e.target.value })}
                 placeholder="e.g., Best Coffee Spots in Palermo"
+                className="h-11"
               />
             </div>
             <div>
@@ -403,8 +436,8 @@ const TopListsPage = () => {
                 value={newList.category}
                 onValueChange={(value) => setNewList({ ...newList, category: value })}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((cat) => (
@@ -421,12 +454,14 @@ const TopListsPage = () => {
                 value={newList.description}
                 onChange={(e) => setNewList({ ...newList, description: e.target.value })}
                 placeholder="What makes this list special?"
+                className="min-h-[100px] resize-none"
               />
             </div>
             <Button
               onClick={handleCreateList}
               disabled={!newList.title || !newList.category}
-              className="w-full"
+              className="w-full h-11"
+              size="lg"
             >
               Create List
             </Button>
@@ -436,67 +471,87 @@ const TopListsPage = () => {
 
       {/* List Details Dialog */}
       <Dialog open={!!selectedListId} onOpenChange={() => setSelectedListId(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" style={{ boxShadow: 'none' }}>
-          <DialogHeader>
-            <DialogTitle>
-              {topLists?.find(l => l.id === selectedListId)?.title}
-            </DialogTitle>
+        <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+          <DialogHeader className="pb-4 border-b">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <DialogTitle className="text-2xl mb-2">
+                  {topLists?.find(l => l.id === selectedListId)?.title}
+                </DialogTitle>
+                <div className="inline-block px-2 py-1 rounded bg-primary/10 text-primary text-xs font-semibold uppercase">
+                  {topLists?.find(l => l.id === selectedListId)?.category}
+                </div>
+              </div>
+            </div>
           </DialogHeader>
           
-          <div className="space-y-4">
+          <div className="flex-1 overflow-y-auto py-4">
             {user?.id === topLists?.find(l => l.id === selectedListId)?.user_id && (
               <Button
                 onClick={() => setShowAddItemDialog(true)}
                 variant="outline"
-                className="w-full gap-2"
+                className="w-full gap-2 mb-6 border-dashed border-2 h-12"
               >
-                <Plus className="h-4 w-4" />
-                Add Item
+                <Plus className="h-5 w-5" />
+                Add New Item
               </Button>
             )}
 
             {listItems && listItems.length > 0 ? (
-              <div className="space-y-4">
-                {listItems.map((item) => (
+              <div className="space-y-3">
+                {listItems.map((item, index) => (
                   <div
                     key={item.id}
-                    className="bg-card rounded-xl p-6 flex gap-4 border-2 border-border hover:border-primary/50 transition-colors"
-                    style={{ boxShadow: 'none' }}
+                    className="group bg-muted/30 rounded-lg p-5 border border-border hover:border-primary/50 hover:bg-muted/50 transition-all"
                   >
-                    <div className="flex-1">
-                      <h4 className="font-bold text-xl text-foreground mb-2">{item.name}</h4>
-                      {item.location && (
-                        <p className="text-lg text-foreground/80 mb-2">📍 {item.location}</p>
-                      )}
-                      {item.description && (
-                        <p className="text-base text-foreground/90 leading-relaxed">{item.description}</p>
+                    <div className="flex gap-4">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center font-bold text-sm text-primary">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-lg text-foreground mb-1">{item.name}</h4>
+                        {item.location && (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
+                            <span>📍</span>
+                            <span>{item.location}</span>
+                          </div>
+                        )}
+                        {item.description && (
+                          <p className="text-sm text-foreground/80 leading-relaxed mt-2">
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+                      {user?.id === topLists?.find(l => l.id === selectedListId)?.user_id && (
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleEditItem(item)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => deleteItemMutation.mutate(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       )}
                     </div>
-                    {user?.id === topLists?.find(l => l.id === selectedListId)?.user_id && (
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditItem(item)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteItemMutation.mutate(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-center text-muted-foreground py-8">
-                No items in this list yet
-              </p>
+              <div className="text-center py-12 bg-muted/20 rounded-lg border-2 border-dashed border-border">
+                <p className="text-muted-foreground text-sm">
+                  No items in this list yet. Add your first one!
+                </p>
+              </div>
             )}
           </div>
         </DialogContent>
@@ -504,17 +559,18 @@ const TopListsPage = () => {
 
       {/* Add Item Dialog */}
       <Dialog open={showAddItemDialog} onOpenChange={setShowAddItemDialog}>
-        <DialogContent style={{ boxShadow: 'none' }}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Item to List</DialogTitle>
+            <DialogTitle className="text-xl">Add Item to List</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5 pt-2">
             <div>
-              <label className="text-sm font-semibold text-foreground mb-2 block">Name</label>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Place Name</label>
               <Input
                 value={newItem.name}
                 onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
                 placeholder="e.g., Café Tortoni"
+                className="h-11"
               />
             </div>
             <div>
@@ -523,6 +579,7 @@ const TopListsPage = () => {
                 value={newItem.location}
                 onChange={(e) => setNewItem({ ...newItem, location: e.target.value })}
                 placeholder="e.g., Palermo Soho"
+                className="h-11"
               />
             </div>
             <div>
@@ -531,12 +588,14 @@ const TopListsPage = () => {
                 value={newItem.description}
                 onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                 placeholder="Why is this place special?"
+                className="min-h-[100px] resize-none"
               />
             </div>
             <Button
               onClick={handleAddItem}
               disabled={!newItem.name}
-              className="w-full"
+              className="w-full h-11"
+              size="lg"
             >
               Add Item
             </Button>
@@ -546,17 +605,18 @@ const TopListsPage = () => {
 
       {/* Edit List Dialog */}
       <Dialog open={showEditListDialog} onOpenChange={setShowEditListDialog}>
-        <DialogContent style={{ boxShadow: 'none' }}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit List</DialogTitle>
+            <DialogTitle className="text-xl">Edit List</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5 pt-2">
             <div>
-              <label className="text-sm font-semibold text-foreground mb-2 block">Title</label>
+              <label className="text-sm font-semibold text-foreground mb-2 block">List Title</label>
               <Input
                 value={editList.title}
                 onChange={(e) => setEditList({ ...editList, title: e.target.value })}
                 placeholder="e.g., Best Coffee Spots in Palermo"
+                className="h-11"
               />
             </div>
             <div>
@@ -565,8 +625,8 @@ const TopListsPage = () => {
                 value={editList.category}
                 onValueChange={(value) => setEditList({ ...editList, category: value })}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((cat) => (
@@ -583,12 +643,14 @@ const TopListsPage = () => {
                 value={editList.description}
                 onChange={(e) => setEditList({ ...editList, description: e.target.value })}
                 placeholder="What makes this list special?"
+                className="min-h-[100px] resize-none"
               />
             </div>
             <Button
               onClick={handleUpdateList}
               disabled={!editList.title || !editList.category}
-              className="w-full"
+              className="w-full h-11"
+              size="lg"
             >
               Update List
             </Button>
@@ -598,17 +660,18 @@ const TopListsPage = () => {
 
       {/* Edit Item Dialog */}
       <Dialog open={showEditItemDialog} onOpenChange={setShowEditItemDialog}>
-        <DialogContent style={{ boxShadow: 'none' }}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Item</DialogTitle>
+            <DialogTitle className="text-xl">Edit Item</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5 pt-2">
             <div>
-              <label className="text-sm font-semibold text-foreground mb-2 block">Name</label>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Place Name</label>
               <Input
                 value={editItem.name}
                 onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
                 placeholder="e.g., Café Tortoni"
+                className="h-11"
               />
             </div>
             <div>
@@ -617,6 +680,7 @@ const TopListsPage = () => {
                 value={editItem.location}
                 onChange={(e) => setEditItem({ ...editItem, location: e.target.value })}
                 placeholder="e.g., Palermo Soho"
+                className="h-11"
               />
             </div>
             <div>
@@ -625,12 +689,14 @@ const TopListsPage = () => {
                 value={editItem.description}
                 onChange={(e) => setEditItem({ ...editItem, description: e.target.value })}
                 placeholder="Why is this place special?"
+                className="min-h-[100px] resize-none"
               />
             </div>
             <Button
               onClick={handleUpdateItem}
               disabled={!editItem.name}
-              className="w-full"
+              className="w-full h-11"
+              size="lg"
             >
               Update Item
             </Button>
