@@ -53,7 +53,8 @@ const TopListsPage = () => {
     "Art Centers",
     "Workshops",
     "Cafés",
-    "Communities"
+    "Communities",
+    "Coworks"
   ];
 
   // Fetch all top lists
