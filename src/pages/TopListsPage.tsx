@@ -324,7 +324,7 @@ const TopListsPage = () => {
                 disabled={userListCount !== undefined && userListCount >= 10}
               >
                 <Plus className="h-5 w-5" />
-                New List {userListCount !== undefined && `(${userListCount}/10)`}
+                New List
               </Button>
             )}
           </div>
