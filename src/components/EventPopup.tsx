@@ -140,9 +140,9 @@ const EventPopup = ({ isOpen, onClose, eventId, event }: EventPopupProps) => {
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className={`bg-background rounded-3xl w-full max-w-3xl ${isMobile ? 'max-h-[90vh]' : 'max-h-[85vh]'} overflow-hidden mx-4 relative shadow-2xl border-0 flex flex-col`}>
+      <div className={`bg-background rounded-3xl w-full max-w-3xl ${isMobile ? 'max-h-[92vh]' : 'max-h-[90vh]'} overflow-hidden mx-4 relative shadow-2xl border-0 flex flex-col`}>
         {/* Large Hero Image */}
-        <div className="relative h-64 w-full overflow-hidden flex-shrink-0">
+        <div className="relative h-48 w-full overflow-hidden flex-shrink-0">
           <img 
             src={displayEvent.image}
             alt={displayEvent.title}
@@ -185,126 +185,128 @@ const EventPopup = ({ isOpen, onClose, eventId, event }: EventPopupProps) => {
           )}
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6 overflow-y-auto flex-1">
-          {/* Title and Description */}
-          <div className="text-center space-y-3">
-            <h3 className="text-2xl font-bold text-foreground leading-tight">
-              {displayEvent.title}
-            </h3>
-            <p className="text-foreground leading-relaxed">
-              {displayEvent.description}
-            </p>
-          </div>
-
-          {/* Date Info */}
-          {displayEvent.date && (
-            <div className="text-center p-3 bg-muted/30 rounded-2xl">
-              <p className="text-sm font-medium text-foreground">
-                {getRelativeDay(displayEvent.date)}
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          <div className="p-6 space-y-6">
+            {/* Title and Description */}
+            <div className="text-center space-y-3">
+              <h3 className="text-2xl font-bold text-foreground leading-tight">
+                {displayEvent.title}
+              </h3>
+              <p className="text-foreground leading-relaxed">
+                {displayEvent.description}
               </p>
             </div>
-          )}
 
-          {/* RSVP Section */}
-          {validEventId && (
-            <div className="flex justify-center gap-2">
-              <Button
-                onClick={() => handleRSVP('going')}
-                disabled={isUpdating}
-                variant={userRSVP?.status === 'going' ? "default" : "outline"}
-                className={`h-10 px-6 rounded-2xl font-semibold transition-all duration-200 ${
-                  userRSVP?.status === 'going' 
-                    ? 'bg-gradient-to-r from-primary to-secondary text-primary-foreground' 
-                    : 'border-2 border-primary/30 hover:bg-primary/10 text-primary'
-                }`}
-              >
-                <Check className="h-4 w-4 mr-2" />
-                Going
-              </Button>
-              <Button
-                onClick={() => handleRSVP('maybe')}
-                disabled={isUpdating}
-                variant={userRSVP?.status === 'maybe' ? "secondary" : "outline"}
-                className={`h-10 px-6 rounded-2xl font-semibold transition-all duration-200 ${
-                  userRSVP?.status === 'maybe' 
-                    ? 'bg-amber-500 hover:bg-amber-600 text-white' 
-                    : 'border-2 border-amber-300 text-amber-700 hover:bg-amber-50'
-                }`}
-              >
-                <UserCheck className="h-4 w-4 mr-2" />
-                Maybe
-              </Button>
-            </div>
-          )}
-
-          {/* Attendee Count */}
-          {validEventId && rsvpCount > 0 && (
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">
-                {rsvpCount} {rsvpCount === 1 ? 'person' : 'people'} attending
-              </p>
-            </div>
-          )}
-
-          
-          {/* Compact Organizer Info */}
-          {displayEvent.organizer && (
-            <div 
-              className="flex items-center gap-3 p-3 bg-muted/20 rounded-xl cursor-pointer hover:bg-muted/30 transition-all duration-200 group border border-border/30 hover:border-primary/40" 
-              onClick={handleViewProfile}
-            >
-              <img 
-                src={displayEvent.organizer.image}
-                alt={displayEvent.organizer.name}
-                className="w-8 h-8 rounded-full object-cover border border-primary/20 group-hover:border-primary/40 transition-colors"
-                onError={(e) => {
-                  e.currentTarget.src = profile1;
-                }}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-foreground text-sm group-hover:text-primary transition-colors truncate">
-                  {displayEvent.organizer.name}
+            {/* Date Info */}
+            {displayEvent.date && (
+              <div className="text-center p-3 bg-muted/30 rounded-2xl">
+                <p className="text-sm font-medium text-foreground">
+                  {getRelativeDay(displayEvent.date)}
                 </p>
-                <p className="text-xs text-muted-foreground">Organizer</p>
               </div>
-              <div className="p-1 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                <Eye className="h-3 w-3 text-primary" />
-              </div>
-            </div>
-          )}
+            )}
 
-          {/* Action Buttons */}
-          <div className="space-y-3">
-            <Button 
-              onClick={handleContact}
-              variant={eventData?.mobile_number ? "default" : "outline"}
-              disabled={!eventData?.mobile_number}
-              className={`w-full h-12 rounded-2xl font-semibold transition-all duration-200 ${
-                eventData?.mobile_number 
-                  ? 'bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-lg hover:shadow-xl hover:scale-105' 
-                  : 'opacity-50 cursor-not-allowed'
-              }`}
-            >
-              <MessageCircle className="h-4 w-4 mr-2" />
-              {eventData?.mobile_number ? 'Contact Organizer' : 'No contact info'}
-            </Button>
+            {/* RSVP Section */}
+            {validEventId && (
+              <div className="flex justify-center gap-2">
+                <Button
+                  onClick={() => handleRSVP('going')}
+                  disabled={isUpdating}
+                  variant={userRSVP?.status === 'going' ? "default" : "outline"}
+                  className={`h-10 px-6 rounded-2xl font-semibold transition-all duration-200 ${
+                    userRSVP?.status === 'going' 
+                      ? 'bg-gradient-to-r from-primary to-secondary text-primary-foreground' 
+                      : 'border-2 border-primary/30 hover:bg-primary/10 text-primary'
+                  }`}
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Going
+                </Button>
+                <Button
+                  onClick={() => handleRSVP('maybe')}
+                  disabled={isUpdating}
+                  variant={userRSVP?.status === 'maybe' ? "secondary" : "outline"}
+                  className={`h-10 px-6 rounded-2xl font-semibold transition-all duration-200 ${
+                    userRSVP?.status === 'maybe' 
+                      ? 'bg-amber-500 hover:bg-amber-600 text-white' 
+                      : 'border-2 border-amber-300 text-amber-700 hover:bg-amber-50'
+                  }`}
+                >
+                  <UserCheck className="h-4 w-4 mr-2" />
+                  Maybe
+                </Button>
+              </div>
+            )}
+
+            {/* Attendee Count */}
+            {validEventId && rsvpCount > 0 && (
+              <div className="text-center">
+                <p className="text-sm text-muted-foreground">
+                  {rsvpCount} {rsvpCount === 1 ? 'person' : 'people'} attending
+                </p>
+              </div>
+            )}
+
             
-            <div className="flex gap-3">
-              <Button 
-                onClick={handleViewDetails}
-                className="flex-1 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-2xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+            {/* Compact Organizer Info */}
+            {displayEvent.organizer && (
+              <div 
+                className="flex items-center gap-3 p-3 bg-muted/20 rounded-xl cursor-pointer hover:bg-muted/30 transition-all duration-200 group border border-border/30 hover:border-primary/40" 
+                onClick={handleViewProfile}
               >
-                <Eye className="h-4 w-4 mr-2" />
-                View Details
-              </Button>
+                <img 
+                  src={displayEvent.organizer.image}
+                  alt={displayEvent.organizer.name}
+                  className="w-8 h-8 rounded-full object-cover border border-primary/20 group-hover:border-primary/40 transition-colors"
+                  onError={(e) => {
+                    e.currentTarget.src = profile1;
+                  }}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-foreground text-sm group-hover:text-primary transition-colors truncate">
+                    {displayEvent.organizer.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Organizer</p>
+                </div>
+                <div className="p-1 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                  <Eye className="h-3 w-3 text-primary" />
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="space-y-3 pb-2">
               <Button 
-                onClick={handleShare}
-                variant="outline"
-                className="h-12 w-12 border-2 border-primary/30 hover:bg-primary/10 rounded-2xl transition-all duration-200"
+                onClick={handleContact}
+                variant={eventData?.mobile_number ? "default" : "outline"}
+                disabled={!eventData?.mobile_number}
+                className={`w-full h-12 rounded-2xl font-semibold transition-all duration-200 ${
+                  eventData?.mobile_number 
+                    ? 'bg-gradient-to-r from-primary to-secondary text-primary-foreground shadow-lg hover:shadow-xl hover:scale-105' 
+                    : 'opacity-50 cursor-not-allowed'
+                }`}
               >
-                <Share className="h-4 w-4 text-primary" />
+                <MessageCircle className="h-4 w-4 mr-2" />
+                {eventData?.mobile_number ? 'Contact Organizer' : 'No contact info'}
               </Button>
+              
+              <div className="flex gap-3">
+                <Button 
+                  onClick={handleViewDetails}
+                  className="flex-1 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-2xl font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Details
+                </Button>
+                <Button 
+                  onClick={handleShare}
+                  variant="outline"
+                  className="h-12 w-12 border-2 border-primary/30 hover:bg-primary/10 rounded-2xl transition-all duration-200"
+                >
+                  <Share className="h-4 w-4 text-primary" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
