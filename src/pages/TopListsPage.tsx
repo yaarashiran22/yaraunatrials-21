@@ -314,7 +314,7 @@ const TopListsPage = () => {
         <div className="mb-10">
           <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
             <div>
-              <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-2">My Lists</h1>
+              <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-2">The Yara Lists</h1>
               <p className="text-pink-400 text-lg">Curate and share your favorite places</p>
             </div>
             {user && (
