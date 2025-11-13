@@ -350,7 +350,7 @@ const TopListsPage = () => {
                       <div className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider mb-3">
                         {list.category}
                       </div>
-                      <h3 className="font-bold text-xl text-foreground mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                      <h3 className="font-bold text-xl text-primary mb-2 line-clamp-2 transition-colors">
                         {list.title}
                       </h3>
                     </div>
