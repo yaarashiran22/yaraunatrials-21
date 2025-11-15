@@ -87,15 +87,6 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
 
   const handleSubmit = async () => {
     console.log('Starting event creation...');
-    
-    if (!user) {
-      toast({
-        title: t('createEvent.loginRequired'),
-        description: t('createEvent.loginRequiredDesc'),
-        variant: "destructive",
-      });
-      return;
-    }
 
     if (!eventName.trim()) {
       toast({
@@ -185,7 +176,8 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
       
       if (selectedFile) {
         const fileExt = selectedFile.name.split('.').pop();
-        const fileName = `${user.id}/${user.id}-${Date.now()}.${fileExt}`;
+        const userId = user?.id || 'anonymous';
+        const fileName = `${userId}/${userId}-${Date.now()}.${fileExt}`;
         const bucketName = fileType === 'video' ? 'videos' : 'item-images';
         
         console.log('Attempting upload:', { fileName, bucketName, fileSize: selectedFile.size });
@@ -217,7 +209,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
       const { error } = await supabase
         .from('events')
         .insert({
-          user_id: user.id,
+          user_id: user?.id || null,
           title: eventName.trim(),
           description: description.trim() || null,
           date: isRecurring ? `every ${recurringDay}` : (date || null),
