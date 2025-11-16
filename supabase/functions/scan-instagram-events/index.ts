@@ -112,10 +112,23 @@ Deno.serve(async (req) => {
 
         const posts: InstagramPost[] = await datasetResponse.json();
         console.log(`Retrieved ${posts.length} posts from @${page.instagram_handle}`);
+        
+        // Log what we actually got from Apify
+        if (posts.length > 0) {
+          console.log(`Sample post data:`, JSON.stringify(posts[0]).substring(0, 500));
+        } else {
+          console.log(`No posts returned from Apify for @${page.instagram_handle}`);
+        }
 
         // Use Lovable AI to analyze posts and extract event info
         for (const post of posts) {
-          if (!post.caption) continue;
+          if (!post.caption) {
+            console.log(`Skipping post from @${page.instagram_handle} - no caption`);
+            continue;
+          }
+          
+          console.log(`Analyzing post from @${page.instagram_handle} with caption: "${post.caption.substring(0, 200)}..."`);
+
 
           try {
             const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
