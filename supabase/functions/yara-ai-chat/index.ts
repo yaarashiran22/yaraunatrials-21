@@ -548,12 +548,13 @@ REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
   "recommendations": [
     {
       "type": "event" | "business" | "coupon" | "topListItem",
-      "id": "actual-event-id-from-database OR topList.id for topListItem type",
-      "title": "Event Title from database OR bar/café name from topList items",
-      "description": "MANDATORY - For events: Location: [location]. Address: [address]. Date: [originalDate]. Time: [time]. Music Type: [music_type]. Instagram: [external_link]. For topListItem: the item's description and location from the topList",
+      "id": "actual-event-id-from-database OR individual item ID from top_list_items for topListItem type",
+      "title": "Event Title from database OR bar/café/club name from topList items",
+      "description": "MANDATORY - For events: Location: [location]. Address: [address]. Date: [originalDate]. Time: [time]. Music Type: [music_type]. Instagram: [external_link]. For topListItem: MUST include both location AND Instagram link in format: '📍 [location] | 📸 Instagram: [url]'",
       "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
-      "personalized_note": "CRITICAL - A custom personal message based on their profile data (age, budget, interests, neighborhoods). Examples: 'Perfect for your age group (33) and high budget preference', 'This matches your interest in jazz and is in your favorite neighborhood Palermo', 'Great for someone your age (25) looking for affordable nightlife'. ALWAYS reference specific profile data when available.",
-      "image_url": "CRITICAL - For events/businesses/coupons: copy EXACT image_url from database. For topListItem: use the topList's image_url if available, or null if not"
+      "personalized_note": "ONLY for events (type='event'). DO NOT include for topListItem. Custom personal message based on their profile data (age, budget, interests, neighborhoods).",
+      "url": "MANDATORY for topListItem (bars/clubs/cafes). The Instagram link from the item's url field in the database. Leave empty for events.",
+      "image_url": "CRITICAL - For events/businesses/coupons: copy EXACT image_url from database. For topListItem: DO NOT include this field"
     }
   ]
 }
