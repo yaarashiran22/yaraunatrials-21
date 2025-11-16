@@ -160,12 +160,23 @@ Be strict: only return events with clear future dates.`,
             const aiData = await aiResponse.json();
             const content = aiData.choices?.[0]?.message?.content;
 
-            if (!content) continue;
+            if (!content) {
+              console.log(`No AI response content for post from @${page.instagram_handle}`);
+              continue;
+            }
 
-            const eventData = JSON.parse(content);
+            console.log(`AI response for @${page.instagram_handle}:`, content);
+
+            let eventData;
+            try {
+              eventData = JSON.parse(content);
+            } catch (parseError) {
+              console.error(`Failed to parse AI response as JSON:`, content);
+              continue;
+            }
 
             if (eventData.is_event === false || !eventData.title) {
-              console.log(`Not an event post from @${page.instagram_handle}`);
+              console.log(`Not an event post from @${page.instagram_handle} - AI determined: ${eventData.is_event === false ? 'not an event' : 'missing title'}`);
               continue;
             }
 
