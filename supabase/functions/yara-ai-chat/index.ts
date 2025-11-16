@@ -263,6 +263,7 @@ serve(async (req) => {
         items: (list.top_list_items || [])
           .sort((a: any, b: any) => a.display_order - b.display_order)
           .map((item: any) => ({
+            id: item.id,
             name: item.name,
             description: item.description,
             location: item.location,
@@ -452,7 +453,10 @@ SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, et
 **FOR TOP LIST ITEMS (bars, cafés, clubs, etc.)**:
 - When recommending bars/cafés/clubs from top lists, use type "topListItem"
 - Extract individual items from the topLists array and recommend them as separate recommendations
-- Include the bar/café/club name as the title and its description and location
+- CRITICAL: Use the individual item's ID from top_list_items as the "id" field, NOT the topList.id
+- Include the bar/café/club name as the title, description, and location
+- Include the Instagram link in the "url" field if available
+- DO NOT include image_url for topListItems - leave it out entirely
 
 **CRITICAL - WHEN NO DATABASE MATCHES:**
 - **ONLY use NO_DATABASE_MATCH for truly unrelated requests** - like cafes, restaurants, gyms, or very specific niches not in the database
@@ -554,17 +558,13 @@ REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
 
 **FOR TOP LIST ITEMS (when recommending bars, cafés, clubs, etc.)**:
 - Use type: "topListItem"
-- id: use the topList.id (not the individual item id)
+- id: CRITICAL - use the individual item.id from top_list_items (NOT the topList.id)
 - title: use the bar/café/club name from the item
 - description: include "Location: [item.location]" and the item.description
+- url: include the item.url field if available (for Instagram links)
+- DO NOT include image_url for topListItems
 - Extract individual items from relevant topLists and recommend them as separate recommendations
-- Example: If user asks for "bars" and there's a topList with category "Bars" containing 5 bar items, recommend each bar as a separate topListItem recommendation
-
-**CRITICAL IMAGE_URL REQUIREMENT:**
-- The "image_url" field is MANDATORY for every recommendation
-- Copy the EXACT image_url value from the event data in the database
-- If an event has no image_url in the database, DO NOT include that event in recommendations
-- The image_url will be used to send the event photo via WhatsApp, so it MUST be present
+- Example: If user asks for "bars" and there's a topList with category "Bars" containing 5 bar items, recommend each bar as a separate topListItem recommendation with its own unique id
 
 RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 **CRITICAL: DO NOT FILTER BY USER INTERESTS** - Only filter by: (1) the event type/keywords the user requested, and (2) age appropriateness
@@ -662,16 +662,16 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                   type: "array",
                   items: {
                     type: "object",
-                     properties: {
+                      properties: {
                       type: { type: "string", enum: ["event", "business", "coupon", "topListItem"] },
-                      id: { type: "string", description: "The actual ID from the database or topList.id for topListItem" },
-                      title: { type: "string", description: "The event/item title from database OR bar/café name from topList items" },
-                      description: { type: "string", description: "MANDATORY - For events: Location, address, date, time. For topListItem: item description and location" },
+                      id: { type: "string", description: "The actual ID from the database. For topListItem, use the individual item ID from top_list_items, NOT the topList.id" },
+                      title: { type: "string", description: "The event/item title from database OR bar/café/club name from topList items" },
+                      description: { type: "string", description: "MANDATORY - For events: Location, address, date, time. For topListItem: item description and location. DO NOT include image URLs here." },
                       why_recommended: { type: "string", description: "Why this matches their request" },
                       personalized_note: { type: "string", description: "Personal message based on their profile" },
-                      image_url: {
+                      url: {
                         type: "string",
-                        description: "The image_url from database or topList, can be null for topListItems",
+                        description: "Optional - Instagram link or external URL for the item. For topListItem, use the url field from the database.",
                       },
                     },
                     required: [
@@ -681,7 +681,6 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                       "description",
                       "why_recommended",
                       "personalized_note",
-                      "image_url",
                     ],
                     additionalProperties: false,
                   },
@@ -882,12 +881,12 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
           parsed.recommendations.length > 0
         ) {
           const interactions = parsed.recommendations.map((rec: any) => {
-            // For topListItem, track the topList id
+            // For topListItem, track the individual item id
             if (rec.type === 'topListItem') {
               return {
                 phone_number: phoneNumber,
-                item_type: 'topList',
-                item_id: rec.id, // This is the topList.id
+                item_type: 'topListItem',
+                item_id: rec.id, // This is the individual item.id from top_list_items
                 interaction_type: "recommended",
               };
             }

@@ -108,6 +108,11 @@ Deno.serve(async (req) => {
       
       let messageBody = `*${rec.title}*\n\n${formattedDescription}`;
       
+      // Add Instagram/URL link if available (for clubs, bars, etc.)
+      if (rec.url) {
+        messageBody += `\n\n🔗 ${rec.url}`;
+      }
+      
       // Add personalized note if available
       if (rec.personalized_note) {
         messageBody += `\n\n✨ *Just for you:* ${rec.personalized_note}`;
@@ -116,7 +121,7 @@ Deno.serve(async (req) => {
       try {
         console.log(`[${i + 1}/${uniqueRecs.length}] Sending: ${rec.title}`);
         console.log(`Message body length: ${messageBody.length} chars`);
-        console.log(`Has image: ${!!rec.image_url}`);
+        console.log(`Has image: ${!!rec.image_url}, Has URL: ${!!rec.url}`);
         
         // Build request body - only include MediaUrl if image exists
         const requestBody: Record<string, string> = {
