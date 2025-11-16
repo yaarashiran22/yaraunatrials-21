@@ -9,6 +9,9 @@ interface InstagramPost {
   caption?: string;
   timestamp?: string;
   imageUrl?: string;
+  displayUrl?: string;
+  url?: string;
+  images?: string[];
 }
 
 interface ExtractedEvent {
@@ -118,6 +121,12 @@ Deno.serve(async (req) => {
         // Log what we actually got from Apify
         if (posts.length > 0) {
           console.log(`Sample post data:`, JSON.stringify(posts[0]).substring(0, 500));
+          console.log(`Post has image fields:`, {
+            imageUrl: !!posts[0].imageUrl,
+            displayUrl: !!posts[0].displayUrl,
+            url: !!posts[0].url,
+            images: !!posts[0].images
+          });
         } else {
           console.log(`No posts returned from Apify for @${page.instagram_handle}`);
         }
@@ -229,6 +238,11 @@ Be strict: only return events with clear future dates. Do not wrap your response
               continue;
             }
 
+            // Extract image URL from post - try multiple fields
+            const postImageUrl = post.displayUrl || post.imageUrl || (post.images && post.images[0]) || post.url || null;
+            
+            console.log(`Extracted image URL for event "${eventData.title}":`, postImageUrl);
+
             // Insert new event
             const { error: insertError } = await supabase
               .from('events')
@@ -242,7 +256,7 @@ Be strict: only return events with clear future dates. Do not wrap your response
                 price: eventData.price,
                 music_type: eventData.music_type,
                 external_link: `https://instagram.com/${page.instagram_handle}`,
-                image_url: post.imageUrl,
+                image_url: postImageUrl, // Use the extracted image URL
                 event_type: 'event',
                 market: 'Buenos Aires', // Adjust based on your needs
               });
