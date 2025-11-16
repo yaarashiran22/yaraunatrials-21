@@ -108,7 +108,12 @@ Deno.serve(async (req) => {
       
       let messageBody = `*${rec.title}*\n\n${formattedDescription}`;
       
-      // CRITICAL: Only add personalized_note for events, NOT for topListItems (clubs/bars)
+      // Add URL link if available (Instagram for clubs/bars, WhatsApp for communities)
+      if (rec.url) {
+        messageBody += `\n\n🔗 ${rec.url}`;
+      }
+      
+      // CRITICAL: Only add personalized_note for events, NOT for topListItems (clubs/bars/communities)
       if (rec.personalized_note && rec.type === 'event') {
         messageBody += `\n\n✨ *Just for you:* ${rec.personalized_note}`;
       }
