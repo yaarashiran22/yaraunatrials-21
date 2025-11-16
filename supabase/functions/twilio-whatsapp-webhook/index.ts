@@ -222,18 +222,18 @@ Deno.serve(async (req) => {
               .eq("id", uploadId)
               .single();
 
-            // Insert event into events table
+            // Insert event into items table (which the homepage uses)
             const { error: eventError } = await supabase
-              .from("events")
+              .from("items")
               .insert({
                 title: completeUpload.title,
                 description: completeUpload.description,
-                date: completeUpload.date,
-                time: completeUpload.time,
+                meetup_date: completeUpload.date,
+                meetup_time: completeUpload.time,
                 image_url: completeUpload.image_url,
-                external_link: `https://instagram.com/${body.replace('@', '')}`,
-                event_type: 'event',
-                market: 'Buenos Aires',
+                category: 'event',
+                status: 'active',
+                location: 'Buenos Aires',
               });
 
             if (eventError) {
