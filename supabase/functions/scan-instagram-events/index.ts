@@ -239,9 +239,13 @@ Be strict: only return events with clear future dates. Do not wrap your response
             }
 
             // Extract image URL from post - try multiple fields
-            const postImageUrl = post.displayUrl || post.imageUrl || (post.images && post.images[0]) || post.url || null;
+            const postImageUrl = post.displayUrl || post.imageUrl || (post.images && post.images[0]) || null;
+            
+            // Use the specific post URL instead of the general Instagram page
+            const postUrl = post.url || `https://instagram.com/p/${post.shortCode}` || `https://instagram.com/${page.instagram_handle}`;
             
             console.log(`Extracted image URL for event "${eventData.title}":`, postImageUrl);
+            console.log(`Extracted post URL for event "${eventData.title}":`, postUrl);
 
             // Insert new event
             const { error: insertError } = await supabase
@@ -255,7 +259,7 @@ Be strict: only return events with clear future dates. Do not wrap your response
                 venue_name: eventData.venue_name || page.page_name,
                 price: eventData.price,
                 music_type: eventData.music_type,
-                external_link: `https://instagram.com/${page.instagram_handle}`,
+                external_link: postUrl, // Use specific post URL
                 image_url: postImageUrl, // Use the extracted image URL
                 event_type: 'event',
                 market: 'Buenos Aires', // Adjust based on your needs
