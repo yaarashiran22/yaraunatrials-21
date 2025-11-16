@@ -455,16 +455,12 @@ SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, et
 - When recommending bars/cafés/clubs from top lists, use type "topListItem"
 - Extract individual items from the topLists array and recommend them as separate recommendations
 - CRITICAL: Use the individual item's ID from top_list_items as the "id" field, NOT the topList.id
-- **CRITICAL - INSTAGRAM LINKS**: The Instagram link is embedded in the item's description field with patterns like:
-  - "Insta: https://www.instagram.com/..."
-  - "Instagram: https://www.instagram.com/..."
-  - "Insta link: https://www.instagram.com/..."
-  - "Instagram link: https://www.instagram.com/..."
-  - "Link to Instagram: https://www.instagram.com/..."
-  You MUST:
-  1. Extract the FULL Instagram URL from the description (look for "https://www.instagram.com/" or "https://instagram.com/")
-  2. Put the COMPLETE extracted Instagram URL in the "url" field
-  3. Format the description as: "📸 Instagram: [extracted_url]" (without any location text)
+- **CRITICAL - URLs for topListItems**: 
+  - FIRST check if item.url field in database has a value (Instagram link)
+  - If item.url exists: Copy the EXACT url value to your response (e.g., "https://www.instagram.com/underclub.bsas/?hl=en")
+  - If item.url is null/empty: Extract Instagram link from item.description (patterns: "Insta:", "Instagram:", etc.)
+  - MANDATORY: Always include the Instagram URL in the "url" field of your response
+  - Also include "📸 Instagram: [url]" in the description
 - DO NOT include image_url for topListItems - leave it out entirely
 - **CRITICAL**: DO NOT include "personalized_note" field for topListItems - this field is ONLY for events
 
@@ -558,10 +554,10 @@ REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
       "type": "event" | "business" | "coupon" | "topListItem",
       "id": "actual-event-id-from-database OR individual item ID from top_list_items for topListItem type",
       "title": "Event Title from database OR bar/café/club name from topList items",
-      "description": "MANDATORY - For events: Location: [location]. Address: [address]. Date: [originalDate]. Time: [time]. Music Type: [music_type]. Instagram: [external_link]. For topListItem: ONLY include '📸 Instagram: [full_extracted_instagram_url]' - extract the complete URL from patterns like 'Insta:', 'Instagram:', 'Insta link:', 'Instagram link:', or 'Link to Instagram:' in the item's description",
+      "description": "MANDATORY - For events: Location: [location]. Address: [address]. Date: [originalDate]. Time: [time]. Music Type: [music_type]. Instagram: [external_link]. For topListItem: Include '📸 Instagram: [url]' where url is from database item.url OR extracted from description",
       "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
-      "personalized_note": "CRITICAL - DO NOT INCLUDE THIS FIELD for topListItem type. ONLY for events (type='event'). Custom personal message based on their profile data (age, budget, interests, neighborhoods).",
-      "url": "CRITICAL MANDATORY for topListItem (bars/clubs/cafes). Extract the COMPLETE Instagram URL from the item's description field. Look for patterns: 'Insta: https://...', 'Instagram: https://...', 'Insta link: https://...', 'Instagram link: https://...', 'Link to Instagram: https://...'. Copy the FULL URL starting with https://www.instagram.com/ or https://instagram.com/. Leave empty for events.",
+      "personalized_note": "CRITICAL - NEVER INCLUDE THIS FIELD for topListItem (bars/clubs/cafes). ONLY for events (type='event').",
+      "url": "CRITICAL MANDATORY for topListItem. Step 1: Check if database item.url exists and has a value. Step 2: If yes, copy it exactly (e.g., 'https://www.instagram.com/underclub.bsas/?hl=en'). Step 3: If item.url is null, extract URL from item.description. ALWAYS include this field for topListItems. Leave empty ONLY for events.",
       "image_url": "CRITICAL - For events/businesses/coupons: copy EXACT image_url from database. For topListItem: DO NOT include this field"
     }
   ]
