@@ -45,23 +45,22 @@
       resultDiv.innerHTML = 'Loading...';
       
       try {
-        const response = await fetch('https://nxtfugcmatkiqjzxucgh.supabase.co/functions/v1/get-secret', {
+        const response = await fetch('https://nxtfugcmatkiqjzxucgh.supabase.co/functions/v1/get-service-role-key', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54dGZ1Z2NtYXRraXFqenh1Y2doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTYwMDksImV4cCI6MjA3MzY5MjAwOX0.e_n6yYVOCU6eRV0WS9BmogxgqN_ZPViBBmEkfI2ZI_s'
-          },
-          body: JSON.stringify({ name: 'SUPABASE_SERVICE_ROLE_KEY' })
+          }
         });
         
         const data = await response.json();
         
-        if (data.SUPABASE_SERVICE_ROLE_KEY) {
+        if (data.serviceRoleKey) {
           resultDiv.innerHTML = `
             <strong>Your Service Role Key:</strong><br><br>
-            ${data.SUPABASE_SERVICE_ROLE_KEY}
+            ${data.serviceRoleKey}
             <br><br>
-            <button onclick="copyKey('${data.SUPABASE_SERVICE_ROLE_KEY}')">Copy to Clipboard</button>
+            <button onclick="copyKey('${data.serviceRoleKey}')">Copy to Clipboard</button>
           `;
         } else {
           resultDiv.innerHTML = `Error: ${data.error || 'Key not found'}`;
