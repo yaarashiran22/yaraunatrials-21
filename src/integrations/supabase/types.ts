@@ -528,6 +528,7 @@ export type Database = {
           list_id: string
           location: string | null
           name: string
+          url: string | null
         }
         Insert: {
           created_at?: string
@@ -538,6 +539,7 @@ export type Database = {
           list_id: string
           location?: string | null
           name: string
+          url?: string | null
         }
         Update: {
           created_at?: string
@@ -548,6 +550,7 @@ export type Database = {
           list_id?: string
           location?: string | null
           name?: string
+          url?: string | null
         }
         Relationships: [
           {
