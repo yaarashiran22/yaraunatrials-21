@@ -592,6 +592,42 @@ export type Database = {
         }
         Relationships: []
       }
+      tracked_instagram_pages: {
+        Row: {
+          created_at: string
+          id: string
+          instagram_handle: string
+          is_active: boolean | null
+          last_scanned_at: string | null
+          notes: string | null
+          page_name: string | null
+          page_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instagram_handle: string
+          is_active?: boolean | null
+          last_scanned_at?: string | null
+          notes?: string | null
+          page_name?: string | null
+          page_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instagram_handle?: string
+          is_active?: boolean | null
+          last_scanned_at?: string | null
+          notes?: string | null
+          page_name?: string | null
+          page_type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_coupon_claims: {
         Row: {
           claimed_at: string | null
