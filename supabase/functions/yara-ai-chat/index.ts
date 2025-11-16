@@ -451,6 +451,7 @@ SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, et
 **ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST return PURE JSON ONLY.
 
 **FOR TOP LIST ITEMS (bars, cafés, clubs, etc.)**:
+- **CRITICAL**: When user asks for bars/clubs/nightlife, return MULTIPLE options (3-6) from the topLists
 - When recommending bars/cafés/clubs from top lists, use type "topListItem"
 - Extract individual items from the topLists array and recommend them as separate recommendations
 - CRITICAL: Use the individual item's ID from top_list_items as the "id" field, NOT the topList.id
@@ -603,7 +604,9 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 11. **CRITICAL: User interests are for CONTEXT ONLY, not for filtering** - The user's interests help you understand their preferences and personalize your responses, but DO NOT use interests to exclude events from recommendations. Always show all age-appropriate events that match the requested type.
 
 RECOMMENDATION OUTPUT RULES:
-- Return MAXIMUM 6 recommendations total from the database
+- **CRITICAL**: Return MULTIPLE recommendations (3-6 recommendations) when available - DO NOT limit yourself to just 1
+- For bar/club/nightlife requests: ALWAYS return AT LEAST 3-5 options when available in the database
+- Maximum 6 recommendations total from the database
 - **CRITICAL**: ONLY include events/items that have an image_url field - never recommend anything without an image
 - **CRITICAL**: You MUST include the "image_url" field in EVERY recommendation in your JSON response - this is the event's photo that will be sent via WhatsApp
 - Keep description under 100 words
