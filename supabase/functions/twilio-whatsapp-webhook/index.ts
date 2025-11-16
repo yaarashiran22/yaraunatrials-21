@@ -16,23 +16,35 @@ Deno.serve(async (req) => {
     // Parse form data from Twilio
     const formData = await req.formData();
     const from = formData.get("From") as string;
-    const body = formData.get("Body") as string;
+    const body = formData.get("Body") as string || "";
     const to = formData.get("To") as string;
+    const mediaUrl = formData.get("MediaUrl0") as string; // Check for media
 
-    console.log("Twilio message:", { from, to, body });
+    console.log("Twilio message:", { from, to, body, hasMedia: !!mediaUrl });
 
-    if (!body) {
-      console.error("No message body received");
+    // Initialize Supabase client BEFORE any early returns
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Check for active event upload flow BEFORE checking for empty body
+    const { data: activeUpload } = await supabase
+      .from("whatsapp_event_uploads")
+      .select("*")
+      .eq("phone_number", from)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Allow empty body if we have media AND an active upload (user sending image)
+    if (!body && !mediaUrl && !activeUpload) {
+      console.error("No message body or media received");
       return new Response('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', {
         headers: { ...corsHeaders, "Content-Type": "text/xml" },
         status: 200,
       });
     }
-
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Check for recent conversation (last 30 minutes for better context retention)
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
@@ -110,16 +122,6 @@ Deno.serve(async (req) => {
 
     const userLanguage = whatsappUser?.preferred_language || "en";
 
-    // Check for active event upload flow
-    const { data: activeUpload } = await supabase
-      .from("whatsapp_event_uploads")
-      .select("*")
-      .eq("phone_number", from)
-      .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
     // Check if user wants to upload an event
     const uploadIntentPatterns = /\b(upload|post|share|add|submit)\s+(an?\s+)?(event|gig|show|concert|party)\b/i;
     const isUploadIntent = uploadIntentPatterns.test(body.trim());
@@ -148,12 +150,10 @@ Deno.serve(async (req) => {
       }
       // Process based on current state
       else if (activeUpload) {
-        const formData = await req.formData();
         
         switch (currentState) {
           case 'awaiting_image':
-            // Check for media (image)
-            const mediaUrl = formData.get("MediaUrl0") as string;
+            // Check for media (image) - already extracted at top
             if (mediaUrl) {
               await supabase
                 .from("whatsapp_event_uploads")
