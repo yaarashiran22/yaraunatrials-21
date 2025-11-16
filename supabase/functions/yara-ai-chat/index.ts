@@ -682,6 +682,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                       description: { type: "string", description: "MANDATORY - For events: Location, address, date, time. For topListItem: item description and location. DO NOT include image URLs here." },
                       why_recommended: { type: "string", description: "Why this matches their request" },
                       personalized_note: { type: "string", description: "ONLY for events (type: 'event'). DO NOT include for topListItem. Personal message based on their profile" },
+                      image_url: { type: "string", description: "MANDATORY - The image URL from the database for this event/item. This will be sent via WhatsApp." },
                       url: {
                         type: "string",
                         description: "Optional - Instagram link or external URL for the item. For topListItem, use the url field from the database.",
@@ -693,6 +694,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                       "title",
                       "description",
                       "why_recommended",
+                      "image_url",
                     ],
                     additionalProperties: false,
                   },
