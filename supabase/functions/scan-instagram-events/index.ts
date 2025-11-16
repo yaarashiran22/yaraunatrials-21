@@ -55,17 +55,16 @@ Deno.serve(async (req) => {
       try {
         console.log(`Scanning @${page.instagram_handle}...`);
 
-        // Call Apify to scrape Instagram profile posts
-        const apifyResponse = await fetch(`https://api.apify.com/v2/acts/apify~instagram-profile-scraper/runs`, {
+        // Call Apify to scrape Instagram posts (using POST scraper, not profile scraper)
+        const apifyResponse = await fetch(`https://api.apify.com/v2/acts/apify~instagram-post-scraper/runs`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apifyApiKey}`,
           },
           body: JSON.stringify({
-            usernames: [page.instagram_handle],
-            resultsLimit: 10, // Get last 10 posts
-            addParentData: false,
+            directUrls: [`https://www.instagram.com/${page.instagram_handle}/`],
+            resultsLimit: 20, // Get last 20 posts
           }),
         });
 
