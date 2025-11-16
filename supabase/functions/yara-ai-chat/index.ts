@@ -617,13 +617,16 @@ RECOMMENDATION OUTPUT RULES:
 - DO NOT include price or venue_size in description - these can be provided later if user asks for more details
 - ALWAYS include "why_recommended" field explaining specifically WHY this event matches their request
 - **CRITICAL for why_recommended**: Base your explanation on BOTH the event title AND description. If the match is in the description (e.g., user asked for "party" and event description mentions "party celebration"), explicitly mention this in your explanation: "This matches because the event description mentions '[keyword]' which you asked for"
-- **CRITICAL - NEW FIELD "personalized_note"**: MUST include a personalized message that references their specific profile data:
-  - If you know their age, mention it: "Perfect for your age group (${userProfile?.age})"
-  - If you know their budget preference, reference it: "Great ${userProfile?.budget_preference} budget option"
-  - If you know their interests, connect them: "Matches your interest in ${userProfile?.interests}"
-  - If you know their favorite neighborhoods, mention if event is there: "Located in your favorite area ${userProfile?.favorite_neighborhoods}"
-  - Combine multiple profile attributes when relevant: "Ideal for someone ${userProfile?.age} years old with ${userProfile?.budget_preference} budget who loves ${userProfile?.interests}"
-  - This field is MANDATORY and must be personalized based on actual profile data available
+- **CRITICAL - NEW FIELD "personalized_note" (EVENTS ONLY)**: 
+  - **IMPORTANT**: ONLY include "personalized_note" for EVENTS, NOT for bars/clubs/topListItems
+  - For bar/club recommendations (type "topListItem"), DO NOT include the "personalized_note" field
+  - For event recommendations (type "event"), MUST include a personalized message that references their specific profile data:
+    - If you know their age, mention it: "Perfect for your age group (${userProfile?.age})"
+    - If you know their budget preference, reference it: "Great ${userProfile?.budget_preference} budget option"
+    - If you know their interests, connect them: "Matches your interest in ${userProfile?.interests}"
+    - If you know their favorite neighborhoods, mention if event is there: "Located in your favorite area ${userProfile?.favorite_neighborhoods}"
+    - Combine multiple profile attributes when relevant: "Ideal for someone ${userProfile?.age} years old with ${userProfile?.budget_preference} budget who loves ${userProfile?.interests}"
+    - This field is MANDATORY for events and must be personalized based on actual profile data available
 - Use user profile (budget, neighborhoods, interests) to further personalize
 - If no relevant database events exist, return empty array with a friendly message like "Sorry, I couldn't find any matching events"
 
