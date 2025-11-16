@@ -455,8 +455,10 @@ SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, et
 - When recommending bars/cafés/clubs from top lists, use type "topListItem"
 - Extract individual items from the topLists array and recommend them as separate recommendations
 - CRITICAL: Use the individual item's ID from top_list_items as the "id" field, NOT the topList.id
-- Include the bar/café/club name as the title, location in description
-- **MANDATORY**: Include the Instagram link in BOTH the "url" field AND in the description (format: "📍 [location] | 📸 Instagram: [url]")
+- **CRITICAL - INSTAGRAM LINKS**: The Instagram link is embedded in the item's description field (e.g., "Insta: https://instagram.com/..." or "Instagram link: https://..."). You MUST:
+  1. Extract the Instagram URL from the description using regex/pattern matching
+  2. Include the full Instagram URL in the "url" field
+  3. Also include it in the description in format: "📍 [location] | 📸 Instagram: [extracted_url]"
 - DO NOT include image_url for topListItems - leave it out entirely
 - **CRITICAL**: DO NOT include "personalized_note" field for topListItems - this field is ONLY for events
 
@@ -550,10 +552,10 @@ REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
       "type": "event" | "business" | "coupon" | "topListItem",
       "id": "actual-event-id-from-database OR individual item ID from top_list_items for topListItem type",
       "title": "Event Title from database OR bar/café/club name from topList items",
-      "description": "MANDATORY - For events: Location: [location]. Address: [address]. Date: [originalDate]. Time: [time]. Music Type: [music_type]. Instagram: [external_link]. For topListItem: MUST include both location AND Instagram link in format: '📍 [location] | 📸 Instagram: [url]'",
+      "description": "MANDATORY - For events: Location: [location]. Address: [address]. Date: [originalDate]. Time: [time]. Music Type: [music_type]. Instagram: [external_link]. For topListItem: Extract Instagram URL from item description and format as '📍 [location] | 📸 Instagram: [extracted_instagram_url]'",
       "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
       "personalized_note": "ONLY for events (type='event'). DO NOT include for topListItem. Custom personal message based on their profile data (age, budget, interests, neighborhoods).",
-      "url": "MANDATORY for topListItem (bars/clubs/cafes). The Instagram link from the item's url field in the database. Leave empty for events.",
+      "url": "MANDATORY for topListItem (bars/clubs/cafes). Extract the Instagram link from the item's description field (look for patterns like 'Insta:', 'Instagram:', 'Instagram link:', followed by a URL). Include the full extracted URL here. Leave empty for events.",
       "image_url": "CRITICAL - For events/businesses/coupons: copy EXACT image_url from database. For topListItem: DO NOT include this field"
     }
   ]
