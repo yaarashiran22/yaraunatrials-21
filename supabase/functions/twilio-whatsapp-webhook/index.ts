@@ -222,8 +222,23 @@ Deno.serve(async (req) => {
               .eq("id", uploadId)
               .single();
 
-            // Insert event into items table (which the homepage uses)
-            const { error: eventError } = await supabase
+            // Insert event into BOTH tables for full compatibility
+            // Insert into events table (main events feed)
+            const { error: eventsTableError } = await supabase
+              .from("events")
+              .insert({
+                title: completeUpload.title,
+                description: completeUpload.description,
+                date: completeUpload.date,
+                time: completeUpload.time,
+                image_url: completeUpload.image_url,
+                event_type: 'event',
+                market: 'argentina',
+                location: 'Buenos Aires',
+              });
+
+            // Also insert into items table (legacy support)
+            const { error: itemsTableError } = await supabase
               .from("items")
               .insert({
                 title: completeUpload.title,
@@ -235,6 +250,8 @@ Deno.serve(async (req) => {
                 status: 'active',
                 location: 'Buenos Aires',
               });
+
+            const eventError = eventsTableError || itemsTableError;
 
             if (eventError) {
               console.error("Error creating event:", eventError);
