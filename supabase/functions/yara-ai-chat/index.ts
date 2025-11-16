@@ -455,9 +455,10 @@ SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, et
 - When recommending bars/cafés/clubs from top lists, use type "topListItem"
 - Extract individual items from the topLists array and recommend them as separate recommendations
 - CRITICAL: Use the individual item's ID from top_list_items as the "id" field, NOT the topList.id
-- Include the bar/café/club name as the title, description, and location
-- Include the Instagram link in the "url" field if available
+- Include the bar/café/club name as the title, location in description
+- **MANDATORY**: Include the Instagram link in BOTH the "url" field AND in the description (format: "📍 [location] | 📸 Instagram: [url]")
 - DO NOT include image_url for topListItems - leave it out entirely
+- **CRITICAL**: DO NOT include "personalized_note" field for topListItems - this field is ONLY for events
 
 **CRITICAL - WHEN NO DATABASE MATCHES:**
 - **ONLY use NO_DATABASE_MATCH for truly unrelated requests** - like cafes, restaurants, gyms, or very specific niches not in the database
@@ -675,7 +676,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                       title: { type: "string", description: "The event/item title from database OR bar/café/club name from topList items" },
                       description: { type: "string", description: "MANDATORY - For events: Location, address, date, time. For topListItem: item description and location. DO NOT include image URLs here." },
                       why_recommended: { type: "string", description: "Why this matches their request" },
-                      personalized_note: { type: "string", description: "Personal message based on their profile" },
+                      personalized_note: { type: "string", description: "ONLY for events (type: 'event'). DO NOT include for topListItem. Personal message based on their profile" },
                       url: {
                         type: "string",
                         description: "Optional - Instagram link or external URL for the item. For topListItem, use the url field from the database.",
@@ -687,7 +688,6 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                       "title",
                       "description",
                       "why_recommended",
-                      "personalized_note",
                     ],
                     additionalProperties: false,
                   },
