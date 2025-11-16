@@ -127,6 +127,7 @@ serve(async (req) => {
             name,
             description,
             location,
+            url,
             display_order
           )
         `)
@@ -265,6 +266,7 @@ serve(async (req) => {
             name: item.name,
             description: item.description,
             location: item.location,
+            url: item.url,
           })),
       })),
     };
