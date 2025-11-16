@@ -129,21 +129,29 @@ Deno.serve(async (req) => {
                 messages: [
                   {
                     role: 'system',
-                    content: `You are an expert at extracting event information from Instagram posts. 
-Analyze the caption and determine if it's advertising an event. If yes, extract:
-- title (event name)
-- date (in YYYY-MM-DD format if possible, or original text)
-- time (in HH:MM format or original text)
-- location/venue_name
-- description (brief summary)
-- price (if mentioned)
-- music_type (genre if mentioned)
+                    content: `You are an expert at extracting FUTURE event information from Instagram posts. 
+CRITICAL: Only extract events that are UPCOMING/FUTURE events, not past events or general announcements.
 
-Return ONLY valid JSON with these fields, or return {"is_event": false} if it's not an event post.`,
+Analyze the caption and determine if it's advertising a FUTURE event. If yes, extract:
+- title (event name)
+- date (MUST be in YYYY-MM-DD format. If only day/month is given, infer the year. Today is ${new Date().toISOString().split('T')[0]})
+- time (in HH:MM 24-hour format if possible, or original text like "10 PM")
+- location (specific location or address if mentioned)
+- venue_name (venue name if mentioned)
+- description (brief 1-2 sentence summary of the event)
+- price (if mentioned, e.g., "Free", "$20", "5000 ARS")
+- music_type (genre if mentioned, e.g., "House", "Techno", "Live Music")
+
+Return ONLY valid JSON with these fields, or return {"is_event": false} if:
+- It's not an event post
+- It's a past event
+- It's just a general announcement or photo
+
+Be strict: only return events with clear future dates.`,
                   },
                   {
                     role: 'user',
-                    content: `Caption: ${post.caption}\nTimestamp: ${post.timestamp || 'Unknown'}`,
+                    content: `Caption: ${post.caption}\nPost Timestamp: ${post.timestamp || 'Unknown'}`,
                   },
                 ],
               }),
@@ -159,6 +167,18 @@ Return ONLY valid JSON with these fields, or return {"is_event": false} if it's 
             if (eventData.is_event === false || !eventData.title) {
               console.log(`Not an event post from @${page.instagram_handle}`);
               continue;
+            }
+
+            // Skip if event date is in the past
+            if (eventData.date) {
+              const eventDate = new Date(eventData.date);
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              
+              if (eventDate < today) {
+                console.log(`Event "${eventData.title}" is in the past (${eventData.date}), skipping`);
+                continue;
+              }
             }
 
             // Check if event already exists (by title + date)
