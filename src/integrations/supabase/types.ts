@@ -817,6 +817,51 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_event_uploads: {
+        Row: {
+          created_at: string
+          date: string | null
+          description: string | null
+          expires_at: string
+          id: string
+          image_url: string | null
+          instagram_handle: string | null
+          phone_number: string
+          state: string
+          time: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string | null
+          description?: string | null
+          expires_at?: string
+          id?: string
+          image_url?: string | null
+          instagram_handle?: string | null
+          phone_number: string
+          state?: string
+          time?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string | null
+          description?: string | null
+          expires_at?: string
+          id?: string
+          image_url?: string | null
+          instagram_handle?: string | null
+          phone_number?: string
+          state?: string
+          time?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       whatsapp_user_interactions: {
         Row: {
           created_at: string | null
