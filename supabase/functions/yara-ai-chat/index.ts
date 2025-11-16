@@ -609,6 +609,7 @@ RECOMMENDATION OUTPUT RULES:
 - Maximum 6 recommendations total from the database
 - **CRITICAL**: ONLY include events/items that have an image_url field - never recommend anything without an image
 - **CRITICAL**: You MUST include the "image_url" field in EVERY recommendation in your JSON response - this is the event's photo that will be sent via WhatsApp
+- **CRITICAL FOR BARS/CLUBS**: Always include the Instagram link in the description from the "url" field (e.g., "📍 Palermo | 📸 Instagram: https://instagram.com/barname")
 - Keep description under 100 words
 - ALWAYS include in description: location, date (already formatted as 'Month DDth', use as-is), time
 - ALSO include if available: address, music_type, external_link (Instagram)
