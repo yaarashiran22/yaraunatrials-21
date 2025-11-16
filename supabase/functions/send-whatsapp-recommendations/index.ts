@@ -80,8 +80,16 @@ Deno.serve(async (req) => {
     for (let i = 0; i < uniqueRecs.length; i++) {
       const rec = uniqueRecs[i];
       
-      if (!rec.title) {
-        console.log(`Skipping recommendation ${i + 1}: missing title`);
+      // Extract title from description if not provided
+      let title = rec.title;
+      if (!title && rec.description) {
+        // Try to extract title from first line of description
+        const firstLine = rec.description.split('\n')[0].trim();
+        title = firstLine.length > 100 ? 'Event Recommendation' : firstLine;
+      }
+      
+      if (!title) {
+        console.log(`Skipping recommendation ${i + 1}: missing title and description`);
         continue;
       }
 
@@ -106,7 +114,7 @@ Deno.serve(async (req) => {
         formattedDescription = formattedDescription.replace(/Time: ([^\n.]+)/gi, '*Time: $1*');
       }
       
-      let messageBody = `*${rec.title}*\n\n${formattedDescription}`;
+      let messageBody = `*${title}*\n\n${formattedDescription}`;
       
       // Add URL link if available (Instagram for clubs/bars, WhatsApp for communities)
       if (rec.url) {
