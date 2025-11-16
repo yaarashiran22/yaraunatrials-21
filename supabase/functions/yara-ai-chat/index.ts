@@ -99,7 +99,7 @@ serve(async (req) => {
       supabase
         .from("events")
         .select(
-          "id, title, description, date, time, location, address, price, mood, music_type, venue_size, external_link, image_url, target_audience",
+          "id, title, description, date, time, location, address, venue_name, price, mood, music_type, venue_size, external_link, image_url, target_audience",
         )
         .order("date", { ascending: true })
         .limit(200), // Fetch more to ensure we get recurring events
@@ -228,6 +228,7 @@ serve(async (req) => {
         time: e.time,
         location: e.location,
         address: e.address,
+        venue_name: e.venue_name, // Include venue name for location-specific queries
         price: e.price,
         mood: e.mood,
         music_type: e.music_type,
@@ -394,6 +395,12 @@ The "topLists" section contains curated lists created by registered users about 
 - Example: If a user asks "recommend me bars", look through top lists with category "Bars", extract the individual bar items from those lists, and recommend those specific bars with their descriptions and locations
 - You can combine these top list items with relevant events to give comprehensive recommendations
 - The items array contains: name, description, and location for each place
+
+**LOCATION-SPECIFIC QUERIES:**
+- When users ask about events "at [venue name]" or "in [venue name]", search the events by matching the venue_name field
+- Examples: "events at Niceto Club", "what's happening at Niceto", "shows at Cultural San Martin"
+- The venue_name field contains the exact venue/club/location name where the event is happening
+- Always check both venue_name and location fields when searching for location-specific events
 
 CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 
