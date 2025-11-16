@@ -39,12 +39,14 @@ const TopListsPage = () => {
     description: "",
     location: "",
     image_url: "",
+    url: "",
   });
   const [editItem, setEditItem] = useState({
     name: "",
     description: "",
     location: "",
     image_url: "",
+    url: "",
   });
 
   const categories = [
@@ -147,6 +149,7 @@ const TopListsPage = () => {
           description: newItem.description,
           location: newItem.location,
           image_url: newItem.image_url,
+          url: newItem.url,
           display_order: listItems?.length || 0,
         })
         .select()
@@ -159,7 +162,7 @@ const TopListsPage = () => {
       queryClient.invalidateQueries({ queryKey: ["topListItems"] });
       toast.success("Item added!");
       setShowAddItemDialog(false);
-      setNewItem({ name: "", description: "", location: "", image_url: "" });
+      setNewItem({ name: "", description: "", location: "", image_url: "", url: "" });
     },
     onError: () => {
       toast.error("Failed to add item");
@@ -244,6 +247,7 @@ const TopListsPage = () => {
           description: editItem.description,
           location: editItem.location,
           image_url: editItem.image_url,
+          url: editItem.url,
         })
         .eq("id", editingItemId);
       
@@ -298,6 +302,7 @@ const TopListsPage = () => {
       description: item.description || "",
       location: item.location || "",
       image_url: item.image_url || "",
+      url: item.url || "",
     });
     setShowEditItemDialog(true);
   };
@@ -534,6 +539,19 @@ const TopListsPage = () => {
                             {item.description}
                           </p>
                         )}
+                        {item.url && (
+                          <a 
+                            href={item.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:underline flex items-center gap-1 mt-2"
+                          >
+                            <span>Instagram Link</span>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        )}
                       </div>
                       {user?.id === topLists?.find(l => l.id === selectedListId)?.user_id && (
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
@@ -606,6 +624,15 @@ const TopListsPage = () => {
                 onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                 placeholder="Why is this place special?"
                 className="min-h-[100px] resize-none"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Instagram Link (optional)</label>
+              <Input
+                value={newItem.url}
+                onChange={(e) => setNewItem({ ...newItem, url: e.target.value })}
+                placeholder="e.g., https://www.instagram.com/..."
+                className="h-11"
               />
             </div>
             <Button
@@ -711,6 +738,15 @@ const TopListsPage = () => {
                 onChange={(e) => setEditItem({ ...editItem, description: e.target.value })}
                 placeholder="Why is this place special?"
                 className="min-h-[100px] resize-none"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Instagram Link (optional)</label>
+              <Input
+                value={editItem.url}
+                onChange={(e) => setEditItem({ ...editItem, url: e.target.value })}
+                placeholder="e.g., https://www.instagram.com/..."
+                className="h-11"
               />
             </div>
             <Button
