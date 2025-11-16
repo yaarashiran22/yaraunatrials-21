@@ -144,22 +144,24 @@ Deno.serve(async (req) => {
                     content: `You are an expert at extracting FUTURE event information from Instagram posts. 
 CRITICAL: Only extract events that are UPCOMING/FUTURE events, not past events or general announcements.
 
+TODAY'S DATE: ${new Date().toISOString().split('T')[0]}
+
 Analyze the caption and determine if it's advertising a FUTURE event. If yes, extract:
 - title (event name)
-- date (MUST be in YYYY-MM-DD format. If only day/month is given, infer the year. Today is ${new Date().toISOString().split('T')[0]})
-- time (in HH:MM 24-hour format if possible, or original text like "10 PM")
+- date (MUST be in YYYY-MM-DD format. Use the current year ${new Date().getFullYear()} or next year if the month has passed)
+- time (in HH:MM 24-hour format if possible, or original text like "22:00")
 - location (specific location or address if mentioned)
 - venue_name (venue name if mentioned)
 - description (brief 1-2 sentence summary of the event)
 - price (if mentioned, e.g., "Free", "$20", "5000 ARS")
 - music_type (genre if mentioned, e.g., "House", "Techno", "Live Music")
 
-Return ONLY valid JSON with these fields, or return {"is_event": false} if:
+Return ONLY valid JSON (no markdown code blocks) with these fields, or return {"is_event": false} if:
 - It's not an event post
-- It's a past event
+- It's a past event  
 - It's just a general announcement or photo
 
-Be strict: only return events with clear future dates.`,
+Be strict: only return events with clear future dates. Do not wrap your response in markdown code blocks.`,
                   },
                   {
                     role: 'user',
@@ -179,11 +181,19 @@ Be strict: only return events with clear future dates.`,
 
             console.log(`AI response for @${page.instagram_handle}:`, content);
 
+            // Strip markdown code blocks if present
+            let cleanedContent = content.trim();
+            if (cleanedContent.startsWith('```json')) {
+              cleanedContent = cleanedContent.replace(/```json\n?/g, '').replace(/```\n?$/g, '').trim();
+            } else if (cleanedContent.startsWith('```')) {
+              cleanedContent = cleanedContent.replace(/```\n?/g, '').trim();
+            }
+
             let eventData;
             try {
-              eventData = JSON.parse(content);
+              eventData = JSON.parse(cleanedContent);
             } catch (parseError) {
-              console.error(`Failed to parse AI response as JSON:`, content);
+              console.error(`Failed to parse AI response as JSON:`, cleanedContent);
               continue;
             }
 
