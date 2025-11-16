@@ -108,13 +108,8 @@ Deno.serve(async (req) => {
       
       let messageBody = `*${rec.title}*\n\n${formattedDescription}`;
       
-      // Add Instagram/URL link if available (for clubs, bars, etc.)
-      if (rec.url) {
-        messageBody += `\n\n🔗 ${rec.url}`;
-      }
-      
-      // Add personalized note if available
-      if (rec.personalized_note) {
+      // CRITICAL: Only add personalized_note for events, NOT for topListItems (clubs/bars)
+      if (rec.personalized_note && rec.type === 'event') {
         messageBody += `\n\n✨ *Just for you:* ${rec.personalized_note}`;
       }
       
