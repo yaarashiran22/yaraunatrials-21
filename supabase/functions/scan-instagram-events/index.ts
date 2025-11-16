@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
         let attempts = 0;
         let runData;
         
-        while (attempts < 30) { // 30 attempts * 2 sec = 1 min timeout
+        while (attempts < 60) { // 60 attempts * 2 sec = 2 min timeout (increased from 1 min)
           await new Promise(resolve => setTimeout(resolve, 2000));
           
           const statusResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}`, {
@@ -89,7 +89,10 @@ Deno.serve(async (req) => {
           
           runData = await statusResponse.json();
           
-          if (runData.data.status === 'SUCCEEDED') break;
+          if (runData.data.status === 'SUCCEEDED') {
+            console.log(`Apify scraping succeeded for @${page.instagram_handle} after ${attempts * 2} seconds`);
+            break;
+          }
           if (runData.data.status === 'FAILED') {
             console.error(`Apify run failed for @${page.instagram_handle}`);
             break;
