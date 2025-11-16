@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Play, Clock } from "lucide-react";
+import { Plus, Trash2, Play, Clock, Calendar, MapPin, ExternalLink } from "lucide-react";
 import Header from "@/components/Header";
 
 export default function InstagramTrackerPage() {
@@ -22,6 +22,22 @@ export default function InstagramTrackerPage() {
       const { data, error } = await supabase
         .from('tracked_instagram_pages')
         .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: recentEvents, refetch: refetchRecentEvents } = useQuery({
+    queryKey: ['recent-scanned-events'],
+    queryFn: async () => {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .gte('created_at', oneHourAgo)
+        .like('external_link', '%instagram.com%')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
@@ -92,6 +108,7 @@ export default function InstagramTrackerPage() {
         description: `Scanned ${data.pagesScanned} pages, added ${data.eventsAdded} new events`,
       });
       queryClient.invalidateQueries({ queryKey: ['tracked-instagram-pages'] });
+      refetchRecentEvents(); // Refresh the recently added events
     },
     onError: (error: any) => {
       setScanning(false);
@@ -225,6 +242,63 @@ export default function InstagramTrackerPage() {
               </div>
             </div>
           </Card>
+
+          {recentEvents && recentEvents.length > 0 && (
+            <Card className="p-6 bg-white/10 backdrop-blur-sm border-white/20">
+              <h2 className="text-xl font-semibold text-white mb-4">
+                Recently Added Events ({recentEvents.length})
+              </h2>
+              <div className="space-y-3">
+                {recentEvents.map((event) => (
+                  <Card key={event.id} className="p-4 bg-white/5 backdrop-blur-sm border-white/10">
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between">
+                        <h3 className="font-medium text-white">{event.title}</h3>
+                        {event.external_link && (
+                          <a
+                            href={event.external_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-purple-400 hover:text-purple-300"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        )}
+                      </div>
+                      
+                      {event.description && (
+                        <p className="text-sm text-gray-300 line-clamp-2">{event.description}</p>
+                      )}
+                      
+                      <div className="flex flex-wrap gap-2 text-xs text-gray-400">
+                        {event.date && (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {event.date}
+                          </div>
+                        )}
+                        {event.venue_name && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {event.venue_name}
+                          </div>
+                        )}
+                        {event.music_type && (
+                          <Badge variant="outline" className="bg-purple-500/20 text-purple-300 border-purple-500/50">
+                            {event.music_type}
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <p className="text-xs text-gray-500">
+                        Added: {new Date(event.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </Card>
+          )}
         </div>
       </div>
     </div>
