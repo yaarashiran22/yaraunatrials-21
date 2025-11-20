@@ -169,7 +169,8 @@ const YaraAIAssistant: React.FC<YaraAIAssistantProps> = ({ isOpen, onClose }) =>
         },
         body: JSON.stringify({
           messages: [...messages, userMessage],
-          userProfile
+          userProfile,
+          stream: true // Enable streaming
         }),
       });
 

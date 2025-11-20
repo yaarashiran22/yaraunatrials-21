@@ -722,6 +722,9 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     
     console.log(`Using model: ${modelToUse} (useIntroModel: ${useIntroModel})`);
 
+    // Add streaming support
+    requestBody.stream = stream;
+    
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -732,6 +735,18 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limits exceeded, please try again later." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Payment required, please add funds to your Lovable AI workspace." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const error = await response.text();
       console.error("Lovable AI error:", response.status, error);
 
@@ -983,6 +998,14 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       messagesToSend = [message];
     }
 
+    // If streaming is enabled, return the stream directly
+    if (stream && response.body) {
+      return new Response(response.body, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
+    
+    // For non-streaming, return JSON response
     return new Response(
       JSON.stringify({
         message: messagesToSend.length === 1 ? message : messagesToSend[0],
