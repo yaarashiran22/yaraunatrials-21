@@ -85,7 +85,7 @@ serve(async (req) => {
       }
     }
 
-    // If query provided, use AI to generate recommendations
+    // If query provided, use AI to filter and enrich recommendations
     if (query) {
       const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
       
@@ -108,10 +108,7 @@ Always respond in JSON format with this structure:
   "recommendations": [
     {
       "type": "event|coupon|list",
-      "id": "item_id",
-      "title": "item title",
-      "description": "brief description",
-      "relevance": "why this is relevant to the query"
+      "id": "item_id"
     }
   ]
 }`;
@@ -142,9 +139,33 @@ Always respond in JSON format with this structure:
             
             try {
               const parsedAI = JSON.parse(aiContent);
-              response.ai_response = parsedAI;
+              
+              // Enrich recommendations with full data
+              if (parsedAI.recommendations) {
+                parsedAI.recommendations = parsedAI.recommendations.map((rec: any) => {
+                  if (rec.type === 'event') {
+                    const event = contextData.events.find(e => e.id === rec.id);
+                    return event ? { ...event, relevance: rec.relevance } : rec;
+                  } else if (rec.type === 'coupon') {
+                    const coupon = contextData.coupons.find(c => c.id === rec.id);
+                    return coupon ? { ...coupon, type: 'coupon', relevance: rec.relevance } : rec;
+                  } else if (rec.type === 'list') {
+                    const list = contextData.top_lists.find(l => l.id === rec.id);
+                    return list ? { ...list, type: 'list', relevance: rec.relevance } : rec;
+                  }
+                  return rec;
+                });
+              }
+              
+              // Replace results with only AI-recommended items
+              response.results = {
+                events: parsedAI.recommendations?.filter((r: any) => r.date) || [],
+                coupons: parsedAI.recommendations?.filter((r: any) => r.type === 'coupon') || [],
+                top_lists: parsedAI.recommendations?.filter((r: any) => r.type === 'list') || []
+              };
+              response.message = parsedAI.message;
             } catch {
-              response.ai_response = { message: aiContent };
+              response.ai_error = 'Failed to parse AI response';
             }
           }
         } catch (aiError) {
