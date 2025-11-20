@@ -102,12 +102,14 @@ Rules:
 2. Filter events by market='argentina' and date >= current_date
 3. Filter coupons by is_active=true
 4. Return ONLY the WHERE clause conditions (without "WHERE")
-5. Use OR to combine searches across different fields
-6. Be flexible with keywords (e.g., "wine" should match title, description, music_type, etc.)
+5. For keyword searches, use OR across multiple fields (title, description, music_type, venue_name, etc.)
+6. For location/neighborhood, use AND to restrict results
+7. Combine keyword search (OR) with location filter (AND) when both are present
 
 Example queries:
-- "wine events" -> (market = 'argentina' AND date >= CURRENT_DATE AND (title ILIKE '%wine%' OR description ILIKE '%wine%' OR music_type ILIKE '%wine%'))
-- "cocktail bars" -> (category ILIKE '%bars%' OR title ILIKE '%cocktail%' OR description ILIKE '%bar%')
+- "wine events" -> (market = 'argentina' AND date >= CURRENT_DATE AND (title ILIKE '%wine%' OR description ILIKE '%wine%' OR music_type ILIKE '%wine%' OR venue_name ILIKE '%wine%'))
+- "wine events in palermo" -> (market = 'argentina' AND date >= CURRENT_DATE AND location ILIKE '%palermo%' AND (title ILIKE '%wine%' OR description ILIKE '%wine%' OR music_type ILIKE '%wine%' OR venue_name ILIKE '%wine%'))
+- "cocktail bars in recoleta" -> (category ILIKE '%bars%' AND (title ILIKE '%cocktail%' OR description ILIKE '%cocktail%' OR neighborhood ILIKE '%recoleta%'))
 
 User query: "${query}"
 Requested type filter: ${type}
