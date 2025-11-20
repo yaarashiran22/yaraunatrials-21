@@ -66,7 +66,7 @@ serve(async (req) => {
             const eventIds = matchedEvents.map((e: any) => e.id);
             const { data: fullEvents, error: fetchError } = await supabase
               .from('events')
-              .select('*')
+              .select('id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at')
               .in('id', eventIds)
               .gte('date', new Date().toISOString().split('T')[0])
               .order('date', { ascending: true });
@@ -104,7 +104,7 @@ serve(async (req) => {
     if (!response.results.events) {
       const { data: events } = await supabase
         .from("events")
-        .select("*")
+        .select("id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at")
         .eq("market", "argentina")
         .gte("date", new Date().toISOString().split('T')[0])
         .order("date", { ascending: true })
