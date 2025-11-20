@@ -39,17 +39,38 @@ serve(async (req) => {
 
     console.log(`Analyzing ${events?.length || 0} events`);
 
-    // Use AI to extract bilingual keyword pairs
-    const prompt = `Analyze this text from events in Buenos Aires, Argentina. Extract bilingual keyword pairs (English/Spanish) that are commonly used together. Return ONLY a JSON object where keys are English words and values are arrays of Spanish equivalents found in the text.
+    // Hardcoded base synonym map for common terms
+    const baseSynonyms: Record<string, string[]> = {
+      "wine": ["vino", "vinito"],
+      "beer": ["cerveza", "birra"],
+      "coffee": ["café", "cafecito"],
+      "drinks": ["tragos", "bebidas"],
+      "cocktails": ["cócteles", "tragos"],
+      "music": ["música"],
+      "dance": ["baile"],
+      "art": ["arte"],
+      "party": ["fiesta"],
+      "festival": ["festival"],
+      "concert": ["concierto", "recital"],
+      "food": ["comida"],
+      "dinner": ["cena"],
+      "lunch": ["almuerzo"],
+      "brunch": ["brunch"],
+      "picnic": ["picnic"],
+      "market": ["mercado", "feria"],
+      "fair": ["feria"],
+      "exhibition": ["exposición", "muestra"],
+      "show": ["show", "espectáculo"],
+      "performance": ["performance", "actuación"],
+      "live": ["en vivo"]
+    };
 
-Example format:
-{
-  "wine": ["vino", "vinito"],
-  "coffee": ["café", "cafecito"],
-  "music": ["música"]
-}
+    // Use AI to find additional Spanish terms from events
+    const prompt = `Analyze this text from Buenos Aires events. Find Spanish words related to events, activities, and experiences that are NOT in this list: ${Object.values(baseSynonyms).flat().join(", ")}.
 
-Text to analyze:
+Return a JSON object mapping English -> Spanish arrays for NEW terms only.
+
+Event text:
 ${textContent.substring(0, 8000)}`;
 
     const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -61,10 +82,10 @@ ${textContent.substring(0, 8000)}`;
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: "You are a bilingual keyword extraction expert. Return only valid JSON." },
+          { role: "system", content: "You are a bilingual translation expert. Find NEW Spanish event terms not in the provided list. Return valid JSON." },
           { role: "user", content: prompt }
         ],
-        temperature: 0.3,
+        temperature: 0.2,
       }),
     });
 
@@ -77,9 +98,12 @@ ${textContent.substring(0, 8000)}`;
     
     // Extract JSON from potential markdown code blocks
     const jsonMatch = synonymText.match(/\{[\s\S]*\}/);
-    const synonyms = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+    const aiSynonyms = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
 
-    console.log(`Generated ${Object.keys(synonyms).length} synonym pairs`);
+    // Merge base synonyms with AI-found synonyms
+    const synonyms = { ...baseSynonyms, ...aiSynonyms };
+
+    console.log(`Generated ${Object.keys(synonyms).length} synonym pairs (${Object.keys(baseSynonyms).length} base + ${Object.keys(aiSynonyms).length} AI-found)`);
 
     return new Response(JSON.stringify({ synonyms }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
