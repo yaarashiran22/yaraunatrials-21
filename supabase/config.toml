@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.yara-api]
 verify_jwt = false
+
+[functions.generate-embeddings]
+verify_jwt = false

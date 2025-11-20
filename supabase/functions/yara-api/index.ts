@@ -1,10 +1,34 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Generate embedding for a query using OpenAI
+async function generateQueryEmbedding(query: string, openAIApiKey: string): Promise<number[]> {
+  const response = await fetch('https://api.openai.com/v1/embeddings', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openAIApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'text-embedding-3-small',
+      input: query,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`OpenAI embedding error: ${error}`);
+  }
+
+  const data = await response.json();
+  return data.data[0].embedding;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -13,10 +37,13 @@ serve(async (req) => {
 
   try {
     const { query, type = "all", limit = 20 } = await req.json();
-
     console.log("Yara API request:", { query, type, limit });
 
-    const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "", 
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 
     const response: any = {
       query,
@@ -24,97 +51,75 @@ serve(async (req) => {
       results: {},
     };
 
-    // Fetch events if requested
-    if (type === "all" || type === "events") {
-      const { data: events, error: eventsError } = await supabase
-        .from("events")
-        .select("*")
-        .eq("market", "argentina")
-        .order("created_at", { ascending: false })
-        .limit(limit);
+    // Use semantic search if query is provided and we have OpenAI key
+    if (query && openAIApiKey) {
+      try {
+        // Generate embedding for the query
+        const queryEmbedding = await generateQueryEmbedding(query, openAIApiKey);
+        console.log("Generated query embedding");
 
-      if (eventsError) {
-        console.error("Error fetching events:", eventsError);
-      } else {
-        // Filter future events
-        const now = new Date();
-        const futureEvents =
-          events?.filter((event) => {
-            if (!event.date) return true;
-            const eventDate = new Date(event.date);
-            return eventDate >= now;
-          }) || [];
+        // Search events using semantic similarity
+        if (type === "all" || type === "events") {
+          const { data: matchedEvents, error: matchError } = await supabase.rpc('match_events', {
+            query_embedding: queryEmbedding,
+            match_threshold: 0.3,
+            match_count: limit
+          });
 
-        response.results.events = futureEvents;
+          if (matchError) {
+            console.error('Error in semantic search:', matchError);
+          } else if (matchedEvents && matchedEvents.length > 0) {
+            // Fetch full event details
+            const eventIds = matchedEvents.map((e: any) => e.id);
+            const { data: fullEvents, error: fetchError } = await supabase
+              .from('events')
+              .select('*')
+              .in('id', eventIds)
+              .gte('date', new Date().toISOString().split('T')[0])
+              .order('date', { ascending: true });
+            
+            if (!fetchError && fullEvents) {
+              response.results.events = fullEvents;
+              console.log(`Found ${fullEvents.length} events via semantic search`);
+            }
+          } else {
+            console.log('No events matched via semantic search');
+            response.results.events = [];
+          }
+        }
+
+        // For coupons and lists, fall back to keyword search for now
+        if (type === "all" || type === "coupons") {
+          const { data: coupons, error: couponsError } = await supabase
+            .from("user_coupons")
+            .select("*")
+            .eq("is_active", true)
+            .or(`title.ilike.%${query}%,description.ilike.%${query}%,business_name.ilike.%${query}%`)
+            .order("created_at", { ascending: false })
+            .limit(limit);
+
+          if (!couponsError) {
+            response.results.coupons = coupons || [];
+          }
+        }
+
+        if (type === "all" || type === "lists") {
+          const { data: topLists, error: listsError } = await supabase
+            .from("top_lists")
+            .select(`*,items:top_list_items(*)`)
+            .or(`title.ilike.%${query}%,description.ilike.%${query}%,category.ilike.%${query}%`)
+            .order("created_at", { ascending: false })
+            .limit(limit);
+
+          if (!listsError) {
+            response.results.top_lists = topLists || [];
+          }
+        }
+
+      } catch (embeddingError) {
+        console.error("Embedding error, falling back to basic search:", embeddingError);
       }
     }
-
-    // Fetch coupons if requested
-    if (type === "all" || type === "coupons") {
-      const { data: coupons, error: couponsError } = await supabase
-        .from("user_coupons")
-        .select("*")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .limit(limit);
-
-      if (couponsError) {
-        console.error("Error fetching coupons:", couponsError);
-      } else {
-        response.results.coupons = coupons || [];
-      }
-    }
-
-    // Fetch top lists if requested
-    if (type === "all" || type === "lists") {
-      const { data: topLists, error: listsError } = await supabase
-        .from("top_lists")
-        .select(
-          `
-          *,
-          items:top_list_items(*)
-        `,
-        )
-        .order("created_at", { ascending: false })
-        .limit(limit);
-
-      if (listsError) {
-        console.error("Error fetching top lists:", listsError);
-      } else {
-        response.results.top_lists = topLists || [];
-      }
-    }
-
-    // If query provided, use AI to transform it to SQL and execute
-    if (query) {
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
-      if (LOVABLE_API_KEY) {
-        const sqlPrompt = `You are a PostgREST filter generator. Transform the user's natural language query into a structured filter object.
-
-Available tables and key columns:
-- events: title, description, date, time, location, mood, music_type, venue_name, price_range, market='argentina'
-- user_coupons: title, description, business_name, neighborhood, discount_amount, is_active=true
-- top_lists: title, description, category
-
-Return a JSON object with these fields:
-{
-  "keywords": ["word1", "word2"],  // Main search terms (e.g., ["wine"])
-  "location": "location_name",      // If location mentioned (e.g., "palermo")
-  "category": "category_name"      // If category mentioned for lists
-}
-
-Examples:
-- "wine events" -> {"keywords": ["wine"], "location": null, "category": null}
-- "wine events in palermo" -> {"keywords": ["wine"], "location": "palermo", "category": null}
-- "cocktail bars in recoleta" -> {"keywords": ["cocktail"], "location": "recoleta", "category": "bars"}
-
-User query: "${query}"
-
-Return ONLY valid JSON, no explanation.`;
-
-        try {
-          const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
             headers: {
               Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -134,138 +139,85 @@ Return ONLY valid JSON, no explanation.`;
             // Remove markdown code blocks if present
             filterStr = filterStr.replace(/^```json\s*/i, '').replace(/^```\s*/,'').replace(/```$/,'').trim();
             
-            let filters;
-            try {
-              filters = JSON.parse(filterStr);
-              console.log("Generated filters:", filters);
-            } catch (parseError) {
-              console.error("Failed to parse filter JSON:", parseError);
-              filters = { keywords: [], location: null, category: null };
-            }
 
-            // Execute smart queries based on type
-            if (type === "all" || type === "events") {
-              try {
-                let query = supabase
-                  .from("events")
-                  .select("*")
-                  .eq("market", "argentina")
-                  .gte("date", new Date().toISOString().split('T')[0]);
+    // Fallback: If no query or semantic search failed/no results, return recent items
+    if (!query || !response.results.events || response.results.events.length === 0) {
+      if (type === "all" || type === "events") {
+        const { data: events, error: eventsError } = await supabase
+          .from("events")
+          .select("*")
+          .eq("market", "argentina")
+          .gte("date", new Date().toISOString().split('T')[0])
+          .order("date", { ascending: true })
+          .limit(limit);
 
-                // Add location filter if specified
-                if (filters.location) {
-                  query = query.ilike("location", `%${filters.location}%`);
-                }
+        if (!eventsError) {
+          response.results.events = events || [];
+        }
+      }
 
-                // Add keyword filters - must match at least one field
-                if (filters.keywords && filters.keywords.length > 0) {
-                  const keyword = filters.keywords[0];
-                  query = query.or(
-                    `title.ilike.%${keyword}%,description.ilike.%${keyword}%,music_type.ilike.%${keyword}%,venue_name.ilike.%${keyword}%,mood.ilike.%${keyword}%`
-                  );
-                }
+      if (!response.results.coupons && (type === "all" || type === "coupons")) {
+        const { data: coupons, error: couponsError } = await supabase
+          .from("user_coupons")
+          .select("*")
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(limit);
 
-                query = query.order("created_at", { ascending: false }).limit(limit);
+        if (!couponsError) {
+          response.results.coupons = coupons || [];
+        }
+      }
 
-                const { data: smartEvents, error: eventsError } = await query;
+      if (!response.results.top_lists && (type === "all" || type === "lists")) {
+        const { data: topLists, error: listsError } = await supabase
+          .from("top_lists")
+          .select(`*,items:top_list_items(*)`)
+          .order("created_at", { ascending: false })
+          .limit(limit);
 
-                if (!eventsError && smartEvents) {
-                  response.results.events = smartEvents;
-                }
-              } catch (e) {
-                console.error("Smart events query failed:", e);
-              }
-            }
+        if (!listsError) {
+          response.results.top_lists = topLists || [];
+        }
+      }
+    }
 
-            if (type === "all" || type === "coupons") {
-              try {
-                let query = supabase
-                  .from("user_coupons")
-                  .select("*")
-                  .eq("is_active", true);
+    // Generate conversational message with AI
+    if (query) {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (LOVABLE_API_KEY) {
+        try {
+          const messagePrompt = `You are Yara, a friendly local guide for Buenos Aires. 
 
-                if (filters.location) {
-                  query = query.ilike("neighborhood", `%${filters.location}%`);
-                }
+User asked: "${query}"
 
-                if (filters.keywords && filters.keywords.length > 0) {
-                  const keyword = filters.keywords[0];
-                  query = query.or(
-                    `title.ilike.%${keyword}%,description.ilike.%${keyword}%,business_name.ilike.%${keyword}%`
-                  );
-                }
+You found:
+- ${response.results.events?.length || 0} events
+- ${response.results.coupons?.length || 0} coupons
+- ${response.results.top_lists?.length || 0} curated lists
 
-                query = query.order("created_at", { ascending: false }).limit(limit);
+Write a brief, warm response (2-3 sentences max) about what you found. Be conversational and helpful.`;
 
-                const { data: smartCoupons, error: couponsError } = await query;
+          const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [{ role: "user", content: messagePrompt }],
+              temperature: 0.7,
+            }),
+          });
 
-                if (!couponsError && smartCoupons) {
-                  response.results.coupons = smartCoupons;
-                }
-              } catch (e) {
-                console.error("Smart coupons query failed:", e);
-              }
-            }
-
-            if (type === "all" || type === "lists") {
-              try {
-                let query = supabase
-                  .from("top_lists")
-                  .select(`
-                    *,
-                    items:top_list_items(*)
-                  `);
-
-                if (filters.category) {
-                  query = query.ilike("category", `%${filters.category}%`);
-                }
-
-                if (filters.keywords && filters.keywords.length > 0) {
-                  const keyword = filters.keywords[0];
-                  query = query.or(
-                    `title.ilike.%${keyword}%,description.ilike.%${keyword}%`
-                  );
-                }
-
-                query = query.order("created_at", { ascending: false }).limit(limit);
-
-                const { data: smartLists, error: listsError } = await query;
-
-                if (!listsError && smartLists) {
-                  response.results.top_lists = smartLists;
-                }
-              } catch (e) {
-                console.error("Smart lists query failed:", e);
-              }
-            }
-
-            // Generate conversational message
-            const messageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${LOVABLE_API_KEY}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                model: "google/gemini-2.5-flash",
-                messages: [
-                  {
-                    role: "user",
-                    content: `Generate a brief, friendly response for this query: "${query}". Found ${response.results.events?.length || 0} events, ${response.results.coupons?.length || 0} coupons, ${response.results.top_lists?.length || 0} lists. Keep it under 50 words.`,
-                  },
-                ],
-                temperature: 0.7,
-              }),
-            });
-
-            if (messageResponse.ok) {
-              const messageData = await messageResponse.json();
-              response.message = messageData.choices[0].message.content;
-            }
+          if (aiResponse.ok) {
+            const aiData = await aiResponse.json();
+            response.message = aiData.choices[0].message.content.trim();
           }
         } catch (aiError) {
-          console.error("AI SQL transformation error:", aiError);
-          response.ai_error = "Failed to transform query to SQL";
+          console.error("AI message generation failed:", aiError);
+          response.message = `Found ${response.results.events?.length || 0} events for you!`;
         }
       }
     }
@@ -273,11 +225,15 @@ Return ONLY valid JSON, no explanation.`;
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (error) {
-    console.error("Yara API error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("Error in yara-api:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      }
+    );
   }
 });
