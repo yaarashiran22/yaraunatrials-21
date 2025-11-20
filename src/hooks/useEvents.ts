@@ -153,35 +153,44 @@ const fetchEvents = async (eventType?: 'event' | 'meetup', filterType?: boolean,
     }) as Event);
   }
 
-  // Fetch uploader profiles
-  const userIds = prioritizedEvents.map(event => event.user_id);
+  // Fetch uploader profiles (filter out null user_ids first)
+  const userIds = prioritizedEvents
+    .map(event => event.user_id)
+    .filter((id): id is string => id !== null && id !== undefined);
   
-  if (userIds.length === 0) {
-    console.log('❌ No events after prioritizing');
-    return [];
+  console.log('👤 Fetching profiles for user IDs:', userIds.length);
+  
+  let profiles: any[] = [];
+  if (userIds.length > 0) {
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, name, profile_image_url')
+      .in('id', userIds);
+
+    if (profilesError) throw profilesError;
+    profiles = profilesData || [];
   }
-  
-  const { data: profiles, error: profilesError } = await supabase
-    .from('profiles')
-    .select('id, name, profile_image_url')
-    .in('id', userIds);
 
-  if (profilesError) throw profilesError;
-
-  const profilesMap = (profiles || []).reduce((acc: any, profile) => {
+  const profilesMap = profiles.reduce((acc: any, profile) => {
     acc[profile.id] = profile;
     return acc;
   }, {});
 
-  // Don't filter out past events - show all events
+  console.log('📊 Total events being returned:', prioritizedEvents.length);
 
+  // Don't filter out past events - show all events
   return prioritizedEvents.map(event => ({
     ...event,
-    uploader: {
+    uploader: event.user_id ? {
       name: profilesMap[event.user_id]?.name || 'משתמש',
       image: profilesMap[event.user_id]?.profile_image_url || '/lovable-uploads/c7d65671-6211-412e-af1d-6e5cfdaa248e.png',
       small_photo: profilesMap[event.user_id]?.profile_image_url || '/lovable-uploads/c7d65671-6211-412e-af1d-6e5cfdaa248e.png',
       location: profilesMap[event.user_id]?.location || 'לא צוין'
+    } : {
+      name: 'Instagram Scanner',
+      image: '/lovable-uploads/c7d65671-6211-412e-af1d-6e5cfdaa248e.png',
+      small_photo: '/lovable-uploads/c7d65671-6211-412e-af1d-6e5cfdaa248e.png',
+      location: 'Buenos Aires'
     }
   }));
 };
