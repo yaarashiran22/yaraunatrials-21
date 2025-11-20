@@ -138,6 +138,7 @@ export type Database = {
           created_at: string | null
           date: string | null
           description: string | null
+          embedding: string | null
           event_type: string | null
           external_link: string | null
           id: string
@@ -163,6 +164,7 @@ export type Database = {
           created_at?: string | null
           date?: string | null
           description?: string | null
+          embedding?: string | null
           event_type?: string | null
           external_link?: string | null
           id?: string
@@ -188,6 +190,7 @@ export type Database = {
           created_at?: string | null
           date?: string | null
           description?: string | null
+          embedding?: string | null
           event_type?: string | null
           external_link?: string | null
           id?: string
@@ -947,6 +950,19 @@ export type Database = {
     Functions: {
       delete_past_events: { Args: never; Returns: undefined }
       generate_coupon_code: { Args: never; Returns: string }
+      match_events: {
+        Args: {
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          description: string
+          id: string
+          similarity: number
+          title: string
+        }[]
+      }
       update_community_membership_status: {
         Args: { membership_id: string; new_status: string }
         Returns: Json
