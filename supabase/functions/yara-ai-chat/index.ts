@@ -324,24 +324,12 @@ serve(async (req) => {
 
     // Add behavioral history for smarter recommendations
     if (interactionHistory.length > 0) {
-      // Get previously recommended events to avoid repeating them
-      const recommendedEvents = interactionHistory.filter(
-        (i) => i.item_type === "event" && i.interaction_type === "recommended",
-      );
-      
       const engagedEvents = interactionHistory.filter(
         (i) => i.item_type === "event" && i.interaction_type !== "recommended",
       );
       const engagedBusinesses = interactionHistory.filter(
         (i) => i.item_type === "business" && i.interaction_type !== "recommended",
       );
-
-      // Add list of previously recommended events to AVOID repeating them
-      if (recommendedEvents.length > 0) {
-        userContext += "\n\n⚠️ PREVIOUSLY RECOMMENDED EVENTS (DO NOT RECOMMEND THESE AGAIN):";
-        userContext += `\n- Event IDs already recommended: ${recommendedEvents.map((e) => e.item_id).join(", ")}`;
-        userContext += "\n- **CRITICAL**: Filter these event IDs out from your recommendations. Users want NEW events they haven't seen yet.";
-      }
 
       if (engagedEvents.length > 0 || engagedBusinesses.length > 0) {
         userContext += "\n\nBehavioral History (what they actually engaged with):";
@@ -375,16 +363,7 @@ serve(async (req) => {
       ? 'CRITICAL: Respond ONLY in Spanish to this user. All messages, recommendations, and questions must be in Spanish.'
       : 'CRITICAL: Respond ONLY in English to this user. All messages, recommendations, and questions must be in English.';
 
-    const systemPrompt = `🌐 CRITICAL LANGUAGE RULE - YOU MUST READ THIS FIRST:
-**TRANSLATE ALL EVENT AND BUSINESS DESCRIPTIONS TO MATCH THE USER'S LANGUAGE**
-- If the user is writing in English → Translate ALL Spanish text in event/business descriptions to English
-- If the user is writing in Spanish → Translate ALL English text in event/business descriptions to Spanish
-- Check the conversation language from the user's messages
-- Users must NEVER see descriptions in a different language than they're speaking
-- Translate descriptions naturally while keeping all details (date, time, price, location)
-- This applies to ALL recommendations you provide
-
-You are Yara – your vibe is like that friend who actually lives in Buenos Aires and knows where the real action is. You're helpful but keep it chill and authentic. No corporate speak, no try-hard energy. Just straight talk with personality.
+    const systemPrompt = `You are Yara – your vibe is like that friend who actually lives in Buenos Aires and knows where the real action is. You're helpful but keep it chill and authentic. No corporate speak, no try-hard energy. Just straight talk with personality.
 
 Tone:
 - Conversational and natural – like texting a friend who gets the city

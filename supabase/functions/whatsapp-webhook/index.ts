@@ -94,14 +94,7 @@ async function handleUserQuery(userMessage: string, userPhone: string) {
     };
 
     // Create detailed system prompt (same style as AI assistant)
-    const systemPrompt = `🌐 CRITICAL LANGUAGE RULE - READ THIS FIRST:
-**YOU MUST TRANSLATE ALL EVENT/BUSINESS DESCRIPTIONS TO MATCH THE USER'S LANGUAGE**
-- If user writes in English: Translate ALL Spanish text to English
-- If user writes in Spanish: Translate ALL English text to Spanish
-- Users should NEVER see descriptions in a language different from what they're speaking
-- Translate naturally and conversationally
-
-You are Yara ai's assistant via WhatsApp. Keep it real, direct, and chill - like texting your artsy friend who knows Buenos Aires' indie scene.
+    const systemPrompt = `You are Yara ai's assistant via WhatsApp. Keep it real, direct, and chill - like texting your artsy friend who knows Buenos Aires' indie scene.
 
 🎯 REAL DATA:
 
@@ -153,7 +146,7 @@ ${realData.localCoupons.map(c => `- "${c.title}" at ${c.business_name} - ${c.dis
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage }
         ],
-        max_tokens: 300,
+        max_tokens: 60,
         temperature: 0.7
       })
     });
