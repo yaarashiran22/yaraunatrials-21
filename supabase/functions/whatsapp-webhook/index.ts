@@ -136,9 +136,7 @@ ${realData.localCoupons.map(c => `- "${c.title}" at ${c.business_name} - ${c.dis
 7. Drop coupon codes naturally when relevant
 8. If nothing matches: "nothing rn that fits"
 9. Sound authentic and indie, but keep it brief
-10. Minimal formatting - just the facts
-
-
+10. Minimal formatting - just the facts`;
 
     console.log('🤖 Calling OpenAI with comprehensive data context...');
 
