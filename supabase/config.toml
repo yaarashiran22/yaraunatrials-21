@@ -3,6 +3,9 @@ project_id = "nxtfugcmatkiqjzxucgh"
 [functions.get-service-role-key]
 verify_jwt = false
 
+[functions.n8n-send-recommendations]
+verify_jwt = false
+
 [functions.twilio-whatsapp-webhook]
 verify_jwt = false
 
