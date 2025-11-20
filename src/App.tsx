@@ -23,7 +23,6 @@ import MarketplacePage from "./pages/MarketplacePage";
 import NeighborhoodProfilePage from "./pages/NeighborhoodProfilePage";
 import NeighborsPage from "./pages/NeighborsPage";
 import TopListsPage from "./pages/TopListsPage";
-import InstagramTrackerPage from "./pages/InstagramTrackerPage";
 
 import RegisterPage from "./pages/RegisterPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -85,7 +84,6 @@ const AppContent = () => {
               <Route path="/neighborhood/:id" element={<NeighborhoodProfilePage />} />
               <Route path="/top-lists" element={<TopListsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/instagram-tracker" element={<InstagramTrackerPage />} />
               <Route path="/favorites" element={<FavoritesPage />} />
               <Route path="/create-post" element={<CreatePostPage />} />
               <Route path="/whatsapp-qr" element={<WhatsAppQRPage />} />
@@ -141,7 +139,6 @@ const AppContent = () => {
             <Route path="/top-lists" element={<TopListsPage />} />
             
             <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/instagram-tracker" element={<InstagramTrackerPage />} />
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/create-post" element={<CreatePostPage />} />
             <Route path="/whatsapp-qr" element={<WhatsAppQRPage />} />
