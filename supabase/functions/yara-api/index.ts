@@ -477,6 +477,7 @@ serve(async (req) => {
               // Keep original lists if translation fails
             }
           }
+        }
       }
     }
 
