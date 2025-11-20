@@ -349,7 +349,10 @@ serve(async (req) => {
           
           if (translateResponse.ok) {
             const translateData = await translateResponse.json();
-            const translatedEvents = JSON.parse(translateData.choices[0].message.content.trim());
+            let content = translateData.choices[0].message.content.trim();
+            // Strip markdown code blocks if present
+            content = content.replace(/^```json\n?/i, '').replace(/\n?```$/i, '');
+            const translatedEvents = JSON.parse(content);
             response.results.events = response.results.events.map((e: any) => {
               const translated = translatedEvents.find((t: any) => t.id === e.id);
               return translated ? { ...e, ...translated } : e;
@@ -380,7 +383,10 @@ serve(async (req) => {
           
           if (translateResponse.ok) {
             const translateData = await translateResponse.json();
-            const translatedCoupons = JSON.parse(translateData.choices[0].message.content.trim());
+            let content = translateData.choices[0].message.content.trim();
+            // Strip markdown code blocks if present
+            content = content.replace(/^```json\n?/i, '').replace(/\n?```$/i, '');
+            const translatedCoupons = JSON.parse(content);
             response.results.coupons = response.results.coupons.map((c: any) => {
               const translated = translatedCoupons.find((t: any) => t.id === c.id);
               return translated ? { ...c, ...translated } : c;
@@ -415,7 +421,10 @@ serve(async (req) => {
           
           if (translateResponse.ok) {
             const translateData = await translateResponse.json();
-            const translatedLists = JSON.parse(translateData.choices[0].message.content.trim());
+            let content = translateData.choices[0].message.content.trim();
+            // Strip markdown code blocks if present
+            content = content.replace(/^```json\n?/i, '').replace(/\n?```$/i, '');
+            const translatedLists = JSON.parse(content);
             response.results.top_lists = response.results.top_lists.map((l: any) => {
               const translated = translatedLists.find((t: any) => t.id === l.id);
               if (translated) {
