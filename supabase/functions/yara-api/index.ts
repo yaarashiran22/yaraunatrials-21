@@ -348,15 +348,27 @@ serve(async (req) => {
           });
           
           if (translateResponse.ok) {
-            const translateData = await translateResponse.json();
-            let content = translateData.choices[0].message.content.trim();
-            // Strip markdown code blocks if present
-            content = content.replace(/^```json\n?/i, '').replace(/\n?```$/i, '');
-            const translatedEvents = JSON.parse(content);
-            response.results.events = response.results.events.map((e: any) => {
-              const translated = translatedEvents.find((t: any) => t.id === e.id);
-              return translated ? { ...e, ...translated } : e;
-            });
+            try {
+              const translateData = await translateResponse.json();
+              let content = translateData.choices[0].message.content.trim();
+              console.log('Raw translation response for events:', content.substring(0, 500));
+              // Strip markdown code blocks if present
+              content = content.replace(/^```json\n?/i, '').replace(/\n?```$/i, '');
+              // Also strip any trailing text after the closing bracket
+              const jsonMatch = content.match(/\[[\s\S]*\]/);
+              if (jsonMatch) {
+                content = jsonMatch[0];
+              }
+              const translatedEvents = JSON.parse(content);
+              response.results.events = response.results.events.map((e: any) => {
+                const translated = translatedEvents.find((t: any) => t.id === e.id);
+                return translated ? { ...e, ...translated } : e;
+              });
+              console.log('Successfully translated events');
+            } catch (parseError) {
+              console.error('Failed to parse translated events:', parseError);
+              // Keep original events if translation fails
+            }
           }
         }
 
@@ -382,15 +394,27 @@ serve(async (req) => {
           });
           
           if (translateResponse.ok) {
-            const translateData = await translateResponse.json();
-            let content = translateData.choices[0].message.content.trim();
-            // Strip markdown code blocks if present
-            content = content.replace(/^```json\n?/i, '').replace(/\n?```$/i, '');
-            const translatedCoupons = JSON.parse(content);
-            response.results.coupons = response.results.coupons.map((c: any) => {
-              const translated = translatedCoupons.find((t: any) => t.id === c.id);
-              return translated ? { ...c, ...translated } : c;
-            });
+            try {
+              const translateData = await translateResponse.json();
+              let content = translateData.choices[0].message.content.trim();
+              console.log('Raw translation response for coupons:', content.substring(0, 500));
+              // Strip markdown code blocks if present
+              content = content.replace(/^```json\n?/i, '').replace(/\n?```$/i, '');
+              // Also strip any trailing text after the closing bracket
+              const jsonMatch = content.match(/\[[\s\S]*\]/);
+              if (jsonMatch) {
+                content = jsonMatch[0];
+              }
+              const translatedCoupons = JSON.parse(content);
+              response.results.coupons = response.results.coupons.map((c: any) => {
+                const translated = translatedCoupons.find((t: any) => t.id === c.id);
+                return translated ? { ...c, ...translated } : c;
+              });
+              console.log('Successfully translated coupons');
+            } catch (parseError) {
+              console.error('Failed to parse translated coupons:', parseError);
+              // Keep original coupons if translation fails
+            }
           }
         }
 
@@ -420,28 +444,39 @@ serve(async (req) => {
           });
           
           if (translateResponse.ok) {
-            const translateData = await translateResponse.json();
-            let content = translateData.choices[0].message.content.trim();
-            // Strip markdown code blocks if present
-            content = content.replace(/^```json\n?/i, '').replace(/\n?```$/i, '');
-            const translatedLists = JSON.parse(content);
-            response.results.top_lists = response.results.top_lists.map((l: any) => {
-              const translated = translatedLists.find((t: any) => t.id === l.id);
-              if (translated) {
-                return {
-                  ...l,
-                  title: translated.title,
-                  description: translated.description,
-                  items: l.items?.map((i: any) => {
-                    const translatedItem = translated.items?.find((ti: any) => ti.id === i.id);
-                    return translatedItem ? { ...i, name: translatedItem.name, description: translatedItem.description } : i;
-                  }),
-                };
+            try {
+              const translateData = await translateResponse.json();
+              let content = translateData.choices[0].message.content.trim();
+              console.log('Raw translation response for lists:', content.substring(0, 500));
+              // Strip markdown code blocks if present
+              content = content.replace(/^```json\n?/i, '').replace(/\n?```$/i, '');
+              // Also strip any trailing text after the closing bracket
+              const jsonMatch = content.match(/\[[\s\S]*\]/);
+              if (jsonMatch) {
+                content = jsonMatch[0];
               }
-              return l;
-            });
+              const translatedLists = JSON.parse(content);
+              response.results.top_lists = response.results.top_lists.map((l: any) => {
+                const translated = translatedLists.find((t: any) => t.id === l.id);
+                if (translated) {
+                  return {
+                    ...l,
+                    title: translated.title,
+                    description: translated.description,
+                    items: l.items?.map((i: any) => {
+                      const translatedItem = translated.items?.find((ti: any) => ti.id === i.id);
+                      return translatedItem ? { ...i, name: translatedItem.name, description: translatedItem.description } : i;
+                    }),
+                  };
+                }
+                return l;
+              });
+              console.log('Successfully translated top lists');
+            } catch (parseError) {
+              console.error('Failed to parse translated lists:', parseError);
+              // Keep original lists if translation fails
+            }
           }
-        }
       }
     }
 
