@@ -2,84 +2,84 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { query, type = 'all', limit = 20 } = await req.json();
-    
-    console.log('Yara API request:', { query, type, limit });
+    const { query, type = "all", limit = 20 } = await req.json();
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    console.log("Yara API request:", { query, type, limit });
+
+    const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
 
     const response: any = {
       query,
       timestamp: new Date().toISOString(),
-      results: {}
+      results: {},
     };
 
     // Fetch events if requested
-    if (type === 'all' || type === 'events') {
+    if (type === "all" || type === "events") {
       const { data: events, error: eventsError } = await supabase
-        .from('events')
-        .select('*')
-        .eq('market', 'argentina')
-        .order('created_at', { ascending: false })
+        .from("events")
+        .select("*")
+        .eq("market", "argentina")
+        .order("created_at", { ascending: false })
         .limit(limit);
 
       if (eventsError) {
-        console.error('Error fetching events:', eventsError);
+        console.error("Error fetching events:", eventsError);
       } else {
         // Filter future events
         const now = new Date();
-        const futureEvents = events?.filter(event => {
-          if (!event.date) return true;
-          const eventDate = new Date(event.date);
-          return eventDate >= now;
-        }) || [];
+        const futureEvents =
+          events?.filter((event) => {
+            if (!event.date) return true;
+            const eventDate = new Date(event.date);
+            return eventDate >= now;
+          }) || [];
 
         response.results.events = futureEvents;
       }
     }
 
     // Fetch coupons if requested
-    if (type === 'all' || type === 'coupons') {
+    if (type === "all" || type === "coupons") {
       const { data: coupons, error: couponsError } = await supabase
-        .from('user_coupons')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
+        .from("user_coupons")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
         .limit(limit);
 
       if (couponsError) {
-        console.error('Error fetching coupons:', couponsError);
+        console.error("Error fetching coupons:", couponsError);
       } else {
         response.results.coupons = coupons || [];
       }
     }
 
     // Fetch top lists if requested
-    if (type === 'all' || type === 'lists') {
+    if (type === "all" || type === "lists") {
       const { data: topLists, error: listsError } = await supabase
-        .from('top_lists')
-        .select(`
+        .from("top_lists")
+        .select(
+          `
           *,
           items:top_list_items(*)
-        `)
-        .order('created_at', { ascending: false })
+        `,
+        )
+        .order("created_at", { ascending: false })
         .limit(limit);
 
       if (listsError) {
-        console.error('Error fetching top lists:', listsError);
+        console.error("Error fetching top lists:", listsError);
       } else {
         response.results.top_lists = topLists || [];
       }
@@ -87,26 +87,14 @@ serve(async (req) => {
 
     // If query provided, use AI to filter and enrich recommendations
     if (query) {
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-      
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
       if (LOVABLE_API_KEY) {
         const contextData = {
           events: response.results.events || [],
           coupons: response.results.coupons || [],
-          top_lists: response.results.top_lists || []
+          top_lists: response.results.top_lists || [],
         };
-
-        // Build type-specific prompt
-        let typeInstruction = '';
-        if (type === 'events') {
-          typeInstruction = 'Only recommend events. Do not recommend coupons or lists.';
-        } else if (type === 'coupons') {
-          typeInstruction = 'Only recommend coupons/perks. Do not recommend events or lists.';
-        } else if (type === 'lists') {
-          typeInstruction = 'Only recommend curated lists. Do not recommend events or coupons.';
-        } else {
-          typeInstruction = 'You can recommend events, coupons, or curated lists as appropriate.';
-        }
 
         const systemPrompt = `You are Yara, an AI assistant for Buenos Aires. You have access to the following data:
 - ${contextData.events.length} events
@@ -128,17 +116,17 @@ Always respond in JSON format with this structure:
 }`;
 
         try {
-          const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-            method: 'POST',
+          const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
             headers: {
-              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-              'Content-Type': 'application/json',
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: 'google/gemini-2.5-flash',
+              model: "google/gemini-2.5-flash",
               messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: `User query: ${query}\n\nContext: ${JSON.stringify(contextData)}` }
+                { role: "system", content: systemPrompt },
+                { role: "user", content: `User query: ${query}\n\nContext: ${JSON.stringify(contextData)}` },
               ],
               temperature: 0.7,
             }),
@@ -147,60 +135,59 @@ Always respond in JSON format with this structure:
           if (aiResponse.ok) {
             const aiData = await aiResponse.json();
             let aiContent = aiData.choices[0].message.content;
-            
+
             // Strip markdown code blocks if present
-            aiContent = aiContent.replace(/```json\n?/g, '').replace(/\n?```/g, '').trim();
-            
+            aiContent = aiContent
+              .replace(/```json\n?/g, "")
+              .replace(/\n?```/g, "")
+              .trim();
+
             try {
               const parsedAI = JSON.parse(aiContent);
-              
+
               // Enrich recommendations with full data
               if (parsedAI.recommendations) {
                 parsedAI.recommendations = parsedAI.recommendations.map((rec: any) => {
-                  if (rec.type === 'event') {
-                    const event = contextData.events.find(e => e.id === rec.id);
+                  if (rec.type === "event") {
+                    const event = contextData.events.find((e) => e.id === rec.id);
                     return event ? { ...event, relevance: rec.relevance } : rec;
-                  } else if (rec.type === 'coupon') {
-                    const coupon = contextData.coupons.find(c => c.id === rec.id);
-                    return coupon ? { ...coupon, type: 'coupon', relevance: rec.relevance } : rec;
-                  } else if (rec.type === 'list') {
-                    const list = contextData.top_lists.find(l => l.id === rec.id);
-                    return list ? { ...list, type: 'list', relevance: rec.relevance } : rec;
+                  } else if (rec.type === "coupon") {
+                    const coupon = contextData.coupons.find((c) => c.id === rec.id);
+                    return coupon ? { ...coupon, type: "coupon", relevance: rec.relevance } : rec;
+                  } else if (rec.type === "list") {
+                    const list = contextData.top_lists.find((l) => l.id === rec.id);
+                    return list ? { ...list, type: "list", relevance: rec.relevance } : rec;
                   }
                   return rec;
                 });
               }
-              
+
               // Replace results with only AI-recommended items
               response.results = {
                 events: parsedAI.recommendations?.filter((r: any) => r.date) || [],
-                coupons: parsedAI.recommendations?.filter((r: any) => r.type === 'coupon') || [],
-                top_lists: parsedAI.recommendations?.filter((r: any) => r.type === 'list') || []
+                coupons: parsedAI.recommendations?.filter((r: any) => r.type === "coupon") || [],
+                top_lists: parsedAI.recommendations?.filter((r: any) => r.type === "list") || [],
               };
               response.message = parsedAI.message;
             } catch {
-              response.ai_error = 'Failed to parse AI response';
+              response.ai_error = "Failed to parse AI response";
             }
           }
         } catch (aiError) {
-          console.error('AI error:', aiError);
-          response.ai_error = 'Failed to generate AI recommendations';
+          console.error("AI error:", aiError);
+          response.ai_error = "Failed to generate AI recommendations";
         }
       }
     }
 
     return new Response(JSON.stringify(response), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
   } catch (error) {
-    console.error('Yara API error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    console.error("Yara API error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
