@@ -33,7 +33,7 @@ const CreateActionSelector = () => {
         setShowEventPopup(true);
         setIsOpen(false);
       },
-      visible: (profile as any)?.profile_type === 'business' // Only visible for business users
+      visible: true // Anyone can create events
     },
     {
       icon: ShoppingBag,
