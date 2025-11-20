@@ -90,31 +90,28 @@ serve(async (req) => {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
       if (LOVABLE_API_KEY) {
-        const sqlPrompt = `You are a SQL query generator. Transform the user's natural language query into a PostgreSQL WHERE clause for searching events, coupons, and top_lists.
+        const sqlPrompt = `You are a PostgREST filter generator. Transform the user's natural language query into a structured filter object.
 
 Available tables and key columns:
 - events: title, description, date, time, location, mood, music_type, venue_name, price_range, market='argentina'
 - user_coupons: title, description, business_name, neighborhood, discount_amount, is_active=true
 - top_lists: title, description, category
 
-Rules:
-1. Use ILIKE for text search with % wildcards
-2. Filter events by market='argentina' and date >= current_date
-3. Filter coupons by is_active=true
-4. Return ONLY the WHERE clause conditions (without "WHERE")
-5. For keyword searches, use OR across multiple fields (title, description, music_type, venue_name, etc.)
-6. For location/neighborhood, use AND to restrict results
-7. Combine keyword search (OR) with location filter (AND) when both are present
+Return a JSON object with these fields:
+{
+  "keywords": ["word1", "word2"],  // Main search terms (e.g., ["wine"])
+  "location": "location_name",      // If location mentioned (e.g., "palermo")
+  "category": "category_name"      // If category mentioned for lists
+}
 
-Example queries:
-- "wine events" -> (market = 'argentina' AND date >= CURRENT_DATE AND (title ILIKE '%wine%' OR description ILIKE '%wine%' OR music_type ILIKE '%wine%' OR venue_name ILIKE '%wine%'))
-- "wine events in palermo" -> (market = 'argentina' AND date >= CURRENT_DATE AND location ILIKE '%palermo%' AND (title ILIKE '%wine%' OR description ILIKE '%wine%' OR music_type ILIKE '%wine%' OR venue_name ILIKE '%wine%'))
-- "cocktail bars in recoleta" -> (category ILIKE '%bars%' AND (title ILIKE '%cocktail%' OR description ILIKE '%cocktail%' OR neighborhood ILIKE '%recoleta%'))
+Examples:
+- "wine events" -> {"keywords": ["wine"], "location": null, "category": null}
+- "wine events in palermo" -> {"keywords": ["wine"], "location": "palermo", "category": null}
+- "cocktail bars in recoleta" -> {"keywords": ["cocktail"], "location": "recoleta", "category": "bars"}
 
 User query: "${query}"
-Requested type filter: ${type}
 
-Return ONLY the WHERE clause conditions, no explanation.`;
+Return ONLY valid JSON, no explanation.`;
 
         try {
           const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -132,27 +129,48 @@ Return ONLY the WHERE clause conditions, no explanation.`;
 
           if (aiResponse.ok) {
             const aiData = await aiResponse.json();
-            const whereClause = aiData.choices[0].message.content.trim().replace(/^WHERE\s+/i, "");
+            let filterStr = aiData.choices[0].message.content.trim();
+            
+            // Remove markdown code blocks if present
+            filterStr = filterStr.replace(/^```json\s*/i, '').replace(/^```\s*/,'').replace(/```$/,'').trim();
+            
+            let filters;
+            try {
+              filters = JSON.parse(filterStr);
+              console.log("Generated filters:", filters);
+            } catch (parseError) {
+              console.error("Failed to parse filter JSON:", parseError);
+              filters = { keywords: [], location: null, category: null };
+            }
 
-            console.log("Generated WHERE clause:", whereClause);
-
-            // Execute smart SQL queries based on type
+            // Execute smart queries based on type
             if (type === "all" || type === "events") {
               try {
-                const { data: smartEvents, error: eventsError } = await supabase
+                let query = supabase
                   .from("events")
                   .select("*")
-                  .or(whereClause)
-                  .order("created_at", { ascending: false })
-                  .limit(limit);
+                  .eq("market", "argentina")
+                  .gte("date", new Date().toISOString().split('T')[0]);
+
+                // Add location filter if specified
+                if (filters.location) {
+                  query = query.ilike("location", `%${filters.location}%`);
+                }
+
+                // Add keyword filters - must match at least one field
+                if (filters.keywords && filters.keywords.length > 0) {
+                  const keyword = filters.keywords[0];
+                  query = query.or(
+                    `title.ilike.%${keyword}%,description.ilike.%${keyword}%,music_type.ilike.%${keyword}%,venue_name.ilike.%${keyword}%,mood.ilike.%${keyword}%`
+                  );
+                }
+
+                query = query.order("created_at", { ascending: false }).limit(limit);
+
+                const { data: smartEvents, error: eventsError } = await query;
 
                 if (!eventsError && smartEvents) {
-                  const now = new Date();
-                  response.results.events = smartEvents.filter((event) => {
-                    if (!event.date) return true;
-                    const eventDate = new Date(event.date);
-                    return eventDate >= now;
-                  });
+                  response.results.events = smartEvents;
                 }
               } catch (e) {
                 console.error("Smart events query failed:", e);
@@ -161,13 +179,25 @@ Return ONLY the WHERE clause conditions, no explanation.`;
 
             if (type === "all" || type === "coupons") {
               try {
-                const { data: smartCoupons, error: couponsError } = await supabase
+                let query = supabase
                   .from("user_coupons")
                   .select("*")
-                  .or(whereClause)
-                  .eq("is_active", true)
-                  .order("created_at", { ascending: false })
-                  .limit(limit);
+                  .eq("is_active", true);
+
+                if (filters.location) {
+                  query = query.ilike("neighborhood", `%${filters.location}%`);
+                }
+
+                if (filters.keywords && filters.keywords.length > 0) {
+                  const keyword = filters.keywords[0];
+                  query = query.or(
+                    `title.ilike.%${keyword}%,description.ilike.%${keyword}%,business_name.ilike.%${keyword}%`
+                  );
+                }
+
+                query = query.order("created_at", { ascending: false }).limit(limit);
+
+                const { data: smartCoupons, error: couponsError } = await query;
 
                 if (!couponsError && smartCoupons) {
                   response.results.coupons = smartCoupons;
@@ -179,15 +209,27 @@ Return ONLY the WHERE clause conditions, no explanation.`;
 
             if (type === "all" || type === "lists") {
               try {
-                const { data: smartLists, error: listsError } = await supabase
+                let query = supabase
                   .from("top_lists")
                   .select(`
                     *,
                     items:top_list_items(*)
-                  `)
-                  .or(whereClause)
-                  .order("created_at", { ascending: false })
-                  .limit(limit);
+                  `);
+
+                if (filters.category) {
+                  query = query.ilike("category", `%${filters.category}%`);
+                }
+
+                if (filters.keywords && filters.keywords.length > 0) {
+                  const keyword = filters.keywords[0];
+                  query = query.or(
+                    `title.ilike.%${keyword}%,description.ilike.%${keyword}%`
+                  );
+                }
+
+                query = query.order("created_at", { ascending: false }).limit(limit);
+
+                const { data: smartLists, error: listsError } = await query;
 
                 if (!listsError && smartLists) {
                   response.results.top_lists = smartLists;
