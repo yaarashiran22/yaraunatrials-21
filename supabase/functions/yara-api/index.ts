@@ -58,7 +58,7 @@ serve(async (req) => {
         if (type === "all" || type === "events") {
           const { data: matchedEvents, error: matchError } = await supabase.rpc('match_events', {
             query_embedding: queryEmbedding,
-            match_threshold: 0.3,
+            match_threshold: 0.5,
             match_count: limit
           });
 
