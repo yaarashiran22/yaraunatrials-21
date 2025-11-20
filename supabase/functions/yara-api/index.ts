@@ -7,7 +7,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Generate embedding for a query using OpenAI
 async function generateQueryEmbedding(query: string, openAIApiKey: string): Promise<number[]> {
   const response = await fetch('https://api.openai.com/v1/embeddings', {
     method: 'POST',
@@ -51,14 +50,11 @@ serve(async (req) => {
       results: {},
     };
 
-    // Use semantic search if query is provided and we have OpenAI key
     if (query && openAIApiKey) {
       try {
-        // Generate embedding for the query
         const queryEmbedding = await generateQueryEmbedding(query, openAIApiKey);
         console.log("Generated query embedding");
 
-        // Search events using semantic similarity
         if (type === "all" || type === "events") {
           const { data: matchedEvents, error: matchError } = await supabase.rpc('match_events', {
             query_embedding: queryEmbedding,
@@ -66,10 +62,7 @@ serve(async (req) => {
             match_count: limit
           });
 
-          if (matchError) {
-            console.error('Error in semantic search:', matchError);
-          } else if (matchedEvents && matchedEvents.length > 0) {
-            // Fetch full event details
+          if (!matchError && matchedEvents && matchedEvents.length > 0) {
             const eventIds = matchedEvents.map((e: any) => e.id);
             const { data: fullEvents, error: fetchError } = await supabase
               .from('events')
@@ -82,142 +75,55 @@ serve(async (req) => {
               response.results.events = fullEvents;
               console.log(`Found ${fullEvents.length} events via semantic search`);
             }
-          } else {
-            console.log('No events matched via semantic search');
-            response.results.events = [];
           }
         }
 
-        // For coupons and lists, fall back to keyword search for now
         if (type === "all" || type === "coupons") {
-          const { data: coupons, error: couponsError } = await supabase
+          const { data: coupons } = await supabase
             .from("user_coupons")
             .select("*")
             .eq("is_active", true)
-            .or(`title.ilike.%${query}%,description.ilike.%${query}%,business_name.ilike.%${query}%`)
-            .order("created_at", { ascending: false })
+            .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
             .limit(limit);
-
-          if (!couponsError) {
-            response.results.coupons = coupons || [];
-          }
+          response.results.coupons = coupons || [];
         }
 
         if (type === "all" || type === "lists") {
-          const { data: topLists, error: listsError } = await supabase
+          const { data: topLists } = await supabase
             .from("top_lists")
             .select(`*,items:top_list_items(*)`)
-            .or(`title.ilike.%${query}%,description.ilike.%${query}%,category.ilike.%${query}%`)
-            .order("created_at", { ascending: false })
+            .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
             .limit(limit);
-
-          if (!listsError) {
-            response.results.top_lists = topLists || [];
-          }
-        }
-
-      } catch (embeddingError) {
-        console.error("Embedding error, falling back to basic search:", embeddingError);
-      }
-    }
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${LOVABLE_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
-              messages: [{ role: "user", content: sqlPrompt }],
-              temperature: 0.3,
-            }),
-          });
-
-          if (aiResponse.ok) {
-            const aiData = await aiResponse.json();
-            let filterStr = aiData.choices[0].message.content.trim();
-            
-            // Remove markdown code blocks if present
-            filterStr = filterStr.replace(/^```json\s*/i, '').replace(/^```\s*/,'').replace(/```$/,'').trim();
-            
-
-    // Fallback: If no query or semantic search failed/no results, return recent items
-    if (!query || !response.results.events || response.results.events.length === 0) {
-      if (type === "all" || type === "events") {
-        const { data: events, error: eventsError } = await supabase
-          .from("events")
-          .select("*")
-          .eq("market", "argentina")
-          .gte("date", new Date().toISOString().split('T')[0])
-          .order("date", { ascending: true })
-          .limit(limit);
-
-        if (!eventsError) {
-          response.results.events = events || [];
-        }
-      }
-
-      if (!response.results.coupons && (type === "all" || type === "coupons")) {
-        const { data: coupons, error: couponsError } = await supabase
-          .from("user_coupons")
-          .select("*")
-          .eq("is_active", true)
-          .order("created_at", { ascending: false })
-          .limit(limit);
-
-        if (!couponsError) {
-          response.results.coupons = coupons || [];
-        }
-      }
-
-      if (!response.results.top_lists && (type === "all" || type === "lists")) {
-        const { data: topLists, error: listsError } = await supabase
-          .from("top_lists")
-          .select(`*,items:top_list_items(*)`)
-          .order("created_at", { ascending: false })
-          .limit(limit);
-
-        if (!listsError) {
           response.results.top_lists = topLists || [];
         }
+      } catch (err) {
+        console.error("Semantic search failed:", err);
       }
     }
 
-    // Generate conversational message with AI
+    if (!response.results.events) {
+      const { data: events } = await supabase
+        .from("events")
+        .select("*")
+        .eq("market", "argentina")
+        .gte("date", new Date().toISOString().split('T')[0])
+        .order("date", { ascending: true })
+        .limit(limit);
+      response.results.events = events || [];
+    }
+
     if (query) {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (LOVABLE_API_KEY) {
-        try {
-          const messagePrompt = `You are Yara, a friendly local guide for Buenos Aires. 
-
-User asked: "${query}"
-
-You found:
-- ${response.results.events?.length || 0} events
-- ${response.results.coupons?.length || 0} coupons
-- ${response.results.top_lists?.length || 0} curated lists
-
-Write a brief, warm response (2-3 sentences max) about what you found. Be conversational and helpful.`;
-
-          const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${LOVABLE_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
-              messages: [{ role: "user", content: messagePrompt }],
-              temperature: 0.7,
-            }),
-          });
-
-          if (aiResponse.ok) {
-            const aiData = await aiResponse.json();
-            response.message = aiData.choices[0].message.content.trim();
-          }
-        } catch (aiError) {
-          console.error("AI message generation failed:", aiError);
-          response.message = `Found ${response.results.events?.length || 0} events for you!`;
+        const messagePrompt = `You are Yara. User asked: "${query}". Found ${response.results.events?.length || 0} events. Write a brief friendly response.`;
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: [{ role: "user", content: messagePrompt }] }),
+        });
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          response.message = aiData.choices[0].message.content.trim();
         }
       }
     }
@@ -225,15 +131,11 @@ Write a brief, warm response (2-3 sentences max) about what you found. Be conver
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
   } catch (error) {
-    console.error("Error in yara-api:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
-    );
+    console.error("Error:", error);
+    return new Response(JSON.stringify({ error: error.message }), { 
+      status: 500, 
+      headers: { ...corsHeaders, "Content-Type": "application/json" } 
+    });
   }
 });
