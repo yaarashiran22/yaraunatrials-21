@@ -35,8 +35,20 @@ serve(async (req) => {
   }
 
   try {
-    const { query, type = "all", limit = 20 } = await req.json();
-    console.log("Yara API request:", { query, type, limit });
+    const { 
+      query, 
+      type = "all", 
+      limit = 20,
+      // User preferences (all nullable)
+      age,
+      neighborhood,
+      mood,
+      music_type,
+      budget_preference,
+      favorite_neighborhoods,
+      interests
+    } = await req.json();
+    console.log("Yara API request:", { query, type, limit, preferences: { age, neighborhood, mood, music_type, budget_preference, favorite_neighborhoods, interests } });
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "", 
@@ -64,17 +76,43 @@ serve(async (req) => {
 
           if (!matchError && matchedEvents && matchedEvents.length > 0) {
             const eventIds = matchedEvents.map((e: any) => e.id);
-            const { data: fullEvents, error: fetchError } = await supabase
+            let eventQuery = supabase
               .from('events')
               .select('id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at')
               .in('id', eventIds)
-              .gte('date', new Date().toISOString().split('T')[0])
+              .gte('date', new Date().toISOString().split('T')[0]);
+            
+            // Apply user preference filters
+            if (neighborhood) {
+              eventQuery = eventQuery.or(`location.ilike.%${neighborhood}%,address.ilike.%${neighborhood}%`);
+            }
+            if (favorite_neighborhoods && Array.isArray(favorite_neighborhoods) && favorite_neighborhoods.length > 0) {
+              const neighborhoodConditions = favorite_neighborhoods.map(n => `location.ilike.%${n}%,address.ilike.%${n}%`).join(',');
+              eventQuery = eventQuery.or(neighborhoodConditions);
+            }
+            if (mood) {
+              eventQuery = eventQuery.ilike('mood', `%${mood}%`);
+            }
+            if (music_type) {
+              eventQuery = eventQuery.ilike('music_type', `%${music_type}%`);
+            }
+            if (budget_preference) {
+              if (budget_preference.toLowerCase().includes('free')) {
+                eventQuery = eventQuery.or('price.is.null,price_range.ilike.%free%');
+              } else if (budget_preference.toLowerCase().includes('low')) {
+                eventQuery = eventQuery.or('price.lte.1000,price_range.ilike.%$%');
+              } else if (budget_preference.toLowerCase().includes('medium')) {
+                eventQuery = eventQuery.or('price.lte.3000,price_range.ilike.%$$%');
+              }
+            }
+            
+            const { data: fullEvents, error: fetchError } = await eventQuery
               .order('date', { ascending: true })
               .limit(limit);
             
             if (!fetchError && fullEvents && fullEvents.length > 0) {
               response.results.events = fullEvents;
-              console.log(`Found ${fullEvents.length} events via semantic search`);
+              console.log(`Found ${fullEvents.length} events via semantic search with user preferences`);
             }
           }
         }
@@ -121,17 +159,43 @@ serve(async (req) => {
           `title.ilike.%${kw}%,description.ilike.%${kw}%,music_type.ilike.%${kw}%,mood.ilike.%${kw}%`
         ).join(',');
         
-        const { data: keywordEvents } = await supabase
+        let keywordQuery = supabase
           .from("events")
           .select("id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at")
           .or(orConditions)
-          .gte("date", new Date().toISOString().split('T')[0])
+          .gte("date", new Date().toISOString().split('T')[0]);
+        
+        // Apply user preference filters
+        if (neighborhood) {
+          keywordQuery = keywordQuery.or(`location.ilike.%${neighborhood}%,address.ilike.%${neighborhood}%`);
+        }
+        if (favorite_neighborhoods && Array.isArray(favorite_neighborhoods) && favorite_neighborhoods.length > 0) {
+          const neighborhoodConditions = favorite_neighborhoods.map(n => `location.ilike.%${n}%,address.ilike.%${n}%`).join(',');
+          keywordQuery = keywordQuery.or(neighborhoodConditions);
+        }
+        if (mood) {
+          keywordQuery = keywordQuery.ilike('mood', `%${mood}%`);
+        }
+        if (music_type) {
+          keywordQuery = keywordQuery.ilike('music_type', `%${music_type}%`);
+        }
+        if (budget_preference) {
+          if (budget_preference.toLowerCase().includes('free')) {
+            keywordQuery = keywordQuery.or('price.is.null,price_range.ilike.%free%');
+          } else if (budget_preference.toLowerCase().includes('low')) {
+            keywordQuery = keywordQuery.or('price.lte.1000,price_range.ilike.%$%');
+          } else if (budget_preference.toLowerCase().includes('medium')) {
+            keywordQuery = keywordQuery.or('price.lte.3000,price_range.ilike.%$$%');
+          }
+        }
+        
+        const { data: keywordEvents } = await keywordQuery
           .order("date", { ascending: true })
           .limit(limit);
         
         if (keywordEvents && keywordEvents.length > 0) {
           response.results.events = keywordEvents;
-          console.log(`Found ${keywordEvents.length} events via keyword fallback`);
+          console.log(`Found ${keywordEvents.length} events via keyword fallback with user preferences`);
         }
       }
     }
