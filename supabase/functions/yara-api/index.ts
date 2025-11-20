@@ -115,7 +115,10 @@ serve(async (req) => {
     if (query) {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (LOVABLE_API_KEY) {
-        const messagePrompt = `You are Yara. User asked: "${query}". Found ${response.results.events?.length || 0} events. Write a brief friendly response.`;
+        const eventCount = response.results.events?.length || 0;
+        const couponCount = response.results.coupons?.length || 0;
+        const listCount = response.results.top_lists?.length || 0;
+        const messagePrompt = `You are Yara. User asked: "${query}". Found ${eventCount} events, ${couponCount} coupons, and ${listCount} lists. Write a VERY brief friendly response (1-2 sentences) that ONLY says you found or didn't find results. DO NOT include any details about the actual results like names, dates, or descriptions.`;
         const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
