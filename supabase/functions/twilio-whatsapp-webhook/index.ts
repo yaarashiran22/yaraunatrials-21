@@ -813,9 +813,6 @@ Deno.serve(async (req) => {
     // Try to parse as JSON - extract JSON from text if needed
     let cleanedMessage = assistantMessage.trim();
 
-    // First, try to remove code block wrappers if present (```json ... ``` or ``` ... ```)
-    cleanedMessage = cleanedMessage.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
-
     // Try to extract JSON from the response
     // Look for a JSON object starting with { and ending with }
     const jsonMatch = cleanedMessage.match(/\{[\s\S]*\}/);
