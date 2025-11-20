@@ -135,7 +135,10 @@ Always respond in JSON format with this structure:
 
           if (aiResponse.ok) {
             const aiData = await aiResponse.json();
-            const aiContent = aiData.choices[0].message.content;
+            let aiContent = aiData.choices[0].message.content;
+            
+            // Strip markdown code blocks if present
+            aiContent = aiContent.replace(/```json\n?/g, '').replace(/\n?```/g, '').trim();
             
             try {
               const parsedAI = JSON.parse(aiContent);
