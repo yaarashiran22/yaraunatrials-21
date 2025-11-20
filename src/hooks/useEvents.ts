@@ -48,7 +48,7 @@ const fetchEvents = async (eventType?: 'event' | 'meetup', filterType?: boolean,
       created_at,
       updated_at
     `)
-    .in('market', ['argentina', 'Buenos Aires'])
+    .eq('market', 'argentina')
     .order('created_at', { ascending: false });
 
   if (eventType) {
