@@ -35,7 +35,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query, type = "all", limit = 20, age, neighborhood, mood, vibe, music_type, budget } = await req.json();
+    const { query, type = "all", limit = 20, age, neighborhood, mood, vibe, music_type, budget, style_preference } = await req.json();
     const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
     const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 
@@ -85,6 +85,9 @@ serve(async (req) => {
             }
             if (music_type) {
               eventQuery = eventQuery.ilike("music_type", `%${music_type}%`);
+            }
+            if (style_preference) {
+              eventQuery = eventQuery.ilike("mood", `%${style_preference}%`);
             }
             if (budget) {
               if (budget.toLowerCase().includes("free")) {
@@ -175,6 +178,9 @@ serve(async (req) => {
         }
         if (music_type) {
           keywordQuery = keywordQuery.ilike("music_type", `%${music_type}%`);
+        }
+        if (style_preference) {
+          keywordQuery = keywordQuery.ilike("mood", `%${style_preference}%`);
         }
         if (budget) {
           if (budget.toLowerCase().includes("free")) {
