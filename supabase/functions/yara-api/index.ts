@@ -43,12 +43,13 @@ serve(async (req) => {
       age,
       neighborhood,
       mood,
+      vibe,
       music_type,
       budget_preference,
       favorite_neighborhoods,
       interests
     } = await req.json();
-    console.log("Yara API request:", { query, type, limit, preferences: { age, neighborhood, mood, music_type, budget_preference, favorite_neighborhoods, interests } });
+    console.log("Yara API request:", { query, type, limit, preferences: { age, neighborhood, mood, vibe, music_type, budget_preference, favorite_neighborhoods, interests } });
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "", 
@@ -92,6 +93,9 @@ serve(async (req) => {
             }
             if (mood) {
               eventQuery = eventQuery.ilike('mood', `%${mood}%`);
+            }
+            if (vibe) {
+              eventQuery = eventQuery.ilike('mood', `%${vibe}%`);
             }
             if (music_type) {
               eventQuery = eventQuery.ilike('music_type', `%${music_type}%`);
@@ -175,6 +179,9 @@ serve(async (req) => {
         }
         if (mood) {
           keywordQuery = keywordQuery.ilike('mood', `%${mood}%`);
+        }
+        if (vibe) {
+          keywordQuery = keywordQuery.ilike('mood', `%${vibe}%`);
         }
         if (music_type) {
           keywordQuery = keywordQuery.ilike('music_type', `%${music_type}%`);
