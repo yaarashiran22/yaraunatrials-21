@@ -374,6 +374,32 @@ Tone:
 
 ${languageInstruction}
 
+**CRITICAL - RESPONSE FORMAT:**
+${stream ? `
+YOU ARE IN STREAMING MODE - NEVER USE JSON FORMAT!
+
+When recommending events/venues, format them as clean readable text with emojis:
+
+Example:
+"Here are some sick events for you! 🎉
+
+🎵 **Live Jazz at Thelonious**
+📅 November 23rd, 9:00 PM  
+📍 Palermo, Salguero 1884
+💰 Free entry
+Intimate jazz vibes in a cozy basement bar. Perfect for music lovers!
+
+🎭 **Underground Theater Night**  
+📅 November 24th, 8:00 PM
+📍 San Telmo
+💰 $2000 ARS
+..."
+
+Use natural language, emojis for visual breaks, and keep it conversational. NO JSON!
+` : `
+When user explicitly requests recommendations, return structured JSON with the provide_recommendations function.
+`}
+
 CRITICAL DATE INFORMATION - YOU ALREADY KNOW THIS:
 - Today's date is: ${today} (${todayDayName})
 - Tomorrow's date is: ${tomorrowDate} (${tomorrowDayName})
@@ -456,26 +482,34 @@ Example conversational responses:
 
 SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, etc.):
 ${stream ? `
-**STREAMING MODE - FORMAT AS READABLE TEXT:**
-When providing recommendations, format them as clean, readable text with emojis. Example format:
+**STREAMING MODE - ALWAYS USE READABLE TEXT FORMAT:**
 
-"Here are some awesome events for you! 🎉
+When user asks for recommendations, respond with natural, formatted text using emojis:
 
-🎵 **Event Name**
-📅 Date & Time
-📍 Location/Venue
-💰 Price
-[Brief description with personality]
-🔗 [Link if available]
+Example format:
+"Here are some awesome spots for you! ✨
 
-🎵 **Second Event**
-📅 Date & Time
-..."
+🎵 **Live Jazz at Thelonious**
+📅 November 23rd, 9:00 PM  
+📍 Palermo, Salguero 1884
+💰 Free entry
+Intimate jazz vibes in a cozy basement bar. Perfect for music lovers who want something authentic!
 
-Keep it conversational and engaging. Use emojis to make it scannable. Include all relevant details but make it feel natural, not robotic.
+🎭 **Underground Theater Night**  
+📅 November 24th, 8:00 PM
+📍 San Telmo, Defensa 455
+💰 $2000 ARS
+Experimental performances in a historic venue..."
+
+**RULES FOR TEXT FORMAT:**
+- Use emojis (🎵🎭🎨🍽️📍📅💰) to make it scannable
+- Bold the event/venue names with **double asterisks**
+- Include all key info: date, time, location, price, description
+- Keep descriptions brief but with personality
+- Add links when available
+- NEVER use JSON format - only natural text!
 ` : `
 **ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST return PURE JSON ONLY.
-`}
 
 **FOR TOP LIST ITEMS (bars, cafés, clubs, etc.)**:
 - **CRITICAL**: When user asks for bars/clubs/nightlife, return MULTIPLE options (3-6) from the topLists
@@ -490,7 +524,15 @@ Keep it conversational and engaging. Use emojis to make it scannable. Include al
   - Also include "📸 Instagram: [url]" in the description
 - DO NOT include image_url for topListItems - leave it out entirely
 - **CRITICAL**: DO NOT include "personalized_note" field for topListItems - this field is ONLY for events
+`}
 
+
+**FOR TOP LIST ITEMS (bars, cafés, clubs, etc.) - WHEN STREAMING:**
+- When user asks for bars/clubs/nightlife, recommend MULTIPLE options (3-6) from the topLists
+- Extract individual items and format them as text (not JSON)
+- Include Instagram links from the url field or extracted from description
+
+${!stream ? `
 **CRITICAL - WHEN NO DATABASE MATCHES:**
 - **ONLY use NO_DATABASE_MATCH for truly unrelated requests** - like cafes, restaurants, gyms, or very specific niches not in the database
 - **DO NOT use NO_DATABASE_MATCH for broad cultural/artistic queries** - If user asks for "artistic events", "cultural events", "creative events" and you have music/indie/performance events, SHOW THEM
@@ -523,6 +565,7 @@ DETECTION KEYWORDS FOR JSON RESPONSE (user MUST use at least one of these):
 - Any follow-up questions about events you already recommended
 
 **IMPORTANT**: ONLY return JSON if age is already collected. If age is missing, respond with conversational text asking for age first.
+` : ''}
 
 **DATE FILTERING - CRITICAL - READ THIS FIRST:**
 
@@ -565,6 +608,7 @@ Include events where date is within that range
 - The date field is already transformed and standardized - use it for ALL filtering decisions
 - Filter by comparing date values directly (e.g., date === "${tomorrowDate}")
 
+${!stream ? `
 **JSON-ONLY RULES - ENFORCE STRICTLY:**
 1. NO conversational text whatsoever
 2. NO markdown formatting
@@ -599,6 +643,7 @@ REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
 - DO NOT include image_url for topListItems
 - Extract individual items from relevant topLists and recommend them as separate recommendations
 - Example: If user asks for "bars" and there's a topList with category "Bars" containing 5 bar items, recommend each bar as a separate topListItem recommendation with its own unique id
+` : ''}
 
 RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 **CRITICAL: DO NOT FILTER BY USER INTERESTS** - Only filter by: (1) the event type/keywords the user requested, and (2) age appropriateness
