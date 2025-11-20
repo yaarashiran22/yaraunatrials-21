@@ -35,7 +35,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query, type = "all", limit = 20, age, neighborhood, mood, vibe, music_type, budget, style_preference, favorite_neighborhoods } = await req.json();
+    const { query, type = "all", limit = 20, age, neighborhood, mood, vibe, music_type, budget, style_preference, favorite_neighborhoods, language } = await req.json();
     const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
     const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 
@@ -216,13 +216,130 @@ serve(async (req) => {
       console.log(`Fallback: showing ${events?.length || 0} upcoming events`);
     }
 
+    // Translate results if language parameter is provided
+    if (language && language !== "es") {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (LOVABLE_API_KEY) {
+        // Translate events
+        if (response.results.events && response.results.events.length > 0) {
+          const eventsToTranslate = response.results.events.map((e: any) => ({
+            id: e.id,
+            title: e.title,
+            description: e.description,
+            location: e.location,
+            address: e.address,
+            venue_name: e.venue_name,
+          }));
+          
+          const translateResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [{
+                role: "user",
+                content: `Translate the following event data to language code "${language}". Return ONLY valid JSON array with the same structure, translating title, description, location, address, and venue_name fields: ${JSON.stringify(eventsToTranslate)}`
+              }],
+            }),
+          });
+          
+          if (translateResponse.ok) {
+            const translateData = await translateResponse.json();
+            const translatedEvents = JSON.parse(translateData.choices[0].message.content.trim());
+            response.results.events = response.results.events.map((e: any) => {
+              const translated = translatedEvents.find((t: any) => t.id === e.id);
+              return translated ? { ...e, ...translated } : e;
+            });
+          }
+        }
+
+        // Translate coupons
+        if (response.results.coupons && response.results.coupons.length > 0) {
+          const couponsToTranslate = response.results.coupons.map((c: any) => ({
+            id: c.id,
+            title: c.title,
+            description: c.description,
+            business_name: c.business_name,
+          }));
+          
+          const translateResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [{
+                role: "user",
+                content: `Translate the following coupon data to language code "${language}". Return ONLY valid JSON array with the same structure, translating title, description, and business_name fields: ${JSON.stringify(couponsToTranslate)}`
+              }],
+            }),
+          });
+          
+          if (translateResponse.ok) {
+            const translateData = await translateResponse.json();
+            const translatedCoupons = JSON.parse(translateData.choices[0].message.content.trim());
+            response.results.coupons = response.results.coupons.map((c: any) => {
+              const translated = translatedCoupons.find((t: any) => t.id === c.id);
+              return translated ? { ...c, ...translated } : c;
+            });
+          }
+        }
+
+        // Translate top lists
+        if (response.results.top_lists && response.results.top_lists.length > 0) {
+          const listsToTranslate = response.results.top_lists.map((l: any) => ({
+            id: l.id,
+            title: l.title,
+            description: l.description,
+            items: l.items?.map((i: any) => ({
+              id: i.id,
+              name: i.name,
+              description: i.description,
+            })),
+          }));
+          
+          const translateResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [{
+                role: "user",
+                content: `Translate the following list data to language code "${language}". Return ONLY valid JSON array with the same structure, translating title, description, and item names/descriptions: ${JSON.stringify(listsToTranslate)}`
+              }],
+            }),
+          });
+          
+          if (translateResponse.ok) {
+            const translateData = await translateResponse.json();
+            const translatedLists = JSON.parse(translateData.choices[0].message.content.trim());
+            response.results.top_lists = response.results.top_lists.map((l: any) => {
+              const translated = translatedLists.find((t: any) => t.id === l.id);
+              if (translated) {
+                return {
+                  ...l,
+                  title: translated.title,
+                  description: translated.description,
+                  items: l.items?.map((i: any) => {
+                    const translatedItem = translated.items?.find((ti: any) => ti.id === i.id);
+                    return translatedItem ? { ...i, name: translatedItem.name, description: translatedItem.description } : i;
+                  }),
+                };
+              }
+              return l;
+            });
+          }
+        }
+      }
+    }
+
     if (query) {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (LOVABLE_API_KEY) {
         const eventCount = response.results.events?.length || 0;
         const couponCount = response.results.coupons?.length || 0;
         const listCount = response.results.top_lists?.length || 0;
-        const messagePrompt = `You are Yara. User asked: "${query}". Found ${eventCount} events, ${couponCount} coupons, and ${listCount} lists. Write a VERY brief friendly response (1-2 sentences) that ONLY says you found or didn't find results. DO NOT include any details about the actual results like names, dates, or descriptions.`;
+        const languageInstruction = language && language !== "es" ? ` Respond in the language corresponding to ISO 639-1 code "${language}".` : "";
+        const messagePrompt = `You are Yara. User asked: "${query}". Found ${eventCount} events, ${couponCount} coupons, and ${listCount} lists. Write a VERY brief friendly response (1-2 sentences) that ONLY says you found or didn't find results. DO NOT include any details about the actual results like names, dates, or descriptions.${languageInstruction}`;
         const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
