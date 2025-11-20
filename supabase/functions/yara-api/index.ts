@@ -47,6 +47,8 @@ serve(async (req) => {
     const tomorrowStr = tomorrow.toISOString().split("T")[0];
     
     let dateFilter: string | null = null;
+    let dateRangeStart: string | null = null;
+    let dateRangeEnd: string | null = null;
     const queryLower = query.toLowerCase();
     
     if (queryLower.includes("tonight") || queryLower.includes("today")) {
@@ -59,9 +61,44 @@ serve(async (req) => {
       const daysUntilSaturday = (6 - now.getDay() + 7) % 7;
       nextSaturday.setDate(now.getDate() + (daysUntilSaturday === 0 ? 7 : daysUntilSaturday));
       dateFilter = nextSaturday.toISOString().split("T")[0];
+    } else if (queryLower.includes("this week")) {
+      // From today until end of this week (Sunday)
+      dateRangeStart = today;
+      const currentDay = now.getDay(); // 0 = Sunday
+      const daysUntilSunday = currentDay === 0 ? 0 : 7 - currentDay;
+      const thisSunday = new Date(now);
+      thisSunday.setDate(now.getDate() + daysUntilSunday);
+      dateRangeEnd = thisSunday.toISOString().split("T")[0];
+    } else if (queryLower.includes("next week")) {
+      // Find next Monday
+      const nextMonday = new Date(now);
+      const daysUntilMonday = (8 - now.getDay()) % 7 || 7; // If today is Monday, get next Monday
+      nextMonday.setDate(now.getDate() + daysUntilMonday);
+      dateRangeStart = nextMonday.toISOString().split("T")[0];
+      
+      // Find next Sunday
+      const nextSunday = new Date(nextMonday);
+      nextSunday.setDate(nextMonday.getDate() + 6);
+      dateRangeEnd = nextSunday.toISOString().split("T")[0];
+    } else {
+      // Check for specific weekday mentions
+      const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      
+      for (let i = 0; i < weekdays.length; i++) {
+        if (queryLower.includes(weekdays[i])) {
+          let daysUntil = (i - currentDay + 7) % 7;
+          if (daysUntil === 0) daysUntil = 7; // If it's the same day, get next occurrence
+          
+          const targetDate = new Date(now);
+          targetDate.setDate(now.getDate() + daysUntil);
+          dateFilter = targetDate.toISOString().split("T")[0];
+          break;
+        }
+      }
     }
     
-    console.log(`Date filter detected: ${dateFilter} for query: ${query}`);
+    console.log(`Date filter: ${dateFilter}, Range: ${dateRangeStart} to ${dateRangeEnd} for query: ${query}`);
 
     const response: any = {
       query,
@@ -80,12 +117,14 @@ serve(async (req) => {
             .from("events")
             .select("id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at, embedding");
           
-          // Apply date filter
-          if (dateFilter) {
-            dateFilteredQuery = dateFilteredQuery.eq("date", dateFilter);
-          } else {
-            dateFilteredQuery = dateFilteredQuery.gte("date", new Date().toISOString().split("T")[0]);
-          }
+            // Apply date filter
+            if (dateFilter) {
+              dateFilteredQuery = dateFilteredQuery.eq("date", dateFilter);
+            } else if (dateRangeStart && dateRangeEnd) {
+              dateFilteredQuery = dateFilteredQuery.gte("date", dateRangeStart).lte("date", dateRangeEnd);
+            } else {
+              dateFilteredQuery = dateFilteredQuery.gte("date", new Date().toISOString().split("T")[0]);
+            }
           
           const { data: dateFilteredEvents, error: dateError } = await dateFilteredQuery;
           
@@ -209,6 +248,8 @@ serve(async (req) => {
         // Apply date filter
         if (dateFilter) {
           keywordQuery = keywordQuery.eq("date", dateFilter);
+        } else if (dateRangeStart && dateRangeEnd) {
+          keywordQuery = keywordQuery.gte("date", dateRangeStart).lte("date", dateRangeEnd);
         } else {
           keywordQuery = keywordQuery.gte("date", new Date().toISOString().split("T")[0]);
         }
@@ -266,6 +307,8 @@ serve(async (req) => {
       // Apply date filter
       if (dateFilter) {
         fallbackQuery = fallbackQuery.eq("date", dateFilter);
+      } else if (dateRangeStart && dateRangeEnd) {
+        fallbackQuery = fallbackQuery.gte("date", dateRangeStart).lte("date", dateRangeEnd);
       } else {
         fallbackQuery = fallbackQuery.gte("date", new Date().toISOString().split("T")[0]);
       }
