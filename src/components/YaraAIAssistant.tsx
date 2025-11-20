@@ -265,7 +265,14 @@ const YaraAIAssistant: React.FC<YaraAIAssistantProps> = ({ isOpen, onClose }) =>
                         : 'bg-muted/80 border border-[#E91E63]/10'
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                    <div 
+                      className="text-sm whitespace-pre-wrap"
+                      dangerouslySetInnerHTML={{
+                        __html: msg.content
+                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\n/g, '<br/>')
+                      }}
+                    />
                   </div>
                 </div>
                 
