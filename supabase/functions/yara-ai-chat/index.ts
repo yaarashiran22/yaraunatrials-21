@@ -324,12 +324,24 @@ serve(async (req) => {
 
     // Add behavioral history for smarter recommendations
     if (interactionHistory.length > 0) {
+      // Get previously recommended events to avoid repeating them
+      const recommendedEvents = interactionHistory.filter(
+        (i) => i.item_type === "event" && i.interaction_type === "recommended",
+      );
+      
       const engagedEvents = interactionHistory.filter(
         (i) => i.item_type === "event" && i.interaction_type !== "recommended",
       );
       const engagedBusinesses = interactionHistory.filter(
         (i) => i.item_type === "business" && i.interaction_type !== "recommended",
       );
+
+      // Add list of previously recommended events to AVOID repeating them
+      if (recommendedEvents.length > 0) {
+        userContext += "\n\n⚠️ PREVIOUSLY RECOMMENDED EVENTS (DO NOT RECOMMEND THESE AGAIN):";
+        userContext += `\n- Event IDs already recommended: ${recommendedEvents.map((e) => e.item_id).join(", ")}`;
+        userContext += "\n- **CRITICAL**: Filter these event IDs out from your recommendations. Users want NEW events they haven't seen yet.";
+      }
 
       if (engagedEvents.length > 0 || engagedBusinesses.length > 0) {
         userContext += "\n\nBehavioral History (what they actually engaged with):";
