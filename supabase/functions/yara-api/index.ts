@@ -108,6 +108,9 @@ serve(async (req) => {
       const { data: synonymData } = await supabase.functions.invoke('generate-synonyms');
       const synonymMap: Record<string, string[]> = synonymData?.synonyms || {};
       
+      console.log(`Synonym map has ${Object.keys(synonymMap).length} entries`);
+      console.log(`Sample synonyms: ${JSON.stringify(Object.fromEntries(Object.entries(synonymMap).slice(0, 3)))}`);
+      
       const keywords = query.toLowerCase().match(/\b\w{4,}\b/g) || [];
       const expandedKeywords = keywords.flatMap(kw => synonymMap[kw] || [kw]);
       
