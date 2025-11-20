@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.n8n-send-recommendations]
 verify_jwt = false
 
+[functions.n8n-yara-recommendations]
+verify_jwt = false
+
 [functions.twilio-whatsapp-webhook]
 verify_jwt = false
 
