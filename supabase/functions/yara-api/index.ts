@@ -39,6 +39,30 @@ serve(async (req) => {
     const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
     const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 
+    // Parse temporal expressions into date filters
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split("T")[0];
+    
+    let dateFilter: string | null = null;
+    const queryLower = query.toLowerCase();
+    
+    if (queryLower.includes("tonight") || queryLower.includes("today")) {
+      dateFilter = today;
+    } else if (queryLower.includes("tomorrow")) {
+      dateFilter = tomorrowStr;
+    } else if (queryLower.includes("this weekend")) {
+      // Find next Saturday
+      const nextSaturday = new Date(now);
+      const daysUntilSaturday = (6 - now.getDay() + 7) % 7;
+      nextSaturday.setDate(now.getDate() + (daysUntilSaturday === 0 ? 7 : daysUntilSaturday));
+      dateFilter = nextSaturday.toISOString().split("T")[0];
+    }
+    
+    console.log(`Date filter detected: ${dateFilter} for query: ${query}`);
+
     const response: any = {
       query,
       timestamp: new Date().toISOString(),
@@ -51,61 +75,84 @@ serve(async (req) => {
         console.log("Generated query embedding");
 
         if (type === "all" || type === "events") {
-          const { data: matchedEvents, error: matchError } = await supabase.rpc("match_events", {
-            query_embedding: queryEmbedding,
-            match_threshold: 0.35,
-            match_count: limit * 2,
-          });
+          // First, get all events that match the date filter
+          let dateFilteredQuery = supabase
+            .from("events")
+            .select("id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at, embedding");
+          
+          // Apply date filter
+          if (dateFilter) {
+            dateFilteredQuery = dateFilteredQuery.eq("date", dateFilter);
+          } else {
+            dateFilteredQuery = dateFilteredQuery.gte("date", new Date().toISOString().split("T")[0]);
+          }
+          
+          const { data: dateFilteredEvents, error: dateError } = await dateFilteredQuery;
+          
+          if (!dateError && dateFilteredEvents && dateFilteredEvents.length > 0) {
+            // Now do semantic matching only on the date-filtered events
+            const dateFilteredIds = dateFilteredEvents.map(e => e.id);
+            
+            const { data: matchedEvents, error: matchError } = await supabase.rpc("match_events", {
+              query_embedding: queryEmbedding,
+              match_threshold: 0.35,
+              match_count: limit * 2,
+            });
 
-          if (!matchError && matchedEvents && matchedEvents.length > 0) {
-            const eventIds = matchedEvents.map((e: any) => e.id);
-            let eventQuery = supabase
-              .from("events")
-              .select(
-                "id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at",
-              )
-              .in("id", eventIds)
-              .gte("date", new Date().toISOString().split("T")[0]);
+            if (!matchError && matchedEvents && matchedEvents.length > 0) {
+              // Filter matched events to only include those that passed the date filter
+              const relevantMatches = matchedEvents.filter((e: any) => dateFilteredIds.includes(e.id));
+              
+              if (relevantMatches.length > 0) {
+                const eventIds = relevantMatches.map((e: any) => e.id);
+                let eventQuery = supabase
+                  .from("events")
+                  .select(
+                    "id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at",
+                  )
+                  .in("id", eventIds);
 
-            // Apply user preference filters
-            if (neighborhood) {
-              eventQuery = eventQuery.or(`location.ilike.%${neighborhood}%,address.ilike.%${neighborhood}%`);
-            }
-            if (favorite_neighborhoods && Array.isArray(favorite_neighborhoods) && favorite_neighborhoods.length > 0) {
-              const neighborhoodConditions = favorite_neighborhoods
-                .map((n) => `location.ilike.%${n}%,address.ilike.%${n}%`)
-                .join(",");
-              eventQuery = eventQuery.or(neighborhoodConditions);
-            }
-            if (mood) {
-              eventQuery = eventQuery.ilike("mood", `%${mood}%`);
-            }
-            if (vibe) {
-              eventQuery = eventQuery.ilike("mood", `%${vibe}%`);
-            }
-            if (music_type) {
-              eventQuery = eventQuery.ilike("music_type", `%${music_type}%`);
-            }
-            if (style_preference) {
-              eventQuery = eventQuery.ilike("mood", `%${style_preference}%`);
-            }
-            if (budget) {
-              if (budget.toLowerCase().includes("free")) {
-                eventQuery = eventQuery.or("price.is.null,price_range.ilike.%free%");
-              } else if (budget.toLowerCase().includes("low")) {
-                eventQuery = eventQuery.or("price.lte.1000,price_range.ilike.%$%");
-              } else if (budget.toLowerCase().includes("medium")) {
-                eventQuery = eventQuery.or("price.lte.3000,price_range.ilike.%$$%");
+                // Apply user preference filters
+                if (neighborhood) {
+                  eventQuery = eventQuery.or(`location.ilike.%${neighborhood}%,address.ilike.%${neighborhood}%`);
+                }
+                if (favorite_neighborhoods && Array.isArray(favorite_neighborhoods) && favorite_neighborhoods.length > 0) {
+                  const neighborhoodConditions = favorite_neighborhoods
+                    .map((n) => `location.ilike.%${n}%,address.ilike.%${n}%`)
+                    .join(",");
+                  eventQuery = eventQuery.or(neighborhoodConditions);
+                }
+                if (mood) {
+                  eventQuery = eventQuery.ilike("mood", `%${mood}%`);
+                }
+                if (vibe) {
+                  eventQuery = eventQuery.ilike("mood", `%${vibe}%`);
+                }
+                if (music_type) {
+                  eventQuery = eventQuery.ilike("music_type", `%${music_type}%`);
+                }
+                if (style_preference) {
+                  eventQuery = eventQuery.ilike("mood", `%${style_preference}%`);
+                }
+                if (budget) {
+                  if (budget.toLowerCase().includes("free")) {
+                    eventQuery = eventQuery.or("price.is.null,price_range.ilike.%free%");
+                  } else if (budget.toLowerCase().includes("low")) {
+                    eventQuery = eventQuery.or("price.lte.1000,price_range.ilike.%$%");
+                  } else if (budget.toLowerCase().includes("medium")) {
+                    eventQuery = eventQuery.or("price.lte.3000,price_range.ilike.%$$%");
+                  }
+                }
+
+                const { data: fullEvents, error: fetchError } = await eventQuery
+                  .order("date", { ascending: true })
+                  .limit(limit);
+
+                if (!fetchError && fullEvents && fullEvents.length > 0) {
+                  response.results.events = fullEvents;
+                  console.log(`Found ${fullEvents.length} events via semantic search with user preferences`);
+                }
               }
-            }
-
-            const { data: fullEvents, error: fetchError } = await eventQuery
-              .order("date", { ascending: true })
-              .limit(limit);
-
-            if (!fetchError && fullEvents && fullEvents.length > 0) {
-              response.results.events = fullEvents;
-              console.log(`Found ${fullEvents.length} events via semantic search with user preferences`);
             }
           }
         }
@@ -157,8 +204,14 @@ serve(async (req) => {
           .select(
             "id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at",
           )
-          .or(orConditions)
-          .gte("date", new Date().toISOString().split("T")[0]);
+          .or(orConditions);
+        
+        // Apply date filter
+        if (dateFilter) {
+          keywordQuery = keywordQuery.eq("date", dateFilter);
+        } else {
+          keywordQuery = keywordQuery.gte("date", new Date().toISOString().split("T")[0]);
+        }
 
         // Apply user preference filters
         if (neighborhood) {
@@ -203,13 +256,21 @@ serve(async (req) => {
 
     if (!response.results.events || response.results.events.length === 0) {
       // Final fallback: just show upcoming events
-      const { data: events } = await supabase
+      let fallbackQuery = supabase
         .from("events")
         .select(
           "id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at",
         )
-        .eq("market", "argentina")
-        .gte("date", new Date().toISOString().split("T")[0])
+        .eq("market", "argentina");
+      
+      // Apply date filter
+      if (dateFilter) {
+        fallbackQuery = fallbackQuery.eq("date", dateFilter);
+      } else {
+        fallbackQuery = fallbackQuery.gte("date", new Date().toISOString().split("T")[0]);
+      }
+      
+      const { data: events } = await fallbackQuery
         .order("date", { ascending: true })
         .limit(limit);
       response.results.events = events || [];
