@@ -52,15 +52,13 @@ serve(async (req) => {
 
     if (query && openAIApiKey) {
       try {
-        // Generate embeddings for both English and Spanish versions of the query
-        const bilingualQuery = `${query} (Spanish equivalent: vino for wine, cerveza for beer, café for coffee, música for music, fiesta for party, arte for art)`;
-        const queryEmbedding = await generateQueryEmbedding(bilingualQuery, openAIApiKey);
-        console.log("Generated bilingual query embedding");
+        const queryEmbedding = await generateQueryEmbedding(query, openAIApiKey);
+        console.log("Generated query embedding");
 
         if (type === "all" || type === "events") {
           const { data: matchedEvents, error: matchError } = await supabase.rpc('match_events', {
             query_embedding: queryEmbedding,
-            match_threshold: 0.3,
+            match_threshold: 0.35,
             match_count: limit * 2
           });
 
@@ -104,8 +102,39 @@ serve(async (req) => {
       }
     }
 
+    // Fallback: keyword search with auto-generated synonyms
     if (!response.results.events || response.results.events.length === 0) {
-      // Fallback: just show upcoming events
+      // Fetch synonym map from the generate-synonyms function
+      const { data: synonymData } = await supabase.functions.invoke('generate-synonyms');
+      const synonymMap: Record<string, string[]> = synonymData?.synonyms || {};
+      
+      const keywords = query.toLowerCase().match(/\b\w{4,}\b/g) || [];
+      const expandedKeywords = keywords.flatMap(kw => synonymMap[kw] || [kw]);
+      
+      console.log(`Keyword fallback - original: ${keywords.join(',')}, expanded: ${expandedKeywords.join(',')}`);
+      
+      if (expandedKeywords.length > 0) {
+        const orConditions = expandedKeywords.map(kw => 
+          `title.ilike.%${kw}%,description.ilike.%${kw}%,music_type.ilike.%${kw}%,mood.ilike.%${kw}%`
+        ).join(',');
+        
+        const { data: keywordEvents } = await supabase
+          .from("events")
+          .select("id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at")
+          .or(orConditions)
+          .gte("date", new Date().toISOString().split('T')[0])
+          .order("date", { ascending: true })
+          .limit(limit);
+        
+        if (keywordEvents && keywordEvents.length > 0) {
+          response.results.events = keywordEvents;
+          console.log(`Found ${keywordEvents.length} events via keyword fallback`);
+        }
+      }
+    }
+
+    if (!response.results.events || response.results.events.length === 0) {
+      // Final fallback: just show upcoming events
       const { data: events } = await supabase
         .from("events")
         .select("id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at")
@@ -114,7 +143,7 @@ serve(async (req) => {
         .order("date", { ascending: true })
         .limit(limit);
       response.results.events = events || [];
-      console.log(`No semantic matches - showing ${events?.length || 0} upcoming events`);
+      console.log(`Fallback: showing ${events?.length || 0} upcoming events`);
     }
 
     if (query) {
