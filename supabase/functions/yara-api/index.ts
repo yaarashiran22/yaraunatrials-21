@@ -96,10 +96,24 @@ serve(async (req) => {
           top_lists: response.results.top_lists || []
         };
 
+        // Build type-specific prompt
+        let typeInstruction = '';
+        if (type === 'events') {
+          typeInstruction = 'Only recommend events. Do not recommend coupons or lists.';
+        } else if (type === 'coupons') {
+          typeInstruction = 'Only recommend coupons/perks. Do not recommend events or lists.';
+        } else if (type === 'lists') {
+          typeInstruction = 'Only recommend curated lists. Do not recommend events or coupons.';
+        } else {
+          typeInstruction = 'You can recommend events, coupons, or curated lists as appropriate.';
+        }
+
         const systemPrompt = `You are Yara, an AI assistant for Buenos Aires. You have access to the following data:
 - ${contextData.events.length} events
 - ${contextData.coupons.length} coupons/perks
 - ${contextData.top_lists.length} curated lists
+
+${typeInstruction}
 
 Based on the user's query, provide relevant recommendations in a structured format.
 Always respond in JSON format with this structure:
