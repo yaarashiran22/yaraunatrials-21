@@ -765,7 +765,14 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
       throw new Error(`Lovable AI error: ${response.status}`);
     }
 
-    // Get the complete message
+    // If streaming is enabled, return the stream directly
+    if (stream && response.body) {
+      return new Response(response.body, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
+
+    // Get the complete message for non-streaming
     const data = await response.json();
     console.log("Full AI response:", JSON.stringify(data, null, 2));
 
