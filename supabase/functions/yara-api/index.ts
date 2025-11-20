@@ -85,35 +85,34 @@ serve(async (req) => {
       }
     }
 
-    // If query provided, use AI to filter and enrich recommendations
+    // If query provided, use AI to transform it to SQL and execute
     if (query) {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
       if (LOVABLE_API_KEY) {
-        const contextData = {
-          events: response.results.events || [],
-          coupons: response.results.coupons || [],
-          top_lists: response.results.top_lists || [],
-        };
+        const sqlPrompt = `You are a SQL query generator. Transform the user's natural language query into a PostgreSQL WHERE clause for searching events, coupons, and top_lists.
 
-        const systemPrompt = `You are Yara, an AI assistant for Buenos Aires. You have access to the following data:
-- ${contextData.events.length} events
-- ${contextData.coupons.length} coupons/perks
-- ${contextData.top_lists.length} curated lists
+Available tables and key columns:
+- events: title, description, date, time, location, mood, music_type, venue_name, price_range, market='argentina'
+- user_coupons: title, description, business_name, neighborhood, discount_amount, is_active=true
+- top_lists: title, description, category
 
-${typeInstruction}
+Rules:
+1. Use ILIKE for text search with % wildcards
+2. Filter events by market='argentina' and date >= current_date
+3. Filter coupons by is_active=true
+4. Return ONLY the WHERE clause conditions (without "WHERE")
+5. Use OR to combine searches across different fields
+6. Be flexible with keywords (e.g., "wine" should match title, description, music_type, etc.)
 
-Based on the user's query, provide relevant recommendations in a structured format.
-Always respond in JSON format with this structure:
-{
-  "message": "your conversational response",
-  "recommendations": [
-    {
-      "type": "event|coupon|list",
-      "id": "item_id"
-    }
-  ]
-}`;
+Example queries:
+- "wine events" -> (market = 'argentina' AND date >= CURRENT_DATE AND (title ILIKE '%wine%' OR description ILIKE '%wine%' OR music_type ILIKE '%wine%'))
+- "cocktail bars" -> (category ILIKE '%bars%' OR title ILIKE '%cocktail%' OR description ILIKE '%bar%')
+
+User query: "${query}"
+Requested type filter: ${type}
+
+Return ONLY the WHERE clause conditions, no explanation.`;
 
         try {
           const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -124,58 +123,105 @@ Always respond in JSON format with this structure:
             },
             body: JSON.stringify({
               model: "google/gemini-2.5-flash",
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: `User query: ${query}\n\nContext: ${JSON.stringify(contextData)}` },
-              ],
-              temperature: 0.7,
+              messages: [{ role: "user", content: sqlPrompt }],
+              temperature: 0.3,
             }),
           });
 
           if (aiResponse.ok) {
             const aiData = await aiResponse.json();
-            let aiContent = aiData.choices[0].message.content;
+            const whereClause = aiData.choices[0].message.content.trim().replace(/^WHERE\s+/i, "");
 
-            // Strip markdown code blocks if present
-            aiContent = aiContent
-              .replace(/```json\n?/g, "")
-              .replace(/\n?```/g, "")
-              .trim();
+            console.log("Generated WHERE clause:", whereClause);
 
-            try {
-              const parsedAI = JSON.parse(aiContent);
+            // Execute smart SQL queries based on type
+            if (type === "all" || type === "events") {
+              try {
+                const { data: smartEvents, error: eventsError } = await supabase
+                  .from("events")
+                  .select("*")
+                  .or(whereClause)
+                  .order("created_at", { ascending: false })
+                  .limit(limit);
 
-              // Enrich recommendations with full data
-              if (parsedAI.recommendations) {
-                parsedAI.recommendations = parsedAI.recommendations.map((rec: any) => {
-                  if (rec.type === "event") {
-                    const event = contextData.events.find((e) => e.id === rec.id);
-                    return event ? { ...event, relevance: rec.relevance } : rec;
-                  } else if (rec.type === "coupon") {
-                    const coupon = contextData.coupons.find((c) => c.id === rec.id);
-                    return coupon ? { ...coupon, type: "coupon", relevance: rec.relevance } : rec;
-                  } else if (rec.type === "list") {
-                    const list = contextData.top_lists.find((l) => l.id === rec.id);
-                    return list ? { ...list, type: "list", relevance: rec.relevance } : rec;
-                  }
-                  return rec;
-                });
+                if (!eventsError && smartEvents) {
+                  const now = new Date();
+                  response.results.events = smartEvents.filter((event) => {
+                    if (!event.date) return true;
+                    const eventDate = new Date(event.date);
+                    return eventDate >= now;
+                  });
+                }
+              } catch (e) {
+                console.error("Smart events query failed:", e);
               }
+            }
 
-              // Replace results with only AI-recommended items
-              response.results = {
-                events: parsedAI.recommendations?.filter((r: any) => r.date) || [],
-                coupons: parsedAI.recommendations?.filter((r: any) => r.type === "coupon") || [],
-                top_lists: parsedAI.recommendations?.filter((r: any) => r.type === "list") || [],
-              };
-              response.message = parsedAI.message;
-            } catch {
-              response.ai_error = "Failed to parse AI response";
+            if (type === "all" || type === "coupons") {
+              try {
+                const { data: smartCoupons, error: couponsError } = await supabase
+                  .from("user_coupons")
+                  .select("*")
+                  .or(whereClause)
+                  .eq("is_active", true)
+                  .order("created_at", { ascending: false })
+                  .limit(limit);
+
+                if (!couponsError && smartCoupons) {
+                  response.results.coupons = smartCoupons;
+                }
+              } catch (e) {
+                console.error("Smart coupons query failed:", e);
+              }
+            }
+
+            if (type === "all" || type === "lists") {
+              try {
+                const { data: smartLists, error: listsError } = await supabase
+                  .from("top_lists")
+                  .select(`
+                    *,
+                    items:top_list_items(*)
+                  `)
+                  .or(whereClause)
+                  .order("created_at", { ascending: false })
+                  .limit(limit);
+
+                if (!listsError && smartLists) {
+                  response.results.top_lists = smartLists;
+                }
+              } catch (e) {
+                console.error("Smart lists query failed:", e);
+              }
+            }
+
+            // Generate conversational message
+            const messageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                messages: [
+                  {
+                    role: "user",
+                    content: `Generate a brief, friendly response for this query: "${query}". Found ${response.results.events?.length || 0} events, ${response.results.coupons?.length || 0} coupons, ${response.results.top_lists?.length || 0} lists. Keep it under 50 words.`,
+                  },
+                ],
+                temperature: 0.7,
+              }),
+            });
+
+            if (messageResponse.ok) {
+              const messageData = await messageResponse.json();
+              response.message = messageData.choices[0].message.content;
             }
           }
         } catch (aiError) {
-          console.error("AI error:", aiError);
-          response.ai_error = "Failed to generate AI recommendations";
+          console.error("AI SQL transformation error:", aiError);
+          response.ai_error = "Failed to transform query to SQL";
         }
       }
     }
