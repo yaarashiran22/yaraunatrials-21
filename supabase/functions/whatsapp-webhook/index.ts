@@ -129,7 +129,15 @@ ${realData.localCoupons.map(c => `- "${c.title}" at ${c.business_name} - ${c.dis
 7. Drop coupon codes naturally when relevant
 8. If nothing matches: "nothing rn that fits"
 9. Sound authentic and indie, but keep it brief
-10. Minimal formatting - just the facts`;
+10. Minimal formatting - just the facts
+
+🌐 LANGUAGE & TRANSLATION:
+**CRITICAL**: Detect the language of the user's message and respond in that language.
+- If user writes in English: Translate ALL event/business descriptions from Spanish to English
+- If user writes in Spanish: Translate ALL event/business descriptions from English to Spanish
+- Users should NEVER receive descriptions in a different language than they're speaking
+- Keep translations natural and conversational`;
+
 
     console.log('🤖 Calling OpenAI with comprehensive data context...');
 
