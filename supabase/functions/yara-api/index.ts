@@ -8,14 +8,14 @@ const corsHeaders = {
 };
 
 async function generateQueryEmbedding(query: string, openAIApiKey: string): Promise<number[]> {
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
+  const response = await fetch("https://api.openai.com/v1/embeddings", {
+    method: "POST",
     headers: {
-      'Authorization': `Bearer ${openAIApiKey}`,
-      'Content-Type': 'application/json',
+      Authorization: `Bearer ${openAIApiKey}`,
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: 'text-embedding-3-small',
+      model: "text-embedding-3-small",
       input: query,
     }),
   });
@@ -35,26 +35,8 @@ serve(async (req) => {
   }
 
   try {
-    const { 
-      query, 
-      type = "all", 
-      limit = 20,
-      // User preferences (all nullable)
-      age,
-      neighborhood,
-      mood,
-      vibe,
-      music_type,
-      budget_preference,
-      favorite_neighborhoods,
-      interests
-    } = await req.json();
-    console.log("Yara API request:", { query, type, limit, preferences: { age, neighborhood, mood, vibe, music_type, budget_preference, favorite_neighborhoods, interests } });
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "", 
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const { query, type = "all", limit = 20, age, neighborhood, mood, vibe, music_type, budget } = await req.json();
+    const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
     const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
 
     const response: any = {
@@ -69,51 +51,55 @@ serve(async (req) => {
         console.log("Generated query embedding");
 
         if (type === "all" || type === "events") {
-          const { data: matchedEvents, error: matchError } = await supabase.rpc('match_events', {
+          const { data: matchedEvents, error: matchError } = await supabase.rpc("match_events", {
             query_embedding: queryEmbedding,
             match_threshold: 0.35,
-            match_count: limit * 2
+            match_count: limit * 2,
           });
 
           if (!matchError && matchedEvents && matchedEvents.length > 0) {
             const eventIds = matchedEvents.map((e: any) => e.id);
             let eventQuery = supabase
-              .from('events')
-              .select('id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at')
-              .in('id', eventIds)
-              .gte('date', new Date().toISOString().split('T')[0]);
-            
+              .from("events")
+              .select(
+                "id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at",
+              )
+              .in("id", eventIds)
+              .gte("date", new Date().toISOString().split("T")[0]);
+
             // Apply user preference filters
             if (neighborhood) {
               eventQuery = eventQuery.or(`location.ilike.%${neighborhood}%,address.ilike.%${neighborhood}%`);
             }
             if (favorite_neighborhoods && Array.isArray(favorite_neighborhoods) && favorite_neighborhoods.length > 0) {
-              const neighborhoodConditions = favorite_neighborhoods.map(n => `location.ilike.%${n}%,address.ilike.%${n}%`).join(',');
+              const neighborhoodConditions = favorite_neighborhoods
+                .map((n) => `location.ilike.%${n}%,address.ilike.%${n}%`)
+                .join(",");
               eventQuery = eventQuery.or(neighborhoodConditions);
             }
             if (mood) {
-              eventQuery = eventQuery.ilike('mood', `%${mood}%`);
+              eventQuery = eventQuery.ilike("mood", `%${mood}%`);
             }
             if (vibe) {
-              eventQuery = eventQuery.ilike('mood', `%${vibe}%`);
+              eventQuery = eventQuery.ilike("mood", `%${vibe}%`);
             }
             if (music_type) {
-              eventQuery = eventQuery.ilike('music_type', `%${music_type}%`);
+              eventQuery = eventQuery.ilike("music_type", `%${music_type}%`);
             }
-            if (budget_preference) {
-              if (budget_preference.toLowerCase().includes('free')) {
-                eventQuery = eventQuery.or('price.is.null,price_range.ilike.%free%');
-              } else if (budget_preference.toLowerCase().includes('low')) {
-                eventQuery = eventQuery.or('price.lte.1000,price_range.ilike.%$%');
-              } else if (budget_preference.toLowerCase().includes('medium')) {
-                eventQuery = eventQuery.or('price.lte.3000,price_range.ilike.%$$%');
+            if (budget) {
+              if (budget.toLowerCase().includes("free")) {
+                eventQuery = eventQuery.or("price.is.null,price_range.ilike.%free%");
+              } else if (budget.toLowerCase().includes("low")) {
+                eventQuery = eventQuery.or("price.lte.1000,price_range.ilike.%$%");
+              } else if (budget.toLowerCase().includes("medium")) {
+                eventQuery = eventQuery.or("price.lte.3000,price_range.ilike.%$$%");
               }
             }
-            
+
             const { data: fullEvents, error: fetchError } = await eventQuery
-              .order('date', { ascending: true })
+              .order("date", { ascending: true })
               .limit(limit);
-            
+
             if (!fetchError && fullEvents && fullEvents.length > 0) {
               response.results.events = fullEvents;
               console.log(`Found ${fullEvents.length} events via semantic search with user preferences`);
@@ -147,59 +133,61 @@ serve(async (req) => {
     // Fallback: keyword search with auto-generated synonyms
     if (!response.results.events || response.results.events.length === 0) {
       // Fetch synonym map from the generate-synonyms function
-      const { data: synonymData } = await supabase.functions.invoke('generate-synonyms');
+      const { data: synonymData } = await supabase.functions.invoke("generate-synonyms");
       const synonymMap: Record<string, string[]> = synonymData?.synonyms || {};
-      
+
       console.log(`Synonym map has ${Object.keys(synonymMap).length} entries`);
       console.log(`Sample synonyms: ${JSON.stringify(Object.fromEntries(Object.entries(synonymMap).slice(0, 3)))}`);
-      
+
       const keywords = query.toLowerCase().match(/\b\w{4,}\b/g) || [];
-      const expandedKeywords = keywords.flatMap(kw => synonymMap[kw] || [kw]);
-      
-      console.log(`Keyword fallback - original: ${keywords.join(',')}, expanded: ${expandedKeywords.join(',')}`);
-      
+      const expandedKeywords = keywords.flatMap((kw) => synonymMap[kw] || [kw]);
+
+      console.log(`Keyword fallback - original: ${keywords.join(",")}, expanded: ${expandedKeywords.join(",")}`);
+
       if (expandedKeywords.length > 0) {
-        const orConditions = expandedKeywords.map(kw => 
-          `title.ilike.%${kw}%,description.ilike.%${kw}%,music_type.ilike.%${kw}%,mood.ilike.%${kw}%`
-        ).join(',');
-        
+        const orConditions = expandedKeywords
+          .map((kw) => `title.ilike.%${kw}%,description.ilike.%${kw}%,music_type.ilike.%${kw}%,mood.ilike.%${kw}%`)
+          .join(",");
+
         let keywordQuery = supabase
           .from("events")
-          .select("id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at")
+          .select(
+            "id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at",
+          )
           .or(orConditions)
-          .gte("date", new Date().toISOString().split('T')[0]);
-        
+          .gte("date", new Date().toISOString().split("T")[0]);
+
         // Apply user preference filters
         if (neighborhood) {
           keywordQuery = keywordQuery.or(`location.ilike.%${neighborhood}%,address.ilike.%${neighborhood}%`);
         }
         if (favorite_neighborhoods && Array.isArray(favorite_neighborhoods) && favorite_neighborhoods.length > 0) {
-          const neighborhoodConditions = favorite_neighborhoods.map(n => `location.ilike.%${n}%,address.ilike.%${n}%`).join(',');
+          const neighborhoodConditions = favorite_neighborhoods
+            .map((n) => `location.ilike.%${n}%,address.ilike.%${n}%`)
+            .join(",");
           keywordQuery = keywordQuery.or(neighborhoodConditions);
         }
         if (mood) {
-          keywordQuery = keywordQuery.ilike('mood', `%${mood}%`);
+          keywordQuery = keywordQuery.ilike("mood", `%${mood}%`);
         }
         if (vibe) {
-          keywordQuery = keywordQuery.ilike('mood', `%${vibe}%`);
+          keywordQuery = keywordQuery.ilike("mood", `%${vibe}%`);
         }
         if (music_type) {
-          keywordQuery = keywordQuery.ilike('music_type', `%${music_type}%`);
+          keywordQuery = keywordQuery.ilike("music_type", `%${music_type}%`);
         }
-        if (budget_preference) {
-          if (budget_preference.toLowerCase().includes('free')) {
-            keywordQuery = keywordQuery.or('price.is.null,price_range.ilike.%free%');
-          } else if (budget_preference.toLowerCase().includes('low')) {
-            keywordQuery = keywordQuery.or('price.lte.1000,price_range.ilike.%$%');
-          } else if (budget_preference.toLowerCase().includes('medium')) {
-            keywordQuery = keywordQuery.or('price.lte.3000,price_range.ilike.%$$%');
+        if (budget) {
+          if (budget.toLowerCase().includes("free")) {
+            keywordQuery = keywordQuery.or("price.is.null,price_range.ilike.%free%");
+          } else if (budget.toLowerCase().includes("low")) {
+            keywordQuery = keywordQuery.or("price.lte.1000,price_range.ilike.%$%");
+          } else if (budget.toLowerCase().includes("medium")) {
+            keywordQuery = keywordQuery.or("price.lte.3000,price_range.ilike.%$$%");
           }
         }
-        
-        const { data: keywordEvents } = await keywordQuery
-          .order("date", { ascending: true })
-          .limit(limit);
-        
+
+        const { data: keywordEvents } = await keywordQuery.order("date", { ascending: true }).limit(limit);
+
         if (keywordEvents && keywordEvents.length > 0) {
           response.results.events = keywordEvents;
           console.log(`Found ${keywordEvents.length} events via keyword fallback with user preferences`);
@@ -211,9 +199,11 @@ serve(async (req) => {
       // Final fallback: just show upcoming events
       const { data: events } = await supabase
         .from("events")
-        .select("id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at")
+        .select(
+          "id, title, description, date, time, location, address, venue_name, price, price_range, image_url, video_url, external_link, ticket_link, event_type, mood, market, music_type, venue_size, target_audience, user_id, created_at, updated_at",
+        )
         .eq("market", "argentina")
-        .gte("date", new Date().toISOString().split('T')[0])
+        .gte("date", new Date().toISOString().split("T")[0])
         .order("date", { ascending: true })
         .limit(limit);
       response.results.events = events || [];
@@ -230,7 +220,10 @@ serve(async (req) => {
         const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: [{ role: "user", content: messagePrompt }] }),
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [{ role: "user", content: messagePrompt }],
+          }),
         });
         if (aiResponse.ok) {
           const aiData = await aiResponse.json();
@@ -244,9 +237,9 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), { 
-      status: 500, 
-      headers: { ...corsHeaders, "Content-Type": "application/json" } 
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
