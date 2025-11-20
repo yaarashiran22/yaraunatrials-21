@@ -455,7 +455,27 @@ Example conversational responses:
   - "I'd love to help! To give you the best recommendations - what's your vibe tonight?"
 
 SCENARIO 2 - User wants SPECIFIC recommendations (dance events, bars, techno, etc.):
+${stream ? `
+**STREAMING MODE - FORMAT AS READABLE TEXT:**
+When providing recommendations, format them as clean, readable text with emojis. Example format:
+
+"Here are some awesome events for you! 🎉
+
+🎵 **Event Name**
+📅 Date & Time
+📍 Location/Venue
+💰 Price
+[Brief description with personality]
+🔗 [Link if available]
+
+🎵 **Second Event**
+📅 Date & Time
+..."
+
+Keep it conversational and engaging. Use emojis to make it scannable. Include all relevant details but make it feel natural, not robotic.
+` : `
 **ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST return PURE JSON ONLY.
+`}
 
 **FOR TOP LIST ITEMS (bars, cafés, clubs, etc.)**:
 - **CRITICAL**: When user asks for bars/clubs/nightlife, return MULTIPLE options (3-6) from the topLists
@@ -663,7 +683,8 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     // Check if this is likely a recommendation request
     const isLikelyRecommendation = lastUserMessage && recommendationKeywords.test(lastUserMessage);
 
-    if (isLikelyRecommendation) {
+    // Only use structured output (tool calling) when NOT streaming
+    if (isLikelyRecommendation && !stream) {
       // Use structured output with tool calling to guarantee all fields including image_url
       requestBody.tools = [
         {
