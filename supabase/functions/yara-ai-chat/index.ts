@@ -359,12 +359,6 @@ serve(async (req) => {
     }
 
     // Automatic language detection - respond in the same language the user writes in
-    const languageMap: Record<string, string> = {
-      'en': 'English',
-      'es': 'Spanish', 
-      'pt': 'Portuguese',
-      'he': 'Hebrew'
-    };
     const languageInstruction = `CRITICAL LANGUAGE RULE: The user is writing in ${languageMap[userLanguage] || 'English'}. You MUST respond in ${languageMap[userLanguage] || 'English'} ONLY. Do not switch languages based on conversation history - respond in ${languageMap[userLanguage] || 'English'}.`;
 
     const systemPrompt = `You are Yara – your vibe is like that friend who actually lives in Buenos Aires and knows where the real action is. You're helpful but keep it chill and authentic. No corporate speak, no try-hard energy. Just straight talk with personality.
@@ -744,10 +738,7 @@ IMPORTANT - NO DATABASE MATCHES:
 - This will trigger the OpenAI fallback for general recommendations
 - DO NOT make up information that's not in the provided database`;
 
-    // Get the last user message to understand their query
-    const lastUserMessage = messages[messages.length - 1]?.content || "";
-    
-    // Detect language from the current user message (not conversation history)
+    // Detect language from the current user message FIRST (before building prompts)
     const detectLanguage = (text: string): string => {
       // Simple heuristic: check for common Spanish/Hebrew/Portuguese patterns
       const spanishWords = /\b(hola|qué|dónde|cuándo|cómo|gracias|por favor|eventos|bares|fiesta)\b/i;
@@ -759,9 +750,19 @@ IMPORTANT - NO DATABASE MATCHES:
       if (portugueseWords.test(text)) return 'pt';
       return 'en'; // Default to English
     };
-    
+
+    // Get the last user message to understand their query
+    const lastUserMessage = messages[messages.length - 1]?.content || "";
     const userLanguage = detectLanguage(lastUserMessage);
     console.log(`Detected user language: ${userLanguage} from message: "${lastUserMessage}"`);
+
+    // Language map for system prompts
+    const languageMap: Record<string, string> = {
+      'en': 'English',
+      'es': 'Spanish', 
+      'pt': 'Portuguese',
+      'he': 'Hebrew'
+    };
 
     // Keywords that indicate an EXPLICIT recommendation request
     // Much more specific - requires clear action words + specific targets
