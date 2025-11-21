@@ -771,7 +771,6 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                       "title",
                       "description",
                       "why_recommended",
-                      "image_url",
                     ],
                     additionalProperties: false,
                   },
