@@ -712,15 +712,20 @@ RECOMMENDATION OUTPUT RULES:
 - Use user profile (budget, neighborhoods, interests) to further personalize
 - If no relevant database events exist, return empty array with a friendly message like "Sorry, I couldn't find any matching events"
 
-CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.`;
+CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.
+
+IMPORTANT - NO DATABASE MATCHES: 
+- If the user asks for something specific that's NOT in the database (e.g., "where can i adopt a dog", "where to buy electronics", "best hospitals"), respond with: "I don't have information about that in my database, but I can help you with events, bars, clubs, and cultural activities in Buenos Aires!"
+- This will trigger the OpenAI fallback for general recommendations
+- DO NOT make up information that's not in the provided database`;
 
     // Get the last user message to understand their query
     const lastUserMessage = messages[messages.length - 1]?.content || "";
 
     // Keywords that indicate an EXPLICIT recommendation request
-    // Expanded to catch event/venue requests even without action words
+    // Expanded to catch event/venue requests AND general "where can i" questions
     const recommendationKeywords =
-      /\b(recommend|suggest|show me|find me|looking for|i want|i need|can you find|help me find|gimme|dame|are there|is there|any)\b.*\b(event|party|parties|bar|bars|club|clubs|venue|concert|show|music|workshop|class)\b|^\b(event|party|parties|bar|bars|club|clubs|latin|techno|jazz|indie|dance|dancing)\b|\b(what's|whats|what is)\s+(happening|going on|on)\b/i;
+      /\b(recommend|suggest|show me|find me|looking for|i want|i need|can you find|help me find|gimme|dame|are there|is there|any|where can i|where should i|where to|what are|what's|whats|what is)\b.*\b(event|party|parties|bar|bars|club|clubs|venue|concert|show|music|workshop|class|go|do|buy|get|adopt|find|see|visit)\b|^\b(event|party|parties|bar|bars|club|clubs|latin|techno|jazz|indie|dance|dancing)\b|\b(what's|whats|what is)\s+(happening|going on|on)\b/i;
 
     // Build request body
     const requestBody: any = {
@@ -848,20 +853,30 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     // Check if we got a tool call response (structured recommendations)
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     let message: string;
+    let hasRecommendations = false;
 
     if (toolCall && toolCall.function?.name === "provide_recommendations") {
       // Parse the structured output
       const functionArgs = JSON.parse(toolCall.function.arguments);
       message = JSON.stringify(functionArgs);
+      hasRecommendations = functionArgs.recommendations && functionArgs.recommendations.length > 0;
       console.log("AI response (structured):", message);
     } else {
       // Regular conversational response
       message = data.choices?.[0]?.message?.content || "";
       console.log("AI response (conversational):", message);
 
-      // FALLBACK: Check if AI detected no database matches
-      if (message.startsWith("NO_DATABASE_MATCH:")) {
-        const userQuery = message.replace("NO_DATABASE_MATCH:", "").trim();
+      // FALLBACK: Check if this was a recommendation request but got no matches
+      // Trigger fallback if: 1) User asked for recommendations, 2) No tool call was made, OR 3) AI explicitly said no matches
+      const shouldFallbackToOpenAI = 
+        isLikelyRecommendation && 
+        (!toolCall || message.startsWith("NO_DATABASE_MATCH:") || 
+         message.toLowerCase().includes("no encontré") || 
+         message.toLowerCase().includes("couldn't find") ||
+         message.toLowerCase().includes("don't have"));
+      
+      if (shouldFallbackToOpenAI) {
+        const userQuery = lastUserMessage;
         console.log(`No database matches found for: "${userQuery}". Falling back to OpenAI for general recommendations.`);
 
         // Call OpenAI for general Buenos Aires recommendations
