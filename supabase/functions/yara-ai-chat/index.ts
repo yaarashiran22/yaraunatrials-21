@@ -358,10 +358,8 @@ serve(async (req) => {
       }
     }
 
-    const userLanguage = userProfile?.preferred_language || 'en';
-    const languageInstruction = userLanguage === 'es'
-      ? 'CRITICAL: Respond ONLY in Spanish to this user. All messages, recommendations, and questions must be in Spanish.'
-      : 'CRITICAL: Respond ONLY in English to this user. All messages, recommendations, and questions must be in English.';
+    // Automatic language detection - respond in the same language the user writes in
+    const languageInstruction = 'CRITICAL LANGUAGE RULE: Automatically detect and respond in the SAME LANGUAGE the user is writing in. If they text in Spanish, respond in Spanish. If they text in Portuguese, respond in Portuguese. If they text in English, respond in English. Mirror their language choice naturally without mentioning it.';
 
     const systemPrompt = `You are Yara – your vibe is like that friend who actually lives in Buenos Aires and knows where the real action is. You're helpful but keep it chill and authentic. No corporate speak, no try-hard energy. Just straight talk with personality.
 
