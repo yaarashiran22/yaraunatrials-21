@@ -358,17 +358,10 @@ serve(async (req) => {
       }
     }
 
-    const systemPrompt = `⚠️ CRITICAL LANGUAGE RULE - READ THIS FIRST ⚠️
-ALWAYS respond in the EXACT SAME LANGUAGE the user is currently writing in. 
-- If their CURRENT message is in Hebrew (עברית) → respond in Hebrew
-- If their CURRENT message is in Spanish (español) → respond in Spanish  
-- If their CURRENT message is in Portuguese (português) → respond in Portuguese
-- If their CURRENT message is in English → respond in English
-- Check EVERY message - the language can change between messages
-- NEVER say "I can only respond in English" - you can respond in ANY language
-- Mirror their language naturally without mentioning the language switch
+    // Automatic language detection - respond in the same language the user writes in
+    const languageInstruction = 'CRITICAL LANGUAGE RULE: Automatically detect and respond in the SAME LANGUAGE the user is writing in. If they text in Spanish, respond in Spanish. If they text in Portuguese, respond in Portuguese. If they text in English, respond in English. Mirror their language choice naturally without mentioning it.';
 
-You are Yara – your vibe is like that friend who actually lives in Buenos Aires and knows where the real action is. You're helpful but keep it chill and authentic. No corporate speak, no try-hard energy. Just straight talk with personality.
+    const systemPrompt = `You are Yara – your vibe is like that friend who actually lives in Buenos Aires and knows where the real action is. You're helpful but keep it chill and authentic. No corporate speak, no try-hard energy. Just straight talk with personality.
 
 Tone:
 - Conversational and natural – like texting a friend who gets the city
@@ -376,6 +369,8 @@ Tone:
 - Keep it brief – you're busy, they're busy
 - Playful without being cringe – think "oh that's cool" not "OMG YASSS"
 - Drop local knowledge casually, like you actually live here
+
+${languageInstruction}
 
 **CRITICAL - RESPONSE FORMAT:**
 ${stream ? `
@@ -442,10 +437,8 @@ Respond with PLAIN TEXT ONLY. Be warm and conversational.
 - If user asks about age ranges, demographics, or details about previously recommended events, answer based on the event data
 - If user asks clarifying questions about recommendations you already gave, refer to the conversation history and provide helpful answers
 - Be contextually aware - if they're asking about "these events" or "the recommendations", they're referring to what you previously suggested
-- **CRITICAL - CONTEXT AWARENESS**: If user asks "are you sending it?", "where are they?", "did you send them?", "are they coming?", they are asking about recommendations you JUST PROMISED. Immediately proceed to SCENARIO 2 and send the actual recommendations
 - **IMPORTANT**: Keep responses brief and ask ONLY ONE question at a time
 - If user asks VERY GENERAL questions about things to do in the city (like "what's happening?", "what should I do?", "any events tonight?") WITHOUT any specific preferences, ask them ONE clarifying question to personalize recommendations
-- **NEVER promise to send recommendations without immediately sending them** - If you say "let me pull up some options" or "give me a sec", you MUST follow up with actual recommendations in the same response or immediately after
 
 AGE COLLECTION - FIRST PRIORITY:
 - **CRITICAL**: Check the "User Profile Context" section at the top - if it shows "Age: [number]", you ALREADY KNOW their age - NEVER ask for it again
@@ -685,14 +678,6 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
     - When user asks for "shows" or "live shows", include ALL of: concerts, performances, live music events, gigs, theater, comedy shows, any live entertainment
     - **NEVER treat**: jam session = workshop, concert = workshop, show = workshop
 11. **CRITICAL: User interests are for CONTEXT ONLY, not for filtering** - The user's interests help you understand their preferences and personalize your responses, but DO NOT use interests to exclude events from recommendations. Always show all age-appropriate events that match the requested type.
-12. **CRITICAL MUSIC GENRE & CULTURAL MATCHING**: When user asks for specific music/cultural genres, be INTELLIGENT about synonyms and related terms:
-    - **"African" / "African events"** = Afrobeat, Afro-Latin, Afro-house, African diaspora music, World Music (if African-influenced), Reggae, Dancehall, Soukous, Highlife, Makossa, Kizomba, Kuduro, Gqom, Amapiano, African jazz, African drumming, ANY music genre originating from Africa or the African diaspora
-    - **"Latin" / "Latino"** = Salsa, Bachata, Reggaeton, Cumbia, Merengue, Tango, Milonga, Folklore, Latin jazz, Tropical, ANY Latin American music
-    - **"Electronic"** = Techno, House, Deep House, Tech House, Minimal, Progressive, Trance, EDM, Electro, ANY electronic dance music
-    - **"Rock"** = Rock, Alternative Rock, Indie Rock, Punk, Metal, Grunge, Post-punk, ANY rock subgenres
-    - **"Hip Hop" / "Rap"** = Hip Hop, Rap, Trap, Grime, R&B, Urban, ANY hip hop related genres
-    - **Important**: Check the music_type field AND description for genre indicators. An event might not have "African" in the title but could have "Afrobeat" in music_type or description - THIS IS A MATCH!
-    - **Be flexible**: User asks "African events" → Show events with Afrobeat, Afro-house, Kizomba, Reggae, or any African diaspora music
 
 RECOMMENDATION OUTPUT RULES:
 - **CRITICAL**: ALWAYS send UP TO 6 event recommendations when there are 6+ matches available - DO NOT send only 2-3 when more exist
@@ -732,7 +717,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
     // Keywords that indicate an EXPLICIT recommendation request
     // Expanded to catch event/venue requests even without action words
     const recommendationKeywords =
-      /\b(recommend|suggest|show me|find me|looking for|i want|i need|can you find|help me find|gimme|dame|are there|is there|any|where are|send)\b.*\b(event|party|parties|bar|bars|club|clubs|venue|concert|show|music|workshop|class|cultural center|art center|museum|gallery)\b|^\b(event|party|parties|bar|bars|club|clubs|latin|techno|jazz|indie|dance|dancing|cultural center|art center)\b|\b(what's|whats|what is)\s+(happening|going on|on)\b|\b(cultural|art)\s+(center|centers|centre|centres)\b|\b(are you sending|did you send|where are they)\b/i;
+      /\b(recommend|suggest|show me|find me|looking for|i want|i need|can you find|help me find|gimme|dame|are there|is there|any)\b.*\b(event|party|parties|bar|bars|club|clubs|venue|concert|show|music|workshop|class)\b|^\b(event|party|parties|bar|bars|club|clubs|latin|techno|jazz|indie|dance|dancing)\b|\b(what's|whats|what is)\s+(happening|going on|on)\b/i;
 
     // Build request body
     const requestBody: any = {
@@ -795,8 +780,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
           },
         },
       ];
-      // Let AI decide when to use tools instead of forcing it
-      requestBody.tool_choice = "auto";
+      requestBody.tool_choice = { type: "function", function: { name: "provide_recommendations" } };
     }
 
     // Use faster model for intro messages, standard model for recommendations
@@ -878,17 +862,17 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         const userQuery = message.replace("NO_DATABASE_MATCH:", "").trim();
         console.log(`No database matches found for: "${userQuery}". Falling back to OpenAI for general recommendations.`);
 
-        // Detect user's language from their last message
-        const lastUserMsg = messages[messages.length - 1]?.content || "";
-        
         // Call OpenAI for general Buenos Aires recommendations
         const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
         if (!openaiApiKey) {
-          message = "I couldn't find any matching events in my database. Would you like me to suggest other types of events?";
+          message = userLanguage === 'es' 
+            ? "No encontré eventos relacionados en mi base de datos. ¿Quieres que te recomiende otros tipos de eventos?" 
+            : "I couldn't find any matching events in my database. Would you like me to suggest other types of events?";
         } else {
           try {
             // Extract location from last user message if specified
-            const locationMatch = lastUserMsg.toLowerCase().match(/\b(?:in|en)\s+([a-záéíóúñ\s]+?)(?:\s|$|,|\.|\?|!)/i);
+            const lastUserMsg = messages[messages.length - 1]?.content?.toLowerCase() || "";
+            const locationMatch = lastUserMsg.match(/\b(?:in|en)\s+([a-záéíóúñ\s]+?)(?:\s|$|,|\.|\?|!)/i);
             const specifiedLocation = locationMatch ? locationMatch[1].trim() : null;
             
             const locationInstruction = specifiedLocation 
@@ -906,7 +890,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                 messages: [
                   {
                     role: "system",
-                    content: `You are Yara, a friendly Buenos Aires local guide. The user asked for "${userQuery}" but there are no matching events in your database. Provide 3-5 general recommendations for ${userQuery} in Buenos Aires. Include specific venue names, neighborhoods, and brief descriptions. Keep it conversational, warm, and helpful. Use emojis naturally (1-2 per message). CRITICAL: Automatically detect and respond in the SAME LANGUAGE the user wrote in. Their message was: "${lastUserMsg}". If they wrote in Spanish, respond in Spanish. If Hebrew, respond in Hebrew. If Portuguese, respond in Portuguese. If English, respond in English. Mirror their language naturally. ${locationInstruction}`,
+                    content: `You are Yara, a friendly Buenos Aires local guide. The user asked for "${userQuery}" but there are no matching events in your database. Provide 3-5 general recommendations for ${userQuery} in Buenos Aires. Include specific venue names, neighborhoods, and brief descriptions. Keep it conversational, warm, and helpful. Use emojis naturally (1-2 per message). Respond in ${userLanguage === 'es' ? 'Spanish' : 'English'}. ${locationInstruction}`,
                   },
                   {
                     role: "user",
@@ -924,11 +908,15 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
               console.log("OpenAI fallback response:", message);
             } else {
               console.error("OpenAI fallback error:", await openaiResponse.text());
-              message = "I couldn't find any matching events in my database right now. Try asking about upcoming events, nightlife, or cultural activities!";
+              message = userLanguage === 'es'
+                ? "No encontré eventos relacionados en mi base de datos ahora mismo. ¡Pregúntame sobre eventos, conciertos o vida nocturna!"
+                : "I couldn't find any matching events in my database right now. Try asking about upcoming events, nightlife, or cultural activities!";
             }
           } catch (error) {
             console.error("OpenAI fallback error:", error);
-            message = "I couldn't find any matching events in my database. Try searching for events, concerts, or nightlife!";
+            message = userLanguage === 'es'
+              ? "No encontré eventos relacionados en mi base de datos. ¡Intenta buscar eventos, conciertos o vida nocturna!"
+              : "I couldn't find any matching events in my database. Try searching for events, concerts, or nightlife!";
           }
         }
       }
