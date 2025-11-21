@@ -432,8 +432,9 @@ CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 - Messages like "hi", "hello", "hey", "sup", "hola" etc. are GREETINGS - respond conversationally, NEVER with JSON
 - Only return JSON when user EXPLICITLY asks for recommendations using keywords like "recommend", "suggest", "show me", "find me", "looking for", "I want"
 
-SCENARIO 1 - User greeting, asking follow-up questions, or general conversation:
+SCENARIO 1 - User greeting, asking follow-up questions, general conversation, OR GENERAL BUENOS AIRES QUESTIONS:
 Respond with PLAIN TEXT ONLY. Be warm and conversational.
+- **GENERAL BUENOS AIRES QUESTIONS**: For ANY question about Buenos Aires that is NOT a specific request for event/bar/club recommendations (e.g., "how do I adopt a dog", "where to buy electronics", "best hospitals", "how to get around", "visa information"), use your general knowledge of Buenos Aires to provide helpful, accurate information
 - If user asks about age ranges, demographics, or details about previously recommended events, answer based on the event data
 - If user asks clarifying questions about recommendations you already gave, refer to the conversation history and provide helpful answers
 - Be contextually aware - if they're asking about "these events" or "the recommendations", they're referring to what you previously suggested
@@ -866,18 +867,22 @@ IMPORTANT - NO DATABASE MATCHES:
       message = data.choices?.[0]?.message?.content || "";
       console.log("AI response (conversational):", message);
 
-      // FALLBACK: Check if this was a recommendation request but got no matches
-      // Trigger fallback if: 1) User asked for recommendations, 2) No tool call was made, OR 3) AI explicitly said no matches
+      // FALLBACK: For general Buenos Aires questions OR recommendation requests with no database matches
+      // Trigger fallback for ANY question that wasn't properly answered
       const shouldFallbackToLovableAI = 
-        isLikelyRecommendation && 
-        (!toolCall || message.startsWith("NO_DATABASE_MATCH:") || 
-         message.toLowerCase().includes("no encontré") || 
-         message.toLowerCase().includes("couldn't find") ||
-         message.toLowerCase().includes("don't have"));
+        !toolCall && (
+          message.startsWith("NO_DATABASE_MATCH:") || 
+          message.toLowerCase().includes("no encontré") || 
+          message.toLowerCase().includes("couldn't find") ||
+          message.toLowerCase().includes("don't have") ||
+          message.toLowerCase().includes("no tengo información") ||
+          // Also trigger for very short or unclear responses
+          message.length < 50
+        );
       
       if (shouldFallbackToLovableAI) {
         const userQuery = lastUserMessage;
-        console.log(`No database matches found for: "${userQuery}". Falling back to Lovable AI for general recommendations.`);
+        console.log(`No good response for: "${userQuery}". Falling back to Lovable AI for general Buenos Aires knowledge.`);
 
         try {
           // Extract location from last user message if specified
@@ -886,7 +891,7 @@ IMPORTANT - NO DATABASE MATCHES:
           const specifiedLocation = locationMatch ? locationMatch[1].trim() : null;
           
           const locationInstruction = specifiedLocation 
-            ? `CRITICAL: The user specifically asked for recommendations IN ${specifiedLocation.toUpperCase()}. You MUST recommend ONLY venues located in ${specifiedLocation}. Do NOT recommend venues in other neighborhoods.`
+            ? `CRITICAL: The user specifically asked about ${specifiedLocation.toUpperCase()}. You MUST provide information relevant to ${specifiedLocation}.`
             : '';
 
           const fallbackResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -900,33 +905,54 @@ IMPORTANT - NO DATABASE MATCHES:
               messages: [
                 {
                   role: "system",
-                  content: `You are Yara, a friendly Buenos Aires local guide. The user asked for "${userQuery}" but there are no matching events in your database. Provide 3-5 general recommendations for ${userQuery} in Buenos Aires. Include specific venue names, neighborhoods, and brief descriptions. Keep it conversational, warm, and helpful. Use emojis naturally (1-2 per message). Respond in ${userLanguage === 'es' ? 'Spanish' : 'English'}. ${locationInstruction}`,
+                  content: `You are Yara, a knowledgeable Buenos Aires local guide and assistant. The user asked: "${userQuery}". 
+                  
+                  **YOUR ROLE**: Answer ANY question about Buenos Aires - not just events! This includes:
+                  - Pet adoption, veterinary services, pet-friendly places
+                  - Shopping (electronics, clothes, markets, malls)
+                  - Healthcare (hospitals, doctors, pharmacies)
+                  - Transportation (subte, buses, taxis, bike rentals)
+                  - Neighborhoods and where to live
+                  - Visa and immigration questions
+                  - Language schools and courses
+                  - Gyms, sports facilities
+                  - General life advice in Buenos Aires
+                  
+                  **IMPORTANT GUIDELINES**:
+                  - Provide 2-4 specific, practical recommendations with venue/service names
+                  - Include neighborhoods/addresses when relevant
+                  - Be warm, conversational, and use 1-2 emojis naturally
+                  - Keep responses concise but helpful (200-300 words max)
+                  - Respond in ${userLanguage === 'es' ? 'Spanish' : 'English'}
+                  - If you don't know something specific, be honest but still helpful
+                  
+                  ${locationInstruction}`,
                 },
                 {
                   role: "user",
-                  content: `I'm looking for ${userQuery} in Buenos Aires. Can you recommend some places?`,
+                  content: userQuery,
                 },
               ],
-              max_completion_tokens: 500,
+              max_completion_tokens: 600,
             }),
           });
 
           if (fallbackResponse.ok) {
             const fallbackData = await fallbackResponse.json();
             message = fallbackData.choices?.[0]?.message?.content || message;
-            console.log("Lovable AI fallback response:", message);
+            console.log("Lovable AI general knowledge response:", message);
           } else {
             const errorText = await fallbackResponse.text();
             console.error("Lovable AI fallback error:", fallbackResponse.status, errorText);
             message = userLanguage === 'es'
-              ? "No encontré información sobre eso en mi base de datos. ¿Quieres que te recomiende eventos, conciertos o actividades culturales en Buenos Aires?"
-              : "I don't have information about that in my database. Would you like me to recommend events, concerts, or cultural activities in Buenos Aires?";
+              ? "Hmm, no tengo esa información específica en este momento. ¿Quieres que te ayude con eventos, bares, clubs o actividades culturales en Buenos Aires? 🎭"
+              : "Hmm, I don't have that specific information right now. Would you like help with events, bars, clubs, or cultural activities in Buenos Aires? 🎭";
           }
         } catch (error) {
           console.error("Lovable AI fallback error:", error);
           message = userLanguage === 'es'
-            ? "No encontré información sobre eso en mi base de datos. ¡Intenta buscar eventos, conciertos o vida nocturna!"
-            : "I don't have information about that in my database. Try asking about events, concerts, or nightlife!";
+            ? "Perdón, tuve un problema. Pero puedo ayudarte con eventos, conciertos, bares y vida nocturna en Buenos Aires! ¿Qué te interesa? 🎵"
+            : "Sorry, I had a hiccup. But I can help you with events, concerts, bars, and nightlife in Buenos Aires! What interests you? 🎵";
         }
       }
 
