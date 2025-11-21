@@ -19,8 +19,9 @@ Deno.serve(async (req) => {
     const body = formData.get("Body") as string || "";
     const to = formData.get("To") as string;
     const mediaUrl = formData.get("MediaUrl0") as string; // Check for media
+    const messageSid = formData.get("MessageSid") as string;
 
-    console.log("Twilio message:", { from, to, body, hasMedia: !!mediaUrl });
+    console.log("Twilio message:", { from, to, body, hasMedia: !!mediaUrl, messageSid });
 
     // Initialize Supabase client BEFORE any early returns
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -358,30 +359,27 @@ Deno.serve(async (req) => {
       content: body,
     });
 
-    // Send immediate "Thinking.." feedback
+    // Send typing indicator
     const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
     const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
     const twilioWhatsAppNumber = Deno.env.get("TWILIO_WHATSAPP_NUMBER") || "whatsapp:+17622513744";
 
-    // Send thinking message immediately via Twilio API
-    const thinkingMessage = "Thinking..";
-
+    // Send typing indicator immediately
     try {
-      await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`, {
+      await fetch(`https://messaging.twilio.com/v2/Indicators/Typing.json`, {
         method: "POST",
         headers: {
           Authorization: "Basic " + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
-          From: twilioWhatsAppNumber,
-          To: from,
-          Body: thinkingMessage,
+          MessageSid: messageSid,
+          ChannelType: "whatsapp",
         }),
       });
-      console.log('Sent "Thinking.." message');
+      console.log('Sent typing indicator');
     } catch (error) {
-      console.error("Error sending thinking message:", error);
+      console.error("Error sending typing indicator:", error);
     }
 
     // Detect and store user information from message
