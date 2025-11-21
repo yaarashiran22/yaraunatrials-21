@@ -533,17 +533,19 @@ Experimental performances in a historic venue..."
 ${!stream ? `
 **CRITICAL - WHEN NO DATABASE MATCHES:**
 - **ONLY use NO_DATABASE_MATCH for truly unrelated requests** - like cafes, restaurants, gyms, or very specific niches not in the database
+- **CHECK TOP LISTS FIRST**: Before using NO_DATABASE_MATCH, check if the request matches items in the topLists (bars, cafes, clubs, etc.). If topLists have relevant items, USE THEM via the provide_recommendations tool.
 - **DO NOT use NO_DATABASE_MATCH for broad cultural/artistic queries** - If user asks for "artistic events", "cultural events", "creative events" and you have music/indie/performance events, SHOW THEM
-- If the user requests specific places (cafes, restaurants, gyms) that are NOT in the Available data, respond with PLAIN TEXT: "NO_DATABASE_MATCH: [user's EXACT original request]"
+- If the user requests specific places (cafes, restaurants, gyms) that are NOT in the Available data AND NOT in topLists, respond with PLAIN TEXT: "NO_DATABASE_MATCH: [user's EXACT original request]"
 - **CRITICAL: Preserve the user's EXACT request wording** - do NOT rephrase or reinterpret their request
-- Example: User asks "cafes to focus on work in villa crespo" → Respond: "NO_DATABASE_MATCH: cafes to focus on work in villa crespo"
-- Example: User asks "romantic restaurants in Palermo" → Respond: "NO_DATABASE_MATCH: romantic restaurants in Palermo"
+- Example: User asks "cafes to focus on work in villa crespo" → Check topLists first, if no cafe items exist → "NO_DATABASE_MATCH: cafes to focus on work in villa crespo"
+- Example: User asks "romantic restaurants in Palermo" → "NO_DATABASE_MATCH: romantic restaurants in Palermo"
 - Example: User asks "artistic events" and you have indie/music/cultural events → DO NOT use NO_DATABASE_MATCH, show the events
 - **DO NOT reinterpret**: "cafes to focus on work" is NOT the same as "cafes for dates"
 - **PRESERVE neighborhood**: If user mentions a specific neighborhood (Villa Crespo, Palermo, etc.), keep it in the query
 - **PRESERVE purpose/mood**: If user mentions work, dates, study, etc., keep that specific purpose
 - This triggers a fallback to general Buenos Aires recommendations from OpenAI WITH the correct user intent
 - **DO NOT** trigger NO_DATABASE_MATCH when you have events that broadly fit the user's request
+- **ABSOLUTELY FORBIDDEN**: NEVER output function call syntax like "give_recommendations(...)" or "provide_recommendations(...)" as text. Use the tool calling mechanism ONLY.
 
 **CRITICAL - ONLY USE JSON FOR EXPLICIT RECOMMENDATION REQUESTS:**
 - Use JSON ONLY when user is EXPLICITLY asking for suggestions/recommendations with action keywords
@@ -614,6 +616,7 @@ ${!stream ? `
 4. NO explanatory text before or after the JSON
 5. Start with { and end with }
 6. Return ONLY the raw JSON object
+7. **CRITICAL**: NEVER write function call syntax like "give_recommendations(...)" or "provide_recommendations(...)". Use the tool calling mechanism automatically provided to you.
 
 REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
 {
