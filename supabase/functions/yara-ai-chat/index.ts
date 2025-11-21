@@ -359,7 +359,13 @@ serve(async (req) => {
     }
 
     // Automatic language detection - respond in the same language the user writes in
-    const languageInstruction = 'CRITICAL LANGUAGE RULE: Automatically detect and respond in the SAME LANGUAGE the user is writing in. If they text in Spanish, respond in Spanish. If they text in Portuguese, respond in Portuguese. If they text in English, respond in English. Mirror their language choice naturally without mentioning it.';
+    const languageMap: Record<string, string> = {
+      'en': 'English',
+      'es': 'Spanish', 
+      'pt': 'Portuguese',
+      'he': 'Hebrew'
+    };
+    const languageInstruction = `CRITICAL LANGUAGE RULE: The user is writing in ${languageMap[userLanguage] || 'English'}. You MUST respond in ${languageMap[userLanguage] || 'English'} ONLY. Do not switch languages based on conversation history - respond in ${languageMap[userLanguage] || 'English'}.`;
 
     const systemPrompt = `You are Yara – your vibe is like that friend who actually lives in Buenos Aires and knows where the real action is. You're helpful but keep it chill and authentic. No corporate speak, no try-hard energy. Just straight talk with personality.
 
@@ -740,6 +746,22 @@ IMPORTANT - NO DATABASE MATCHES:
 
     // Get the last user message to understand their query
     const lastUserMessage = messages[messages.length - 1]?.content || "";
+    
+    // Detect language from the current user message (not conversation history)
+    const detectLanguage = (text: string): string => {
+      // Simple heuristic: check for common Spanish/Hebrew/Portuguese patterns
+      const spanishWords = /\b(hola|qué|dónde|cuándo|cómo|gracias|por favor|eventos|bares|fiesta)\b/i;
+      const hebrewChars = /[\u0590-\u05FF]/; // Hebrew Unicode range
+      const portugueseWords = /\b(olá|obrigado|onde|quando|como|por favor|eventos)\b/i;
+      
+      if (hebrewChars.test(text)) return 'he';
+      if (spanishWords.test(text)) return 'es';
+      if (portugueseWords.test(text)) return 'pt';
+      return 'en'; // Default to English
+    };
+    
+    const userLanguage = detectLanguage(lastUserMessage);
+    console.log(`Detected user language: ${userLanguage} from message: "${lastUserMessage}"`);
 
     // Keywords that indicate an EXPLICIT recommendation request
     // Much more specific - requires clear action words + specific targets
@@ -933,6 +955,8 @@ IMPORTANT - NO DATABASE MATCHES:
                     role: "system",
                     content: `You are Yara, a knowledgeable Buenos Aires local guide. The user asked: "${userQuery}". 
                     
+                    **CRITICAL LANGUAGE RULE**: The user is writing in ${languageMap[userLanguage] || 'English'}. You MUST respond ONLY in ${languageMap[userLanguage] || 'English'}. Do not use any other language.
+                    
                     **CRITICAL**: Only provide Buenos Aires information if the user is EXPLICITLY asking for it. For greetings or casual chat, respond conversationally without recommendations.
                     
                     **IF USER IS ASKING ABOUT BUENOS AIRES**:
@@ -952,7 +976,6 @@ IMPORTANT - NO DATABASE MATCHES:
                     - If they want Buenos Aires info: Give 2-4 specific recommendations with names and locations
                     - Be warm with 1-2 emojis
                     - Keep under 200 words
-                    - Respond in ${userLanguage === 'es' ? 'Spanish' : 'English'}
                     
                     ${locationInstruction}`,
                   },
