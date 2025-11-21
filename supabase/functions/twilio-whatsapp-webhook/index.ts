@@ -10,14 +10,6 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // DISABLED: This webhook is now disabled in favor of n8n handling WhatsApp messages
-  console.log("Twilio webhook received but disabled - n8n is handling messages");
-  return new Response('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', {
-    headers: { ...corsHeaders, "Content-Type": "text/xml" },
-    status: 200,
-  });
-
-  /* ORIGINAL CODE - COMMENTED OUT
   try {
     console.log("Twilio webhook received");
 
@@ -1043,5 +1035,4 @@ ${twimlMessages}
       },
     );
   }
-  */
 });
