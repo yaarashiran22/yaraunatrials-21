@@ -1,5 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// CONFIGURATION: Set to true to enable bot, false to disable
+const BOT_ENABLED = false;
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -8,6 +11,15 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Bot disabled check - return empty response immediately
+  if (!BOT_ENABLED) {
+    console.log("Bot is disabled via BOT_ENABLED flag");
+    return new Response('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', {
+      headers: { ...corsHeaders, "Content-Type": "text/xml" },
+      status: 200,
+    });
   }
 
   try {
