@@ -14,10 +14,10 @@ serve(async (req) => {
 
   try {
     const { messages, stream = true, userProfile = null, phoneNumber = null, useIntroModel = false } = await req.json();
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
 
-    if (!lovableApiKey) {
-      throw new Error("Lovable API key not configured");
+    if (!openaiApiKey) {
+      throw new Error("OpenAI API key not configured");
     }
 
     // Initialize Supabase client
@@ -816,10 +816,10 @@ IMPORTANT - NO DATABASE MATCHES:
     // Add streaming support
     requestBody.stream = stream;
     
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
+        Authorization: `Bearer ${openaiApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(requestBody),
