@@ -795,7 +795,8 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
           },
         },
       ];
-      requestBody.tool_choice = { type: "function", function: { name: "provide_recommendations" } };
+      // Let AI decide when to use tools instead of forcing it
+      requestBody.tool_choice = "auto";
     }
 
     // Use faster model for intro messages, standard model for recommendations
