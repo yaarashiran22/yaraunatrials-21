@@ -432,8 +432,21 @@ CRITICAL RESPONSE FORMAT - YOU MUST FOLLOW THIS EXACTLY:
 - Messages like "hi", "hello", "hey", "sup", "hola" etc. are GREETINGS - respond conversationally, NEVER with JSON
 - Only return JSON when user EXPLICITLY asks for recommendations using keywords like "recommend", "suggest", "show me", "find me", "looking for", "I want"
 
-SCENARIO 1 - User greeting, asking follow-up questions, general conversation, OR GENERAL BUENOS AIRES QUESTIONS:
+**CRITICAL: DISTINGUISH BETWEEN TOURISM AND NIGHTLIFE QUESTIONS**
+- **TOURISM/SIGHTSEEING QUESTIONS** (use general AI knowledge, NOT database):
+  - Keywords: "sightseeing", "tourist attractions", "landmarks", "monuments", "visit", "see the city", "places to visit", "what to see", "museums", "parks", "historical sites"
+  - Example: "where can I go sightseeing" → Use AI knowledge for La Boca, Recoleta Cemetery, Obelisco, etc.
+  - Example: "what should I visit" → Use AI knowledge for tourist spots
+  - These should ALWAYS get conversational AI responses about actual Buenos Aires tourist attractions, NOT database events/bars
+
+- **NIGHTLIFE/EVENTS QUESTIONS** (use database first):
+  - Keywords: "bar", "club", "party", "concert", "event", "nightlife", "going out", "drinks", "dancing"
+  - Example: "where can I go out tonight" → Check database for bars/events
+  - Example: "bars in Palermo" → Use database top_lists
+
+SCENARIO 1 - User greeting, asking follow-up questions, general conversation, TOURISM QUESTIONS, OR GENERAL BUENOS AIRES QUESTIONS:
 Respond with PLAIN TEXT ONLY. Be warm and conversational.
+- **TOURISM/SIGHTSEEING QUESTIONS**: For questions about tourist attractions, landmarks, museums, or places to visit, use your general knowledge of Buenos Aires to provide helpful recommendations (La Boca, Recoleta, Puerto Madero, Teatro Colón, etc.)
 - **GENERAL BUENOS AIRES QUESTIONS**: For ANY question about Buenos Aires that is NOT a specific request for event/bar/club recommendations (e.g., "how do I adopt a dog", "where to buy electronics", "best hospitals", "how to get around", "visa information"), use your general knowledge of Buenos Aires to provide helpful, accurate information
 - If user asks about age ranges, demographics, or details about previously recommended events, answer based on the event data
 - If user asks clarifying questions about recommendations you already gave, refer to the conversation history and provide helpful answers
@@ -724,21 +737,24 @@ IMPORTANT - NO DATABASE MATCHES:
     const lastUserMessage = messages[messages.length - 1]?.content || "";
 
     // Keywords that indicate an EXPLICIT recommendation request
-    // Expanded to catch event/venue requests AND general "where can i" questions
+    // Expanded to catch event/venue requests but EXCLUDE tourism/sightseeing questions
     const recommendationKeywords =
-      /\b(recommend|suggest|show me|find me|looking for|i want|i need|can you find|help me find|gimme|dame|are there|is there|any|where can i|where should i|where to|what are|what's|whats|what is)\b.*\b(event|party|parties|bar|bars|club|clubs|venue|concert|show|music|workshop|class|go|do|buy|get|adopt|find|see|visit)\b|^\b(event|party|parties|bar|bars|club|clubs|latin|techno|jazz|indie|dance|dancing)\b|\b(what's|whats|what is)\s+(happening|going on|on)\b/i;
-
+      /\b(recommend|suggest|show me|find me|looking for|i want|i need|can you find|help me find|gimme|dame|are there|is there|any)\b.*\b(event|party|parties|bar|bars|club|clubs|venue|concert|show|music|workshop|class|nightlife|drinks|dancing|going out)\b|^\b(event|party|parties|bar|bars|club|clubs|latin|techno|jazz|indie|dance|dancing)\b|\b(what's|whats|what is)\s+(happening|going on|on)\b/i;
+    
+    // Keywords that indicate TOURISM/SIGHTSEEING (should NOT use database)
+    const tourismKeywords = /\b(sightseeing|tourist|attractions|landmarks|monuments|visit|places to visit|what to see|what to visit|museums?|parks?|historical|historic|tours?|guided|landmarks?)\b/i;
+    
+    // Check if this is a tourism question (should use AI knowledge, not database)
+    const isTourismQuestion = lastUserMessage && tourismKeywords.test(lastUserMessage);
+    
+    // Check if this is likely a recommendation request (and NOT a tourism question)
+    const isLikelyRecommendation = lastUserMessage && recommendationKeywords.test(lastUserMessage) && !isTourismQuestion;
     // Build request body
     const requestBody: any = {
       model: "google/gemini-2.5-flash",
       messages: [{ role: "system", content: systemPrompt }, ...enrichedMessages],
       max_completion_tokens: 4000,
     };
-
-    // Check if this is likely a recommendation request
-    const isLikelyRecommendation = lastUserMessage && recommendationKeywords.test(lastUserMessage);
-
-    // Only use structured output (tool calling) when NOT streaming
     if (isLikelyRecommendation && !stream) {
       // Use structured output with tool calling to guarantee all fields including image_url
       requestBody.tools = [
@@ -907,24 +923,30 @@ IMPORTANT - NO DATABASE MATCHES:
                   role: "system",
                   content: `You are Yara, a knowledgeable Buenos Aires local guide and assistant. The user asked: "${userQuery}". 
                   
-                  **YOUR ROLE**: Answer ANY question about Buenos Aires - not just events! This includes:
-                  - Pet adoption, veterinary services, pet-friendly places
-                  - Shopping (electronics, clothes, markets, malls)
-                  - Healthcare (hospitals, doctors, pharmacies)
-                  - Transportation (subte, buses, taxis, bike rentals)
-                  - Neighborhoods and where to live
-                  - Visa and immigration questions
-                  - Language schools and courses
-                  - Gyms, sports facilities
-                  - General life advice in Buenos Aires
+                  **YOUR ROLE**: Answer ANY question about Buenos Aires with accurate, helpful information:
                   
-                  **IMPORTANT GUIDELINES**:
-                  - Provide 2-4 specific, practical recommendations with venue/service names
-                  - Include neighborhoods/addresses when relevant
-                  - Be warm, conversational, and use 1-2 emojis naturally
-                  - Keep responses concise but helpful (200-300 words max)
+                  **TOURISM & SIGHTSEEING** (top priority for these questions):
+                  - Tourist attractions: La Boca (Caminito), Recoleta Cemetery, Obelisco, Casa Rosada, Puerto Madero
+                  - Museums: MALBA, Museo Nacional de Bellas Artes, Evita Museum, MAMBA
+                  - Parks & Nature: Bosques de Palermo, Reserva Ecológica, Jardín Botánico
+                  - Neighborhoods to explore: San Telmo (antiques/tango), Palermo (trendy/cafes), Recoleta (elegant/cemetery)
+                  - Historic sites: Plaza de Mayo, Teatro Colón, Catedral Metropolitana
+                  
+                  **OTHER TOPICS**:
+                  - Pet services (adoption, vets, pet-friendly places)
+                  - Shopping (electronics, clothes, markets like San Telmo Fair)
+                  - Healthcare (hospitals, doctors, pharmacies)
+                  - Transportation (SUBE card, Subte lines, taxis, Ecobici)
+                  - Neighborhoods and living advice
+                  - Language schools, gyms, sports
+                  - General life in Buenos Aires
+                  
+                  **RESPONSE STYLE**:
+                  - Give 2-4 specific, practical recommendations with names/addresses
+                  - Organize by neighborhood when relevant
+                  - Be warm and conversational with 1-2 emojis
+                  - Keep responses 200-300 words max
                   - Respond in ${userLanguage === 'es' ? 'Spanish' : 'English'}
-                  - If you don't know something specific, be honest but still helpful
                   
                   ${locationInstruction}`,
                 },
