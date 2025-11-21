@@ -737,9 +737,9 @@ IMPORTANT - NO DATABASE MATCHES:
     const lastUserMessage = messages[messages.length - 1]?.content || "";
 
     // Keywords that indicate an EXPLICIT recommendation request
-    // Expanded to catch event/venue requests but EXCLUDE tourism/sightseeing questions
+    // Much more specific - requires clear action words + specific targets
     const recommendationKeywords =
-      /\b(recommend|suggest|show me|find me|looking for|i want|i need|can you find|help me find|gimme|dame|are there|is there|any)\b.*\b(event|party|parties|bar|bars|club|clubs|venue|concert|show|music|workshop|class|nightlife|drinks|dancing|going out)\b|^\b(event|party|parties|bar|bars|club|clubs|latin|techno|jazz|indie|dance|dancing)\b|\b(what's|whats|what is)\s+(happening|going on|on)\b/i;
+      /\b(recommend|suggest|show me|find me|looking for|i want|i need|can you find|help me find|gimme|dame)\b.*\b(event|party|parties|bar|bars|club|clubs|venue|concert|show|music|workshop|class|nightlife|drinks|dancing|going out)\b|^\b(event|party|parties|bar|bars|club|clubs|latin|techno|jazz|indie|dance|dancing)\b|\b(recommend|suggest|show|find).*(event|party|bar|club|venue|concert|nightlife)\b/i;
     
     // Keywords that indicate TOURISM/SIGHTSEEING (should NOT use database)
     const tourismKeywords = /\b(sightseeing|tourist|attractions|landmarks|monuments|visit|places to visit|what to see|what to visit|museums?|parks?|historical|historic|tours?|guided|landmarks?)\b/i;
