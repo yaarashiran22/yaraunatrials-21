@@ -1030,7 +1030,7 @@ IMPORTANT - NO DATABASE MATCHES:
     let messagesToSend = [];
 
     // Check if message contains JSON recommendations (don't split these)
-    const hasRecommendations = message.includes('"recommendations"');
+    hasRecommendations = message.includes('"recommendations"');
 
     if (!hasRecommendations && message.length > MAX_CHARS) {
       // Only split regular text messages
