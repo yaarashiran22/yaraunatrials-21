@@ -42,8 +42,8 @@ Deno.serve(async (req) => {
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
-          messageId: messageSid,
-          channel: "whatsapp",
+          MessageId: messageSid,
+          Channel: "whatsapp",
         }),
       });
       console.log("Sent typing indicator");
