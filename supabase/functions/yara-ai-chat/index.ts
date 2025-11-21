@@ -1108,6 +1108,30 @@ IMPORTANT - NO DATABASE MATCHES:
     );
   } catch (error) {
     console.error("Error in yara-ai-chat:", error);
+    
+    // Log error to database for monitoring
+    try {
+      const lastUserMessage = messages && messages.length > 0 
+        ? messages[messages.length - 1]?.content 
+        : 'Unknown query';
+      
+      await supabase.from('chatbot_errors').insert({
+        function_name: 'yara-ai-chat',
+        error_message: error.message || 'Unknown error',
+        error_stack: error.stack || null,
+        user_query: lastUserMessage,
+        phone_number: phoneNumber || null,
+        context: {
+          userProfile: userProfile || null,
+          messageCount: messages?.length || 0,
+          stream: stream || false,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (logError) {
+      console.error("Failed to log error to database:", logError);
+    }
+    
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

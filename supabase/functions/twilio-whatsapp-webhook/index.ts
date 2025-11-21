@@ -793,6 +793,25 @@ Deno.serve(async (req) => {
 
     if (aiError) {
       console.error("Yara AI error:", aiError);
+      
+      // Log error to database for monitoring
+      try {
+        await supabase.from('chatbot_errors').insert({
+          function_name: 'twilio-whatsapp-webhook-yara-call',
+          error_message: aiError.message || 'Unknown error from yara-ai-chat',
+          error_stack: aiError.stack || null,
+          user_query: body,
+          phone_number: from,
+          context: {
+            whatsappUser: whatsappUser || null,
+            messageCount: messages.length,
+            timestamp: new Date().toISOString()
+          }
+        });
+      } catch (logError) {
+        console.error("Failed to log Yara AI error to database:", logError);
+      }
+      
       throw aiError;
     }
 
@@ -1025,6 +1044,24 @@ ${twimlMessages}
     }
   } catch (error) {
     console.error("Error in Twilio webhook:", error);
+
+    // Log error to database for monitoring
+    try {
+      await supabase.from('chatbot_errors').insert({
+        function_name: 'twilio-whatsapp-webhook',
+        error_message: error.message || 'Unknown error in webhook',
+        error_stack: error.stack || null,
+        user_query: body || 'No message body',
+        phone_number: from || 'Unknown',
+        context: {
+          hasMedia: !!mediaUrl,
+          messageSid: messageSid || null,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (logError) {
+      console.error("Failed to log webhook error to database:", logError);
+    }
 
     // Return empty TwiML response on error
     return new Response(

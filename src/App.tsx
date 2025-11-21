@@ -31,6 +31,7 @@ import EditProfilePage from "./pages/EditProfilePage";
 import EditItemPage from "./pages/EditItemPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import WhatsAppQRPage from "./pages/WhatsAppQRPage";
+import ChatbotErrorsPage from "./pages/ChatbotErrorsPage";
 import NotFound from "./pages/NotFound";
 
 
@@ -87,6 +88,7 @@ const AppContent = () => {
               <Route path="/favorites" element={<FavoritesPage />} />
               <Route path="/create-post" element={<CreatePostPage />} />
               <Route path="/whatsapp-qr" element={<WhatsAppQRPage />} />
+              <Route path="/chatbot-errors" element={<ChatbotErrorsPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
@@ -142,6 +144,7 @@ const AppContent = () => {
             <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/create-post" element={<CreatePostPage />} />
             <Route path="/whatsapp-qr" element={<WhatsAppQRPage />} />
+            <Route path="/chatbot-errors" element={<ChatbotErrorsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
