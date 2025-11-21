@@ -358,6 +358,32 @@ serve(async (req) => {
       }
     }
 
+    // Detect language from the current user message FIRST (before building prompts)
+    const detectLanguage = (text: string): string => {
+      // Simple heuristic: check for common Spanish/Hebrew/Portuguese patterns
+      const spanishWords = /\b(hola|qué|dónde|cuándo|cómo|gracias|por favor|eventos|bares|fiesta)\b/i;
+      const hebrewChars = /[\u0590-\u05FF]/; // Hebrew Unicode range
+      const portugueseWords = /\b(olá|obrigado|onde|quando|como|por favor|eventos)\b/i;
+      
+      if (hebrewChars.test(text)) return 'he';
+      if (spanishWords.test(text)) return 'es';
+      if (portugueseWords.test(text)) return 'pt';
+      return 'en'; // Default to English
+    };
+
+    // Get the last user message to understand their query
+    const lastUserMessage = messages[messages.length - 1]?.content || "";
+    const userLanguage = detectLanguage(lastUserMessage);
+    console.log(`Detected user language: ${userLanguage} from message: "${lastUserMessage}"`);
+
+    // Language map for system prompts
+    const languageMap: Record<string, string> = {
+      'en': 'English',
+      'es': 'Spanish', 
+      'pt': 'Portuguese',
+      'he': 'Hebrew'
+    };
+
     // Automatic language detection - respond in the same language the user writes in
     const languageInstruction = `CRITICAL LANGUAGE RULE: The user is writing in ${languageMap[userLanguage] || 'English'}. You MUST respond in ${languageMap[userLanguage] || 'English'} ONLY. Do not switch languages based on conversation history - respond in ${languageMap[userLanguage] || 'English'}.`;
 
@@ -737,32 +763,6 @@ IMPORTANT - NO DATABASE MATCHES:
 - If the user asks for something specific that's NOT in the database (e.g., "where can i adopt a dog", "where to buy electronics", "best hospitals"), respond with: "I don't have information about that in my database, but I can help you with events, bars, clubs, and cultural activities in Buenos Aires!"
 - This will trigger the OpenAI fallback for general recommendations
 - DO NOT make up information that's not in the provided database`;
-
-    // Detect language from the current user message FIRST (before building prompts)
-    const detectLanguage = (text: string): string => {
-      // Simple heuristic: check for common Spanish/Hebrew/Portuguese patterns
-      const spanishWords = /\b(hola|qué|dónde|cuándo|cómo|gracias|por favor|eventos|bares|fiesta)\b/i;
-      const hebrewChars = /[\u0590-\u05FF]/; // Hebrew Unicode range
-      const portugueseWords = /\b(olá|obrigado|onde|quando|como|por favor|eventos)\b/i;
-      
-      if (hebrewChars.test(text)) return 'he';
-      if (spanishWords.test(text)) return 'es';
-      if (portugueseWords.test(text)) return 'pt';
-      return 'en'; // Default to English
-    };
-
-    // Get the last user message to understand their query
-    const lastUserMessage = messages[messages.length - 1]?.content || "";
-    const userLanguage = detectLanguage(lastUserMessage);
-    console.log(`Detected user language: ${userLanguage} from message: "${lastUserMessage}"`);
-
-    // Language map for system prompts
-    const languageMap: Record<string, string> = {
-      'en': 'English',
-      'es': 'Spanish', 
-      'pt': 'Portuguese',
-      'he': 'Hebrew'
-    };
 
     // Keywords that indicate an EXPLICIT recommendation request
     // Much more specific - requires clear action words + specific targets
