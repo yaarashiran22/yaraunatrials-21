@@ -864,17 +864,17 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
         const userQuery = message.replace("NO_DATABASE_MATCH:", "").trim();
         console.log(`No database matches found for: "${userQuery}". Falling back to OpenAI for general recommendations.`);
 
+        // Detect user's language from their last message
+        const lastUserMsg = messages[messages.length - 1]?.content || "";
+        
         // Call OpenAI for general Buenos Aires recommendations
         const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
         if (!openaiApiKey) {
-          message = userLanguage === 'es' 
-            ? "No encontré eventos relacionados en mi base de datos. ¿Quieres que te recomiende otros tipos de eventos?" 
-            : "I couldn't find any matching events in my database. Would you like me to suggest other types of events?";
+          message = "I couldn't find any matching events in my database. Would you like me to suggest other types of events?";
         } else {
           try {
             // Extract location from last user message if specified
-            const lastUserMsg = messages[messages.length - 1]?.content?.toLowerCase() || "";
-            const locationMatch = lastUserMsg.match(/\b(?:in|en)\s+([a-záéíóúñ\s]+?)(?:\s|$|,|\.|\?|!)/i);
+            const locationMatch = lastUserMsg.toLowerCase().match(/\b(?:in|en)\s+([a-záéíóúñ\s]+?)(?:\s|$|,|\.|\?|!)/i);
             const specifiedLocation = locationMatch ? locationMatch[1].trim() : null;
             
             const locationInstruction = specifiedLocation 
@@ -892,7 +892,7 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
                 messages: [
                   {
                     role: "system",
-                    content: `You are Yara, a friendly Buenos Aires local guide. The user asked for "${userQuery}" but there are no matching events in your database. Provide 3-5 general recommendations for ${userQuery} in Buenos Aires. Include specific venue names, neighborhoods, and brief descriptions. Keep it conversational, warm, and helpful. Use emojis naturally (1-2 per message). Respond in ${userLanguage === 'es' ? 'Spanish' : 'English'}. ${locationInstruction}`,
+                    content: `You are Yara, a friendly Buenos Aires local guide. The user asked for "${userQuery}" but there are no matching events in your database. Provide 3-5 general recommendations for ${userQuery} in Buenos Aires. Include specific venue names, neighborhoods, and brief descriptions. Keep it conversational, warm, and helpful. Use emojis naturally (1-2 per message). CRITICAL: Automatically detect and respond in the SAME LANGUAGE the user wrote in. Their message was: "${lastUserMsg}". If they wrote in Spanish, respond in Spanish. If Hebrew, respond in Hebrew. If Portuguese, respond in Portuguese. If English, respond in English. Mirror their language naturally. ${locationInstruction}`,
                   },
                   {
                     role: "user",
@@ -910,15 +910,11 @@ CRITICAL: If you return anything other than pure JSON for recommendation request
               console.log("OpenAI fallback response:", message);
             } else {
               console.error("OpenAI fallback error:", await openaiResponse.text());
-              message = userLanguage === 'es'
-                ? "No encontré eventos relacionados en mi base de datos ahora mismo. ¡Pregúntame sobre eventos, conciertos o vida nocturna!"
-                : "I couldn't find any matching events in my database right now. Try asking about upcoming events, nightlife, or cultural activities!";
+              message = "I couldn't find any matching events in my database right now. Try asking about upcoming events, nightlife, or cultural activities!";
             }
           } catch (error) {
             console.error("OpenAI fallback error:", error);
-            message = userLanguage === 'es'
-              ? "No encontré eventos relacionados en mi base de datos. ¡Intenta buscar eventos, conciertos o vida nocturna!"
-              : "I couldn't find any matching events in my database. Try searching for events, concerts, or nightlife!";
+            message = "I couldn't find any matching events in my database. Try searching for events, concerts, or nightlife!";
           }
         }
       }
