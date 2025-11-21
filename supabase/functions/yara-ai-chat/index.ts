@@ -901,75 +901,84 @@ IMPORTANT - NO DATABASE MATCHES:
       
       if (shouldFallbackToLovableAI) {
         const userQuery = lastUserMessage;
-        console.log(`No good response for: "${userQuery}". Falling back to Lovable AI for general Buenos Aires knowledge.`);
+        console.log(`No database match for: "${userQuery}". Falling back to OpenAI for general Buenos Aires knowledge.`);
 
         try {
-          // Extract location from last user message if specified
-          const lastUserMsg = messages[messages.length - 1]?.content?.toLowerCase() || "";
-          const locationMatch = lastUserMsg.match(/\b(?:in|en)\s+([a-záéíóúñ\s]+?)(?:\s|$|,|\.|\?|!)/i);
-          const specifiedLocation = locationMatch ? locationMatch[1].trim() : null;
-          
-          const locationInstruction = specifiedLocation 
-            ? `CRITICAL: The user specifically asked about ${specifiedLocation.toUpperCase()}. You MUST provide information relevant to ${specifiedLocation}.`
-            : '';
-
-          const fallbackResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${lovableApiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
-              messages: [
-                {
-                  role: "system",
-                  content: `You are Yara, a knowledgeable Buenos Aires local guide. The user asked: "${userQuery}". 
-                  
-                  **CRITICAL**: Only provide Buenos Aires information if the user is EXPLICITLY asking for it. For greetings or casual chat, respond conversationally without recommendations.
-                  
-                  **IF USER IS ASKING ABOUT BUENOS AIRES**:
-                  
-                  **TOURISM & SIGHTSEEING**:
-                  - Tourist attractions: La Boca (Caminito), Recoleta Cemetery, Obelisco, Casa Rosada, Puerto Madero
-                  - Museums: MALBA, Museo Nacional de Bellas Artes, Evita Museum, MAMBA
-                  - Parks: Bosques de Palermo, Reserva Ecológica, Jardín Botánico
-                  - Neighborhoods: San Telmo (antiques/tango), Palermo (trendy), Recoleta (elegant)
-                  
-                  **OTHER TOPICS**:
-                  - Pet services, shopping, healthcare, transportation, neighborhoods, sports
-                  
-                  **RESPONSE STYLE**:
-                  - If it's a greeting/casual message: Just be friendly, don't volunteer info
-                  - If they want Buenos Aires info: Give 2-4 specific recommendations
-                  - Be warm with 1-2 emojis
-                  - Keep under 200 words
-                  - Respond in ${userLanguage === 'es' ? 'Spanish' : 'English'}
-                  
-                  ${locationInstruction}`,
-                },
-                {
-                  role: "user",
-                  content: userQuery,
-                },
-              ],
-              max_completion_tokens: 600,
-            }),
-          });
-
-          if (fallbackResponse.ok) {
-            const fallbackData = await fallbackResponse.json();
-            message = fallbackData.choices?.[0]?.message?.content || message;
-            console.log("Lovable AI general knowledge response:", message);
-          } else {
-            const errorText = await fallbackResponse.text();
-            console.error("Lovable AI fallback error:", fallbackResponse.status, errorText);
+          const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+          if (!openAIApiKey) {
+            console.error("OPENAI_API_KEY not configured");
             message = userLanguage === 'es'
               ? "Hmm, no tengo esa información específica en este momento. ¿Quieres que te ayude con eventos, bares, clubs o actividades culturales en Buenos Aires? 🎭"
               : "Hmm, I don't have that specific information right now. Would you like help with events, bars, clubs, or cultural activities in Buenos Aires? 🎭";
+          } else {
+            // Extract location from last user message if specified
+            const lastUserMsg = messages[messages.length - 1]?.content?.toLowerCase() || "";
+            const locationMatch = lastUserMsg.match(/\b(?:in|en)\s+([a-záéíóúñ\s]+?)(?:\s|$|,|\.|\?|!)/i);
+            const specifiedLocation = locationMatch ? locationMatch[1].trim() : null;
+            
+            const locationInstruction = specifiedLocation 
+              ? `CRITICAL: The user specifically asked about ${specifiedLocation.toUpperCase()}. You MUST provide information relevant to ${specifiedLocation}.`
+              : '';
+
+            const fallbackResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${openAIApiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "gpt-4o-mini",
+                messages: [
+                  {
+                    role: "system",
+                    content: `You are Yara, a knowledgeable Buenos Aires local guide. The user asked: "${userQuery}". 
+                    
+                    **CRITICAL**: Only provide Buenos Aires information if the user is EXPLICITLY asking for it. For greetings or casual chat, respond conversationally without recommendations.
+                    
+                    **IF USER IS ASKING ABOUT BUENOS AIRES**:
+                    
+                    **TOURISM & SIGHTSEEING**:
+                    - Tourist attractions: La Boca (Caminito), Recoleta Cemetery, Obelisco, Casa Rosada, Puerto Madero
+                    - Museums: MALBA, Museo Nacional de Bellas Artes, Evita Museum, MAMBA
+                    - Parks: Bosques de Palermo, Reserva Ecológica, Jardín Botánico
+                    - Neighborhoods: San Telmo (antiques/tango), Palermo (trendy), Recoleta (elegant)
+                    
+                    **OTHER TOPICS**:
+                    - Pet services (adoption centers, vets), shopping (electronics, clothes), healthcare, transportation, neighborhoods, sports
+                    - Give SPECIFIC venue/business names, addresses, and practical details
+                    
+                    **RESPONSE STYLE**:
+                    - If it's a greeting/casual message: Just be friendly, don't volunteer info
+                    - If they want Buenos Aires info: Give 2-4 specific recommendations with names and locations
+                    - Be warm with 1-2 emojis
+                    - Keep under 200 words
+                    - Respond in ${userLanguage === 'es' ? 'Spanish' : 'English'}
+                    
+                    ${locationInstruction}`,
+                  },
+                  {
+                    role: "user",
+                    content: userQuery,
+                  },
+                ],
+                max_tokens: 600,
+              }),
+            });
+
+            if (fallbackResponse.ok) {
+              const fallbackData = await fallbackResponse.json();
+              message = fallbackData.choices?.[0]?.message?.content || message;
+              console.log("OpenAI fallback response:", message);
+            } else {
+              const errorText = await fallbackResponse.text();
+              console.error("OpenAI fallback error:", fallbackResponse.status, errorText);
+              message = userLanguage === 'es'
+                ? "Hmm, no tengo esa información específica en este momento. ¿Quieres que te ayude con eventos, bares, clubs o actividades culturales en Buenos Aires? 🎭"
+                : "Hmm, I don't have that specific information right now. Would you like help with events, bars, clubs, or cultural activities in Buenos Aires? 🎭";
+            }
           }
         } catch (error) {
-          console.error("Lovable AI fallback error:", error);
+          console.error("OpenAI fallback error:", error);
           message = userLanguage === 'es'
             ? "Perdón, tuve un problema. Pero puedo ayudarte con eventos, conciertos, bares y vida nocturna en Buenos Aires! ¿Qué te interesa? 🎵"
             : "Sorry, I had a hiccup. But I can help you with events, concerts, bars, and nightlife in Buenos Aires! What interests you? 🎵";
