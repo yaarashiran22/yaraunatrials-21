@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      chatbot_errors: {
+        Row: {
+          context: Json | null
+          created_at: string | null
+          error_message: string
+          error_stack: string | null
+          function_name: string
+          id: string
+          notes: string | null
+          phone_number: string | null
+          resolved: boolean | null
+          user_query: string | null
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string | null
+          error_message: string
+          error_stack?: string | null
+          function_name: string
+          id?: string
+          notes?: string | null
+          phone_number?: string | null
+          resolved?: boolean | null
+          user_query?: string | null
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string | null
+          error_message?: string
+          error_stack?: string | null
+          function_name?: string
+          id?: string
+          notes?: string | null
+          phone_number?: string | null
+          resolved?: boolean | null
+          user_query?: string | null
+        }
+        Relationships: []
+      }
       communities: {
         Row: {
           access_type: string | null
