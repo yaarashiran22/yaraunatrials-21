@@ -685,6 +685,14 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
     - When user asks for "shows" or "live shows", include ALL of: concerts, performances, live music events, gigs, theater, comedy shows, any live entertainment
     - **NEVER treat**: jam session = workshop, concert = workshop, show = workshop
 11. **CRITICAL: User interests are for CONTEXT ONLY, not for filtering** - The user's interests help you understand their preferences and personalize your responses, but DO NOT use interests to exclude events from recommendations. Always show all age-appropriate events that match the requested type.
+12. **CRITICAL MUSIC GENRE & CULTURAL MATCHING**: When user asks for specific music/cultural genres, be INTELLIGENT about synonyms and related terms:
+    - **"African" / "African events"** = Afrobeat, Afro-Latin, Afro-house, African diaspora music, World Music (if African-influenced), Reggae, Dancehall, Soukous, Highlife, Makossa, Kizomba, Kuduro, Gqom, Amapiano, African jazz, African drumming, ANY music genre originating from Africa or the African diaspora
+    - **"Latin" / "Latino"** = Salsa, Bachata, Reggaeton, Cumbia, Merengue, Tango, Milonga, Folklore, Latin jazz, Tropical, ANY Latin American music
+    - **"Electronic"** = Techno, House, Deep House, Tech House, Minimal, Progressive, Trance, EDM, Electro, ANY electronic dance music
+    - **"Rock"** = Rock, Alternative Rock, Indie Rock, Punk, Metal, Grunge, Post-punk, ANY rock subgenres
+    - **"Hip Hop" / "Rap"** = Hip Hop, Rap, Trap, Grime, R&B, Urban, ANY hip hop related genres
+    - **Important**: Check the music_type field AND description for genre indicators. An event might not have "African" in the title but could have "Afrobeat" in music_type or description - THIS IS A MATCH!
+    - **Be flexible**: User asks "African events" → Show events with Afrobeat, Afro-house, Kizomba, Reggae, or any African diaspora music
 
 RECOMMENDATION OUTPUT RULES:
 - **CRITICAL**: ALWAYS send UP TO 6 event recommendations when there are 6+ matches available - DO NOT send only 2-3 when more exist
