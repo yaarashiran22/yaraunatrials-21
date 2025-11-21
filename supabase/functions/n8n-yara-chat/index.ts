@@ -49,8 +49,48 @@ Deno.serve(async (req) => {
     
     console.log('Successfully got response from yara-ai-chat');
     
+    // Parse the response and extract structured data
+    let message = data.message || '';
+    let events = [];
+    let coupons = [];
+    let top_lists = [];
+    
+    // Try to extract JSON recommendations from the message
+    try {
+      const jsonMatch = message.match(/\{[\s\S]*"recommendations"[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
+          // Categorize recommendations by type
+          for (const rec of parsed.recommendations) {
+            if (rec.type === 'event') {
+              events.push(rec);
+            } else if (rec.type === 'coupon') {
+              coupons.push(rec);
+            } else if (rec.type === 'top_list') {
+              top_lists.push(rec);
+            }
+          }
+          // Extract the text message part (before the JSON)
+          const textPart = message.substring(0, message.indexOf(jsonMatch[0])).trim();
+          if (textPart) {
+            message = textPart;
+          }
+        }
+      }
+    } catch (e) {
+      console.log('Could not parse recommendations from message:', e);
+    }
+    
+    const structuredResponse = {
+      message,
+      events,
+      coupons,
+      top_lists
+    };
+    
     return new Response(
-      JSON.stringify(data),
+      JSON.stringify(structuredResponse),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
