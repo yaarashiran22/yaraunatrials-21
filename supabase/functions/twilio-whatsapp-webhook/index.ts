@@ -28,6 +28,29 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Send typing indicator
+    const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
+    const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+    const twilioWhatsAppNumber = Deno.env.get("TWILIO_WHATSAPP_NUMBER") || "whatsapp:+17622513744";
+
+    // Send typing indicator immediately
+    try {
+      await fetch(`https://messaging.twilio.com/v2/Indicators/Typing.json`, {
+        method: "POST",
+        headers: {
+          Authorization: "Basic " + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          messageId: messageSid,
+          channel: "whatsapp",
+        }),
+      });
+      console.log("Sent typing indicator");
+    } catch (error) {
+      console.error("Error sending typing indicator:", error);
+    }
+
     // Check for active event upload flow BEFORE checking for empty body
     const { data: activeUpload } = await supabase
       .from("whatsapp_event_uploads")
@@ -360,29 +383,6 @@ Deno.serve(async (req) => {
       role: "user",
       content: body,
     });
-
-    // Send typing indicator
-    const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-    const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
-    const twilioWhatsAppNumber = Deno.env.get("TWILIO_WHATSAPP_NUMBER") || "whatsapp:+17622513744";
-
-    // Send typing indicator immediately
-    try {
-      await fetch(`https://messaging.twilio.com/v2/Indicators/Typing.json`, {
-        method: "POST",
-        headers: {
-          Authorization: "Basic " + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          messageId: messageSid,
-          channel: "whatsapp",
-        }),
-      });
-      console.log("Sent typing indicator");
-    } catch (error) {
-      console.error("Error sending typing indicator:", error);
-    }
 
     // Detect and store user information from message
     if (whatsappUser) {
