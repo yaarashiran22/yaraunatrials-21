@@ -49,41 +49,94 @@ Deno.serve(async (req) => {
     
     console.log('Successfully got response from yara-ai-chat');
     
-    // Parse the response and extract structured data
-    let message = data.message || '';
+    // Initialize response structure
+    let message = '';
     let events = [];
     let coupons = [];
     let top_lists = [];
     
-    // Try to extract JSON recommendations from the message
+    // Handle different response formats from yara-ai-chat
+    // Case 1: Direct message string (from data.message)
+    if (typeof data === 'string') {
+      message = data;
+    } else if (data.message) {
+      message = data.message;
+    }
+    
+    // Case 2: Tool calling response (structured recommendations)
+    // The data might contain tool_calls or parsed JSON
     try {
-      const jsonMatch = message.match(/\{[\s\S]*"recommendations"[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
+      // Check if data itself is a JSON string with recommendations
+      let parsedData = data;
+      if (typeof data === 'string') {
+        try {
+          parsedData = JSON.parse(data);
+        } catch (e) {
+          // Not JSON, keep as string
+        }
+      }
+      
+      // Look for recommendations in the parsed data
+      if (parsedData && typeof parsedData === 'object') {
+        // Case A: Direct recommendations object
+        if (parsedData.intro_message && parsedData.recommendations) {
+          message = parsedData.intro_message;
+          
           // Categorize recommendations by type
-          for (const rec of parsed.recommendations) {
+          for (const rec of parsedData.recommendations) {
             if (rec.type === 'event') {
               events.push(rec);
             } else if (rec.type === 'coupon') {
               coupons.push(rec);
-            } else if (rec.type === 'top_list') {
+            } else if (rec.type === 'topListItem' || rec.type === 'top_list') {
               top_lists.push(rec);
             }
           }
-          // Extract the text message part (before the JSON)
-          const textPart = message.substring(0, message.indexOf(jsonMatch[0])).trim();
-          if (textPart) {
-            message = textPart;
+        }
+        // Case B: Message with embedded JSON
+        else if (parsedData.message) {
+          const msgContent = parsedData.message;
+          
+          // Try to extract JSON from the message text
+          const jsonMatch = msgContent.match(/\{[\s\S]*?"recommendations"[\s\S]*?\}/);
+          if (jsonMatch) {
+            try {
+              const embedded = JSON.parse(jsonMatch[0]);
+              if (embedded.intro_message) {
+                message = embedded.intro_message;
+              }
+              if (embedded.recommendations && Array.isArray(embedded.recommendations)) {
+                for (const rec of embedded.recommendations) {
+                  if (rec.type === 'event') {
+                    events.push(rec);
+                  } else if (rec.type === 'coupon') {
+                    coupons.push(rec);
+                  } else if (rec.type === 'topListItem' || rec.type === 'top_list') {
+                    top_lists.push(rec);
+                  }
+                }
+              }
+            } catch (e) {
+              console.log('Could not parse embedded JSON:', e);
+              message = msgContent;
+            }
+          } else {
+            // No embedded JSON, use the message as-is
+            message = msgContent;
           }
         }
       }
     } catch (e) {
-      console.log('Could not parse recommendations from message:', e);
+      console.log('Error parsing yara-ai-chat response:', e);
+      // Fallback to message text if available
+      if (!message && data.message) {
+        message = data.message;
+      }
     }
     
+    // Return structured response as a single object (not array)
     const structuredResponse = {
-      message,
+      message: message || 'No response generated',
       events,
       coupons,
       top_lists
