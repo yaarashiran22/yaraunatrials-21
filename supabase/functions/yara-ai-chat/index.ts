@@ -868,73 +868,65 @@ IMPORTANT - NO DATABASE MATCHES:
 
       // FALLBACK: Check if this was a recommendation request but got no matches
       // Trigger fallback if: 1) User asked for recommendations, 2) No tool call was made, OR 3) AI explicitly said no matches
-      const shouldFallbackToOpenAI = 
+      const shouldFallbackToLovableAI = 
         isLikelyRecommendation && 
         (!toolCall || message.startsWith("NO_DATABASE_MATCH:") || 
          message.toLowerCase().includes("no encontré") || 
          message.toLowerCase().includes("couldn't find") ||
          message.toLowerCase().includes("don't have"));
       
-      if (shouldFallbackToOpenAI) {
+      if (shouldFallbackToLovableAI) {
         const userQuery = lastUserMessage;
-        console.log(`No database matches found for: "${userQuery}". Falling back to OpenAI for general recommendations.`);
+        console.log(`No database matches found for: "${userQuery}". Falling back to Lovable AI for general recommendations.`);
 
-        // Call OpenAI for general Buenos Aires recommendations
-        const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
-        if (!openaiApiKey) {
-          message = userLanguage === 'es' 
-            ? "No encontré eventos relacionados en mi base de datos. ¿Quieres que te recomiende otros tipos de eventos?" 
-            : "I couldn't find any matching events in my database. Would you like me to suggest other types of events?";
-        } else {
-          try {
-            // Extract location from last user message if specified
-            const lastUserMsg = messages[messages.length - 1]?.content?.toLowerCase() || "";
-            const locationMatch = lastUserMsg.match(/\b(?:in|en)\s+([a-záéíóúñ\s]+?)(?:\s|$|,|\.|\?|!)/i);
-            const specifiedLocation = locationMatch ? locationMatch[1].trim() : null;
-            
-            const locationInstruction = specifiedLocation 
-              ? `CRITICAL: The user specifically asked for recommendations IN ${specifiedLocation.toUpperCase()}. You MUST recommend ONLY venues located in ${specifiedLocation}. Do NOT recommend venues in other neighborhoods.`
-              : '';
+        try {
+          // Extract location from last user message if specified
+          const lastUserMsg = messages[messages.length - 1]?.content?.toLowerCase() || "";
+          const locationMatch = lastUserMsg.match(/\b(?:in|en)\s+([a-záéíóúñ\s]+?)(?:\s|$|,|\.|\?|!)/i);
+          const specifiedLocation = locationMatch ? locationMatch[1].trim() : null;
+          
+          const locationInstruction = specifiedLocation 
+            ? `CRITICAL: The user specifically asked for recommendations IN ${specifiedLocation.toUpperCase()}. You MUST recommend ONLY venues located in ${specifiedLocation}. Do NOT recommend venues in other neighborhoods.`
+            : '';
 
-            const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${openaiApiKey}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                model: "gpt-4o-mini",
-                messages: [
-                  {
-                    role: "system",
-                    content: `You are Yara, a friendly Buenos Aires local guide. The user asked for "${userQuery}" but there are no matching events in your database. Provide 3-5 general recommendations for ${userQuery} in Buenos Aires. Include specific venue names, neighborhoods, and brief descriptions. Keep it conversational, warm, and helpful. Use emojis naturally (1-2 per message). Respond in ${userLanguage === 'es' ? 'Spanish' : 'English'}. ${locationInstruction}`,
-                  },
-                  {
-                    role: "user",
-                    content: `I'm looking for ${userQuery} in Buenos Aires. Can you recommend some places?`,
-                  },
-                ],
-                max_tokens: 500,
-                temperature: 0.8,
-              }),
-            });
+          const fallbackResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${lovableApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: [
+                {
+                  role: "system",
+                  content: `You are Yara, a friendly Buenos Aires local guide. The user asked for "${userQuery}" but there are no matching events in your database. Provide 3-5 general recommendations for ${userQuery} in Buenos Aires. Include specific venue names, neighborhoods, and brief descriptions. Keep it conversational, warm, and helpful. Use emojis naturally (1-2 per message). Respond in ${userLanguage === 'es' ? 'Spanish' : 'English'}. ${locationInstruction}`,
+                },
+                {
+                  role: "user",
+                  content: `I'm looking for ${userQuery} in Buenos Aires. Can you recommend some places?`,
+                },
+              ],
+              max_completion_tokens: 500,
+            }),
+          });
 
-            if (openaiResponse.ok) {
-              const openaiData = await openaiResponse.json();
-              message = openaiData.choices?.[0]?.message?.content || message;
-              console.log("OpenAI fallback response:", message);
-            } else {
-              console.error("OpenAI fallback error:", await openaiResponse.text());
-              message = userLanguage === 'es'
-                ? "No encontré eventos relacionados en mi base de datos ahora mismo. ¡Pregúntame sobre eventos, conciertos o vida nocturna!"
-                : "I couldn't find any matching events in my database right now. Try asking about upcoming events, nightlife, or cultural activities!";
-            }
-          } catch (error) {
-            console.error("OpenAI fallback error:", error);
+          if (fallbackResponse.ok) {
+            const fallbackData = await fallbackResponse.json();
+            message = fallbackData.choices?.[0]?.message?.content || message;
+            console.log("Lovable AI fallback response:", message);
+          } else {
+            const errorText = await fallbackResponse.text();
+            console.error("Lovable AI fallback error:", fallbackResponse.status, errorText);
             message = userLanguage === 'es'
-              ? "No encontré eventos relacionados en mi base de datos. ¡Intenta buscar eventos, conciertos o vida nocturna!"
-              : "I couldn't find any matching events in my database. Try searching for events, concerts, or nightlife!";
+              ? "No encontré información sobre eso en mi base de datos. ¿Quieres que te recomiende eventos, conciertos o actividades culturales en Buenos Aires?"
+              : "I don't have information about that in my database. Would you like me to recommend events, concerts, or cultural activities in Buenos Aires?";
           }
+        } catch (error) {
+          console.error("Lovable AI fallback error:", error);
+          message = userLanguage === 'es'
+            ? "No encontré información sobre eso en mi base de datos. ¡Intenta buscar eventos, conciertos o vida nocturna!"
+            : "I don't have information about that in my database. Try asking about events, concerts, or nightlife!";
         }
       }
 
