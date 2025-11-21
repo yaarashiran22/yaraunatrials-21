@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
     // Parse form data from Twilio
     const formData = await req.formData();
     const from = formData.get("From") as string;
-    const body = formData.get("Body") as string || "";
+    const body = (formData.get("Body") as string) || "";
     const to = formData.get("To") as string;
     const mediaUrl = formData.get("MediaUrl0") as string; // Check for media
     const messageSid = formData.get("MessageSid") as string;
@@ -130,92 +130,96 @@ Deno.serve(async (req) => {
     // Handle event upload flow
     if (activeUpload || isUploadIntent) {
       console.log("Event upload flow detected");
-      
-      let currentState = activeUpload?.state || 'awaiting_intent';
+
+      let currentState = activeUpload?.state || "awaiting_intent";
       let uploadId = activeUpload?.id;
-      let responseMessage = '';
+      let responseMessage = "";
 
       // Start new upload flow
       if (!activeUpload && isUploadIntent) {
         const { data: newUpload } = await supabase
           .from("whatsapp_event_uploads")
-          .insert({ phone_number: from, state: 'awaiting_image' })
+          .insert({ phone_number: from, state: "awaiting_image" })
           .select()
           .single();
-        
+
         uploadId = newUpload.id;
-        currentState = 'awaiting_image';
-        responseMessage = userLanguage === 'es' 
-          ? "¡Genial! Vamos a agregar tu evento. Primero, envíame la imagen del evento 📸"
-          : "Awesome! Let's add your event. First, send me the event image 📸";
+        currentState = "awaiting_image";
+        responseMessage =
+          userLanguage === "es"
+            ? "¡Genial! Vamos a agregar tu evento. Primero, envíame la imagen del evento 📸"
+            : "Awesome! Let's add your event. First, send me the event image 📸";
       }
       // Process based on current state
       else if (activeUpload) {
-        
         switch (currentState) {
-          case 'awaiting_image':
+          case "awaiting_image":
             // Check for media (image) - already extracted at top
             if (mediaUrl) {
               await supabase
                 .from("whatsapp_event_uploads")
-                .update({ image_url: mediaUrl, state: 'awaiting_title' })
+                .update({ image_url: mediaUrl, state: "awaiting_title" })
                 .eq("id", uploadId);
-              
-              responseMessage = userLanguage === 'es'
-                ? "Perfecto! Ahora envíame el título del evento 🎉"
-                : "Perfect! Now send me the event title 🎉";
+
+              responseMessage =
+                userLanguage === "es"
+                  ? "Perfecto! Ahora envíame el título del evento 🎉"
+                  : "Perfect! Now send me the event title 🎉";
             } else {
-              responseMessage = userLanguage === 'es'
-                ? "Por favor envía una imagen del evento 📸"
-                : "Please send an event image 📸";
+              responseMessage =
+                userLanguage === "es" ? "Por favor envía una imagen del evento 📸" : "Please send an event image 📸";
             }
             break;
 
-          case 'awaiting_title':
+          case "awaiting_title":
             await supabase
               .from("whatsapp_event_uploads")
-              .update({ title: body, state: 'awaiting_description' })
+              .update({ title: body, state: "awaiting_description" })
               .eq("id", uploadId);
-            
-            responseMessage = userLanguage === 'es'
-              ? "Genial! Ahora dame una breve descripción del evento ✍️"
-              : "Great! Now give me a brief description of the event ✍️";
+
+            responseMessage =
+              userLanguage === "es"
+                ? "Genial! Ahora dame una breve descripción del evento ✍️"
+                : "Great! Now give me a brief description of the event ✍️";
             break;
 
-          case 'awaiting_description':
+          case "awaiting_description":
             await supabase
               .from("whatsapp_event_uploads")
-              .update({ description: body, state: 'awaiting_date' })
+              .update({ description: body, state: "awaiting_date" })
               .eq("id", uploadId);
-            
-            responseMessage = userLanguage === 'es'
-              ? "Perfecto! Cuál es la fecha del evento? (formato: YYYY-MM-DD) 📅"
-              : "Perfect! What's the event date? (format: YYYY-MM-DD) 📅";
+
+            responseMessage =
+              userLanguage === "es"
+                ? "Perfecto! Cuál es la fecha del evento? (formato: YYYY-MM-DD) 📅"
+                : "Perfect! What's the event date? (format: YYYY-MM-DD) 📅";
             break;
 
-          case 'awaiting_date':
+          case "awaiting_date":
             await supabase
               .from("whatsapp_event_uploads")
-              .update({ date: body, state: 'awaiting_time' })
+              .update({ date: body, state: "awaiting_time" })
               .eq("id", uploadId);
-            
-            responseMessage = userLanguage === 'es'
-              ? "Genial! A qué hora es el evento? (formato: HH:MM) ⏰"
-              : "Great! What time is the event? (format: HH:MM) ⏰";
+
+            responseMessage =
+              userLanguage === "es"
+                ? "Genial! A qué hora es el evento? (formato: HH:MM) ⏰"
+                : "Great! What time is the event? (format: HH:MM) ⏰";
             break;
 
-          case 'awaiting_time':
+          case "awaiting_time":
             await supabase
               .from("whatsapp_event_uploads")
-              .update({ time: body, state: 'awaiting_instagram' })
+              .update({ time: body, state: "awaiting_instagram" })
               .eq("id", uploadId);
-            
-            responseMessage = userLanguage === 'es'
-              ? "Casi terminamos! Cuál es el Instagram del evento o venue? (sin @) 📱"
-              : "Almost done! What's the event or venue Instagram? (without @) 📱";
+
+            responseMessage =
+              userLanguage === "es"
+                ? "Casi terminamos! Cuál es el Instagram del evento o venue? (sin @) 📱"
+                : "Almost done! What's the event or venue Instagram? (without @) 📱";
             break;
 
-          case 'awaiting_instagram':
+          case "awaiting_instagram":
             // Get the complete upload data
             const { data: completeUpload } = await supabase
               .from("whatsapp_event_uploads")
@@ -225,50 +229,48 @@ Deno.serve(async (req) => {
 
             // Insert event into BOTH tables for full compatibility
             // Insert into events table (main events feed)
-            const { error: eventsTableError } = await supabase
-              .from("events")
-              .insert({
-                title: completeUpload.title,
-                description: completeUpload.description,
-                date: completeUpload.date,
-                time: completeUpload.time,
-                image_url: completeUpload.image_url,
-                event_type: 'event',
-                market: 'argentina',
-                location: 'Buenos Aires',
-              });
+            const { error: eventsTableError } = await supabase.from("events").insert({
+              title: completeUpload.title,
+              description: completeUpload.description,
+              date: completeUpload.date,
+              time: completeUpload.time,
+              image_url: completeUpload.image_url,
+              event_type: "event",
+              market: "argentina",
+              location: "Buenos Aires",
+            });
 
             // Also insert into items table (legacy support)
-            const { error: itemsTableError } = await supabase
-              .from("items")
-              .insert({
-                title: completeUpload.title,
-                description: completeUpload.description,
-                meetup_date: completeUpload.date,
-                meetup_time: completeUpload.time,
-                image_url: completeUpload.image_url,
-                category: 'event',
-                status: 'active',
-                location: 'Buenos Aires',
-              });
+            const { error: itemsTableError } = await supabase.from("items").insert({
+              title: completeUpload.title,
+              description: completeUpload.description,
+              meetup_date: completeUpload.date,
+              meetup_time: completeUpload.time,
+              image_url: completeUpload.image_url,
+              category: "event",
+              status: "active",
+              location: "Buenos Aires",
+            });
 
             const eventError = eventsTableError || itemsTableError;
 
             if (eventError) {
               console.error("Error creating event:", eventError);
-              responseMessage = userLanguage === 'es'
-                ? "Hubo un error al crear el evento. Por favor intenta de nuevo."
-                : "There was an error creating the event. Please try again.";
+              responseMessage =
+                userLanguage === "es"
+                  ? "Hubo un error al crear el evento. Por favor intenta de nuevo."
+                  : "There was an error creating the event. Please try again.";
             } else {
               // Mark upload as complete
               await supabase
                 .from("whatsapp_event_uploads")
-                .update({ instagram_handle: body, state: 'complete' })
+                .update({ instagram_handle: body, state: "complete" })
                 .eq("id", uploadId);
-              
-              responseMessage = userLanguage === 'es'
-                ? "¡Listo! Tu evento ha sido agregado exitosamente 🎉 Aparecerá en la página de eventos pronto!"
-                : "Done! Your event has been added successfully 🎉 It will appear on the events page soon!";
+
+              responseMessage =
+                userLanguage === "es"
+                  ? "¡Listo! Tu evento ha sido agregado exitosamente 🎉 Aparecerá en la página de eventos pronto!"
+                  : "Done! Your event has been added successfully 🎉 It will appear on the events page soon!";
             }
             break;
         }
@@ -373,11 +375,11 @@ Deno.serve(async (req) => {
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
-          MessageSid: messageSid,
-          ChannelType: "whatsapp",
+          messageId: messageSid,
+          channel: "whatsapp",
         }),
       });
-      console.log('Sent typing indicator');
+      console.log("Sent typing indicator");
     } catch (error) {
       console.error("Error sending typing indicator:", error);
     }
