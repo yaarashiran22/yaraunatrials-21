@@ -281,6 +281,7 @@ export type Database = {
           category: string | null
           created_at: string | null
           description: string | null
+          embedding: string | null
           id: string
           image_url: string | null
           location: string | null
@@ -298,6 +299,7 @@ export type Database = {
           category?: string | null
           created_at?: string | null
           description?: string | null
+          embedding?: string | null
           id?: string
           image_url?: string | null
           location?: string | null
@@ -315,6 +317,7 @@ export type Database = {
           category?: string | null
           created_at?: string | null
           description?: string | null
+          embedding?: string | null
           id?: string
           image_url?: string | null
           location?: string | null
@@ -565,6 +568,7 @@ export type Database = {
           created_at: string
           description: string | null
           display_order: number
+          embedding: string | null
           id: string
           image_url: string | null
           list_id: string
@@ -576,6 +580,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           display_order?: number
+          embedding?: string | null
           id?: string
           image_url?: string | null
           list_id: string
@@ -587,6 +592,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           display_order?: number
+          embedding?: string | null
           id?: string
           image_url?: string | null
           list_id?: string
@@ -713,6 +719,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           discount_amount: string | null
+          embedding: string | null
           id: string
           image_url: string | null
           is_active: boolean | null
@@ -728,6 +735,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           discount_amount?: string | null
+          embedding?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
@@ -743,6 +751,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           discount_amount?: string | null
+          embedding?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
