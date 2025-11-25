@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.generate-synonyms]
 verify_jwt = false
+
+[functions.semantic-event-search]
+verify_jwt = false
