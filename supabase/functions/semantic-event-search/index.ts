@@ -31,29 +31,58 @@ async function generateEmbedding(text: string, openaiKey: string): Promise<numbe
   return data.data[0].embedding;
 }
 
-// Extract search context from chat history
-function extractSearchContext(messages: Array<{ role: string; content: string }>): string {
-  // Take the last few messages to understand context
-  const recentMessages = messages.slice(-5);
+// Use LLM to extract user intent from chat history
+async function extractUserIntent(messages: Array<{ role: string; content: string }>, openaiKey: string): Promise<string> {
+  console.log('semantic-event-search: Extracting user intent from', messages.length, 'messages');
   
-  // Combine user messages to understand intent
-  const userMessages = recentMessages
-    .filter(m => m.role === 'user')
-    .map(m => m.content)
-    .join(' ');
+  const recentMessages = messages.slice(-6);
+  const chatHistory = recentMessages.map(m => `${m.role}: ${m.content}`).join('\n');
   
-  // If there's a recent assistant message with recommendations context, include it
-  const lastAssistant = recentMessages
-    .filter(m => m.role === 'assistant')
-    .pop();
-  
-  let context = userMessages;
-  if (lastAssistant && lastAssistant.content.length < 500) {
-    context = `${userMessages} Context: ${lastAssistant.content}`;
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openaiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a search query extractor. Analyze the chat history and extract what the user is looking for in terms of events/activities in Buenos Aires.
+
+Output ONLY a short, focused search query (max 50 words) that captures the user's intent. Include relevant keywords like:
+- Event type (party, concert, art exhibition, brunch, yoga, etc.)
+- Mood/vibe (chill, energetic, romantic, social, artsy)
+- Music type if mentioned (jazz, techno, latin, live music)
+- Location/neighborhood if mentioned
+- Time preference if mentioned (tonight, weekend, afternoon)
+
+Do NOT include greetings, small talk, or irrelevant details. Just the core search intent.`
+        },
+        {
+          role: 'user',
+          content: `Chat history:\n${chatHistory}\n\nExtract the search query:`
+        }
+      ],
+      max_tokens: 100,
+      temperature: 0.3,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('semantic-event-search: Intent extraction error:', errorText);
+    // Fallback to simple extraction
+    const userMessages = recentMessages.filter(m => m.role === 'user').map(m => m.content).join(' ');
+    console.log('semantic-event-search: Falling back to raw user messages');
+    return userMessages;
   }
-  
-  console.log('semantic-event-search: Extracted search context:', context.substring(0, 200));
-  return context;
+
+  const data = await response.json();
+  const intent = data.choices[0].message.content.trim();
+  console.log('semantic-event-search: Extracted intent:', intent);
+  return intent;
 }
 
 Deno.serve(async (req) => {
@@ -94,12 +123,13 @@ Deno.serve(async (req) => {
       throw new Error('Supabase configuration missing');
     }
 
-    // Extract search context from chat history
-    const searchContext = extractSearchContext(messages);
+    // Step 1: Extract user intent using LLM
+    console.log('semantic-event-search: Step 1 - Extracting user intent...');
+    const userIntent = await extractUserIntent(messages, openaiKey);
 
-    // Generate embedding for the search context
-    console.log('semantic-event-search: Generating embedding...');
-    const queryEmbedding = await generateEmbedding(searchContext, openaiKey);
+    // Step 2: Generate embedding for the refined intent
+    console.log('semantic-event-search: Step 2 - Generating embedding...');
+    const queryEmbedding = await generateEmbedding(userIntent, openaiKey);
     console.log('semantic-event-search: Embedding generated, dimensions:', queryEmbedding.length);
 
     // Create Supabase client
@@ -155,11 +185,10 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        searchContext: searchContext.substring(0, 200),
+        extractedIntent: userIntent,
         matchCount: fullEvents.length,
         events: fullEvents,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
