@@ -998,6 +998,16 @@ export type Database = {
     Functions: {
       delete_past_events: { Args: never; Returns: undefined }
       generate_coupon_code: { Args: never; Returns: string }
+      match_documents: {
+        Args: { filter?: Json; match_count?: number; query_embedding: string }
+        Returns: {
+          description: string
+          id: string
+          similarity: number
+          table_name: string
+          title: string
+        }[]
+      }
       match_events: {
         Args: {
           match_count?: number
