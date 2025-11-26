@@ -1001,11 +1001,10 @@ export type Database = {
       match_documents: {
         Args: { filter?: Json; match_count?: number; query_embedding: string }
         Returns: {
-          description: string
+          content: string
           id: string
+          metadata: Json
           similarity: number
-          table_name: string
-          title: string
         }[]
       }
       match_events: {
