@@ -137,6 +137,13 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "event_companion_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events_no_embedding"
+            referencedColumns: ["id"]
+          },
         ]
       }
       event_rsvps: {
@@ -167,6 +174,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events_no_embedding"
             referencedColumns: ["id"]
           },
         ]
@@ -376,6 +390,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "join_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events_no_embedding"
             referencedColumns: ["id"]
           },
         ]
@@ -993,7 +1014,230 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      events_no_embedding: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          date: string | null
+          description: string | null
+          event_type: string | null
+          external_link: string | null
+          id: string | null
+          image_url: string | null
+          location: string | null
+          market: string | null
+          mood: string | null
+          music_type: string | null
+          price: string | null
+          price_range: string | null
+          target_audience: string | null
+          ticket_link: string | null
+          time: string | null
+          title: string | null
+          updated_at: string | null
+          user_id: string | null
+          venue_name: string | null
+          venue_size: string | null
+          video_url: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          event_type?: string | null
+          external_link?: string | null
+          id?: string | null
+          image_url?: string | null
+          location?: string | null
+          market?: string | null
+          mood?: string | null
+          music_type?: string | null
+          price?: string | null
+          price_range?: string | null
+          target_audience?: string | null
+          ticket_link?: string | null
+          time?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          venue_name?: string | null
+          venue_size?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          event_type?: string | null
+          external_link?: string | null
+          id?: string | null
+          image_url?: string | null
+          location?: string | null
+          market?: string | null
+          mood?: string | null
+          music_type?: string | null
+          price?: string | null
+          price_range?: string | null
+          target_audience?: string | null
+          ticket_link?: string | null
+          time?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          venue_name?: string | null
+          venue_size?: string | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
+      items_no_embedding: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          image_url: string | null
+          location: string | null
+          market: string | null
+          meetup_date: string | null
+          meetup_time: string | null
+          mobile_number: string | null
+          price: number | null
+          status: string | null
+          title: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          image_url?: string | null
+          location?: string | null
+          market?: string | null
+          meetup_date?: string | null
+          meetup_time?: string | null
+          mobile_number?: string | null
+          price?: number | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          image_url?: string | null
+          location?: string | null
+          market?: string | null
+          meetup_date?: string | null
+          meetup_time?: string | null
+          mobile_number?: string | null
+          price?: number | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      top_list_items_no_embedding: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string | null
+          image_url: string | null
+          list_id: string | null
+          location: string | null
+          name: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string | null
+          image_url?: string | null
+          list_id?: string | null
+          location?: string | null
+          name?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string | null
+          image_url?: string | null
+          list_id?: string | null
+          location?: string | null
+          name?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "top_list_items_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "top_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_coupons_no_embedding: {
+        Row: {
+          business_name: string | null
+          coupon_code: string | null
+          created_at: string | null
+          description: string | null
+          discount_amount: string | null
+          id: string | null
+          image_url: string | null
+          is_active: boolean | null
+          neighborhood: string | null
+          title: string | null
+          updated_at: string | null
+          user_id: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          business_name?: string | null
+          coupon_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          discount_amount?: string | null
+          id?: string | null
+          image_url?: string | null
+          is_active?: boolean | null
+          neighborhood?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          business_name?: string | null
+          coupon_code?: string | null
+          created_at?: string | null
+          description?: string | null
+          discount_amount?: string | null
+          id?: string | null
+          image_url?: string | null
+          is_active?: boolean | null
+          neighborhood?: string | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       delete_past_events: { Args: never; Returns: undefined }
