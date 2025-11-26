@@ -266,6 +266,90 @@ export type Database = {
         }
         Relationships: []
       }
+      expired_events: {
+        Row: {
+          address: string | null
+          archived_at: string
+          date: string | null
+          description: string | null
+          event_type: string | null
+          external_link: string | null
+          id: string
+          image_url: string | null
+          location: string | null
+          market: string | null
+          mood: string | null
+          music_type: string | null
+          original_created_at: string | null
+          original_event_id: string | null
+          original_updated_at: string | null
+          price: string | null
+          price_range: string | null
+          target_audience: string | null
+          ticket_link: string | null
+          time: string | null
+          title: string
+          user_id: string | null
+          venue_name: string | null
+          venue_size: string | null
+          video_url: string | null
+        }
+        Insert: {
+          address?: string | null
+          archived_at?: string
+          date?: string | null
+          description?: string | null
+          event_type?: string | null
+          external_link?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          market?: string | null
+          mood?: string | null
+          music_type?: string | null
+          original_created_at?: string | null
+          original_event_id?: string | null
+          original_updated_at?: string | null
+          price?: string | null
+          price_range?: string | null
+          target_audience?: string | null
+          ticket_link?: string | null
+          time?: string | null
+          title: string
+          user_id?: string | null
+          venue_name?: string | null
+          venue_size?: string | null
+          video_url?: string | null
+        }
+        Update: {
+          address?: string | null
+          archived_at?: string
+          date?: string | null
+          description?: string | null
+          event_type?: string | null
+          external_link?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          market?: string | null
+          mood?: string | null
+          music_type?: string | null
+          original_created_at?: string | null
+          original_event_id?: string | null
+          original_updated_at?: string | null
+          price?: string | null
+          price_range?: string | null
+          target_audience?: string | null
+          ticket_link?: string | null
+          time?: string | null
+          title?: string
+          user_id?: string | null
+          venue_name?: string | null
+          venue_size?: string | null
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       friends_picture_galleries: {
         Row: {
           created_at: string | null
