@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.semantic-event-search]
 verify_jwt = false
+
+[functions.archive-expired-events]
+verify_jwt = false
