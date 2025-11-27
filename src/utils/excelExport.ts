@@ -20,7 +20,7 @@ export const exportEventsToExcel = (events: any[], filename: string = 'events.xl
     'Market': event.market || '',
     'Image URL': event.image_url || '',
     'Video URL': event.video_url || '',
-    'External Link': event.external_link || '',
+    'Instagram/External Link': event.external_link || '',
     'Ticket Link': event.ticket_link || '',
     'Created At': event.created_at || '',
     'Updated At': event.updated_at || '',
@@ -80,7 +80,7 @@ export const exportTopListItemsToExcel = (items: any[], filename: string = 'top-
     'Display Order': item.display_order || '',
     'List ID': item.list_id || '',
     'Image URL': item.image_url || '',
-    'URL': item.url || '',
+    'Instagram/URL': item.url || '',
     'Created At': item.created_at || '',
   }));
 
