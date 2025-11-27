@@ -42,3 +42,61 @@ export const exportEventsToExcel = (events: any[], filename: string = 'events.xl
   // Generate and download file
   XLSX.writeFile(wb, filename);
 };
+
+export const exportTopListsToExcel = (lists: any[], filename: string = 'top-lists.xlsx') => {
+  // Prepare data for Excel
+  const data = lists.map(list => ({
+    'Title': list.title || '',
+    'Category': list.category || '',
+    'Description': list.description || '',
+    'User ID': list.user_id || '',
+    'Created At': list.created_at || '',
+    'Updated At': list.updated_at || '',
+  }));
+
+  // Create workbook and worksheet
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(data);
+
+  // Auto-size columns
+  const colWidths = Object.keys(data[0] || {}).map(key => ({
+    wch: Math.max(key.length, 15)
+  }));
+  ws['!cols'] = colWidths;
+
+  // Add worksheet to workbook
+  XLSX.utils.book_append_sheet(wb, ws, 'Top Lists');
+
+  // Generate and download file
+  XLSX.writeFile(wb, filename);
+};
+
+export const exportTopListItemsToExcel = (items: any[], filename: string = 'top-list-items.xlsx') => {
+  // Prepare data for Excel
+  const data = items.map(item => ({
+    'Name': item.name || '',
+    'Description': item.description || '',
+    'Location': item.location || '',
+    'Display Order': item.display_order || '',
+    'List ID': item.list_id || '',
+    'Image URL': item.image_url || '',
+    'URL': item.url || '',
+    'Created At': item.created_at || '',
+  }));
+
+  // Create workbook and worksheet
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(data);
+
+  // Auto-size columns
+  const colWidths = Object.keys(data[0] || {}).map(key => ({
+    wch: Math.max(key.length, 15)
+  }));
+  ws['!cols'] = colWidths;
+
+  // Add worksheet to workbook
+  XLSX.utils.book_append_sheet(wb, ws, 'Top List Items');
+
+  // Generate and download file
+  XLSX.writeFile(wb, filename);
+};
