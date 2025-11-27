@@ -107,6 +107,21 @@ const TopListsPage = () => {
     enabled: !!selectedListId,
   });
 
+  // Fetch ALL top list items (for exporting all items)
+  const { data: allItems } = useQuery({
+    queryKey: ["allTopListItems"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("top_list_items")
+        .select("*")
+        .order("list_id", { ascending: true })
+        .order("display_order", { ascending: true });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Create list mutation
   const createListMutation = useMutation({
     mutationFn: async () => {
@@ -340,6 +355,20 @@ const TopListsPage = () => {
     }
   };
 
+  const handleExportAllItems = () => {
+    if (!allItems || allItems.length === 0) {
+      toast.error("No items to export");
+      return;
+    }
+    try {
+      exportTopListItemsToExcel(allItems, `all-top-list-items-${new Date().toISOString().split('T')[0]}.xlsx`);
+      toast.success(`${allItems.length} items exported to Excel`);
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export all items");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20 lg:pb-0">
       <Header />
@@ -361,6 +390,15 @@ const TopListsPage = () => {
               >
                 <Download className="h-4 w-4" />
                 Export Lists
+              </Button>
+              <Button
+                onClick={handleExportAllItems}
+                variant="outline"
+                className="gap-2"
+                disabled={!allItems || allItems.length === 0}
+              >
+                <Download className="h-4 w-4" />
+                Export All Items
               </Button>
               {user && (
                 <Button
