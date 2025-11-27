@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Edit } from "lucide-react";
+import { Plus, Trash2, Edit, Download } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import BottomNavigation from "@/components/BottomNavigation";
@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { exportTopListsToExcel, exportTopListItemsToExcel } from "@/utils/excelExport";
 
 const TopListsPage = () => {
   const navigate = useNavigate();
@@ -311,6 +312,34 @@ const TopListsPage = () => {
     updateItemMutation.mutate();
   };
 
+  const handleExportLists = () => {
+    if (!topLists || topLists.length === 0) {
+      toast.error("No lists to export");
+      return;
+    }
+    try {
+      exportTopListsToExcel(topLists, `top-lists-${new Date().toISOString().split('T')[0]}.xlsx`);
+      toast.success(`${topLists.length} lists exported to Excel`);
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export lists");
+    }
+  };
+
+  const handleExportItems = () => {
+    if (!listItems || listItems.length === 0) {
+      toast.error("No items to export");
+      return;
+    }
+    try {
+      exportTopListItemsToExcel(listItems, `top-list-items-${new Date().toISOString().split('T')[0]}.xlsx`);
+      toast.success(`${listItems.length} items exported to Excel`);
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to export items");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20 lg:pb-0">
       <Header />
@@ -323,17 +352,28 @@ const TopListsPage = () => {
               <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-2">The Yara Lists</h1>
               <p className="text-pink-400 text-lg">Curate and share your favorite places</p>
             </div>
-            {user && (
+            <div className="flex gap-3">
               <Button
-                onClick={() => setShowCreateDialog(true)}
-                className="gap-2 h-12 px-6"
-                size="lg"
-                disabled={userListCount !== undefined && userListCount >= 10}
+                onClick={handleExportLists}
+                variant="outline"
+                className="gap-2"
+                disabled={!topLists || topLists.length === 0}
               >
-                <Plus className="h-5 w-5" />
-                New List
+                <Download className="h-4 w-4" />
+                Export Lists
               </Button>
-            )}
+              {user && (
+                <Button
+                  onClick={() => setShowCreateDialog(true)}
+                  className="gap-2 h-12 px-6"
+                  size="lg"
+                  disabled={userListCount !== undefined && userListCount >= 10}
+                >
+                  <Plus className="h-5 w-5" />
+                  New List
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -493,16 +533,28 @@ const TopListsPage = () => {
           </DialogHeader>
           
           <div className="flex-1 overflow-y-auto py-4">
-            {user?.id === topLists?.find(l => l.id === selectedListId)?.user_id && (
-              <Button
-                onClick={() => setShowAddItemDialog(true)}
-                variant="outline"
-                className="w-full gap-2 mb-6 border-dashed border-2 h-12"
-              >
-                <Plus className="h-5 w-5" />
-                Add New Item
-              </Button>
-            )}
+            <div className="flex gap-2 mb-6">
+              {user?.id === topLists?.find(l => l.id === selectedListId)?.user_id && (
+                <Button
+                  onClick={() => setShowAddItemDialog(true)}
+                  variant="outline"
+                  className="flex-1 gap-2 border-dashed border-2 h-12"
+                >
+                  <Plus className="h-5 w-5" />
+                  Add New Item
+                </Button>
+              )}
+              {listItems && listItems.length > 0 && (
+                <Button
+                  onClick={handleExportItems}
+                  variant="outline"
+                  className="gap-2 h-12 px-6"
+                >
+                  <Download className="h-4 w-4" />
+                  Export Items
+                </Button>
+              )}
+            </div>
 
             {listItems && listItems.length > 0 ? (
               <div className="space-y-3">
