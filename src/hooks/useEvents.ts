@@ -12,8 +12,16 @@ export interface Event {
   location?: string;
   venue_name?: string;
   price?: string;
+  price_range?: string;
   image_url?: string;
   video_url?: string;
+  external_link?: string;
+  ticket_link?: string;
+  address?: string;
+  mood?: string;
+  music_type?: string;
+  target_audience?: string;
+  venue_size?: string;
   market: string;
   event_type: 'event' | 'meetup';
   created_at: string;
@@ -43,6 +51,14 @@ const fetchEvents = async (eventType?: 'event' | 'meetup', filterType?: boolean,
       price,
       image_url,
       video_url,
+      external_link,
+      ticket_link,
+      address,
+      price_range,
+      mood,
+      music_type,
+      target_audience,
+      venue_size,
       market,
       event_type,
       created_at,
