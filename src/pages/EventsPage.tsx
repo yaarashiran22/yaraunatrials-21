@@ -6,6 +6,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useEvents } from "@/hooks/useEvents";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { exportEventsToExcel } from "@/utils/excelExport";
+import { toast } from "@/hooks/use-toast";
 
 const EventsPage = () => {
   const { t } = useLanguage();
@@ -32,6 +36,32 @@ const EventsPage = () => {
     setIsEventPopupOpen(true);
   };
 
+  const handleExportToExcel = () => {
+    if (filteredEvents.length === 0) {
+      toast({
+        title: "No events to export",
+        description: "There are no events available to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      exportEventsToExcel(filteredEvents, `events-${new Date().toISOString().split('T')[0]}.xlsx`);
+      toast({
+        title: "Export successful",
+        description: `${filteredEvents.length} events exported to Excel.`,
+      });
+    } catch (error) {
+      console.error("Export error:", error);
+      toast({
+        title: "Export failed",
+        description: "Failed to export events. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20" dir="ltr">
       <Header 
@@ -42,6 +72,18 @@ const EventsPage = () => {
         searchPlaceholder="Search events..."
       />
       
+      {/* Export Button */}
+      <div className="px-4 pt-4">
+        <Button 
+          onClick={handleExportToExcel}
+          className="w-full"
+          disabled={loading || filteredEvents.length === 0}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Export to Excel ({filteredEvents.length} events)
+        </Button>
+      </div>
+
       {/* Content Grid */}
       <main className="px-4 py-4">
         {loading ? (
