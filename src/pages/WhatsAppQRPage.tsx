@@ -10,7 +10,7 @@ const WhatsAppQRPage = () => {
   const { toast } = useToast();
   
   // Your actual WhatsApp bot number
-  const whatsappNumber = "17622513744";
+  const whatsappNumber = "14842865805";
   const whatsappLink = `https://wa.me/${whatsappNumber}`;
 
   useEffect(() => {
@@ -103,7 +103,7 @@ const WhatsAppQRPage = () => {
           </div>
 
           <div className="text-center text-sm text-muted-foreground space-y-1">
-            <p className="font-mono">+1 (762) 251-3744</p>
+            <p className="font-mono">+1 (484) 286-5805</p>
             <p className="text-xs">{whatsappLink}</p>
           </div>
         </CardContent>
