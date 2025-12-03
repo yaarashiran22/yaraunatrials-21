@@ -97,12 +97,16 @@ const TopListsPage = () => {
       if (!selectedListId) return [];
       const { data, error } = await supabase
         .from("top_list_items")
-        .select("*")
+        .select("*, top_lists(category)")
         .eq("list_id", selectedListId)
         .order("display_order", { ascending: true });
       
       if (error) throw error;
-      return data;
+      // Flatten the category from the joined top_lists
+      return data?.map(item => ({
+        ...item,
+        category: (item.top_lists as any)?.category || ''
+      }));
     },
     enabled: !!selectedListId,
   });
@@ -121,7 +125,7 @@ const TopListsPage = () => {
       // Flatten the category from the joined top_lists
       return data?.map(item => ({
         ...item,
-        category: item.top_lists?.category || ''
+        category: (item.top_lists as any)?.category || ''
       }));
     },
   });
