@@ -111,21 +111,22 @@ const TopListsPage = () => {
     enabled: !!selectedListId,
   });
 
-  // Fetch ALL top list items with their parent list category (for exporting all items)
+  // Fetch ALL top list items with their parent list category and title (for exporting all items)
   const { data: allItems } = useQuery({
     queryKey: ["allTopListItems"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("top_list_items")
-        .select("*, top_lists(category)")
+        .select("*, top_lists(category, title)")
         .order("list_id", { ascending: true })
         .order("display_order", { ascending: true });
       
       if (error) throw error;
-      // Flatten the category from the joined top_lists
+      // Flatten the category and list_name from the joined top_lists
       return data?.map(item => ({
         ...item,
-        category: (item.top_lists as any)?.category || ''
+        category: (item.top_lists as any)?.category || '',
+        list_name: (item.top_lists as any)?.title || ''
       }));
     },
   });
