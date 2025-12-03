@@ -113,15 +113,16 @@ const TopListsPage = () => {
 
   // Fetch ALL top list items with their parent list category and title (for exporting all items)
   const { data: allItems } = useQuery({
-    queryKey: ["allTopListItems"],
+    queryKey: ["allTopListItemsWithDetails"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("top_list_items")
-        .select("*, top_lists(category, title)")
+        .select("*, top_lists!inner(category, title)")
         .order("list_id", { ascending: true })
         .order("display_order", { ascending: true });
       
       if (error) throw error;
+      console.log("Raw allItems data:", data);
       // Flatten the category and list_name from the joined top_lists
       return data?.map(item => ({
         ...item,
