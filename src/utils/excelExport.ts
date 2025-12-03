@@ -75,6 +75,7 @@ export const exportTopListItemsToExcel = (items: any[], filename: string = 'top-
   // Prepare data for Excel
   const data = items.map(item => ({
     'Name': item.name || '',
+    'Category': item.category || '',
     'Description': item.description || '',
     'Location': item.location || '',
     'Display Order': item.display_order || '',
