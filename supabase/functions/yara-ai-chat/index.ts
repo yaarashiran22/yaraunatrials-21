@@ -1049,6 +1049,40 @@ IMPORTANT - NO DATABASE MATCHES:
           console.log(`After age validation: ${parsed.recommendations.length} recommendations`);
         }
 
+        // CRITICAL FIX: Enrich recommendations with image_url from database if AI omitted them
+        if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
+          // Create lookup maps for quick access
+          const eventImageMap = new Map(ageFilteredEvents.map(e => [e.id, e.image_url]));
+          const businessImageMap = new Map(businesses.map(b => [b.id, b.image_url]));
+          const couponImageMap = new Map(coupons.map(c => [c.id, c.image_url]));
+          
+          parsed.recommendations = parsed.recommendations.map((rec: any) => {
+            // If AI didn't include image_url, fetch it from our database
+            if (!rec.image_url) {
+              let imageUrl = null;
+              
+              if (rec.type === 'event') {
+                imageUrl = eventImageMap.get(rec.id);
+              } else if (rec.type === 'business') {
+                imageUrl = businessImageMap.get(rec.id);
+              } else if (rec.type === 'coupon') {
+                imageUrl = couponImageMap.get(rec.id);
+              }
+              // Note: topListItems don't have images, so skip those
+              
+              if (imageUrl) {
+                console.log(`Enriched recommendation "${rec.title}" with image_url from database`);
+                return { ...rec, image_url: imageUrl };
+              }
+            }
+            return rec;
+          });
+          
+          // Update message with enriched recommendations
+          message = JSON.stringify(parsed);
+          console.log(`Enriched recommendations with images from database`);
+        }
+
         // CRITICAL FIX: Filter out jam sessions when user asks for workshops
         const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase() || "";
         const userAskedForWorkshops = /\b(workshop|workshops|class|classes|course|courses|taller|talleres)\b/i.test(lastUserMessage);
