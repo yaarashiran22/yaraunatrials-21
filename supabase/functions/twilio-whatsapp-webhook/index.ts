@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
 
     // Send typing indicator immediately
     try {
-      await fetch(`https://messaging.twilio.com/v2/Indicators/Typing.json`, {
+      const typingResponse = await fetch(`https://messaging.twilio.com/v2/Indicators/Typing.json`, {
         method: "POST",
         headers: {
           Authorization: "Basic " + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
@@ -58,7 +58,8 @@ Deno.serve(async (req) => {
           channel: "whatsapp",
         }),
       });
-      console.log("Sent typing indicator");
+      const typingResult = await typingResponse.json();
+      console.log("Typing indicator response:", JSON.stringify(typingResult), "Status:", typingResponse.status);
     } catch (error) {
       console.error("Error sending typing indicator:", error);
     }
