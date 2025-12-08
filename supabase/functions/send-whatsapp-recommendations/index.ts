@@ -80,16 +80,24 @@ Deno.serve(async (req) => {
     for (let i = 0; i < uniqueRecs.length; i++) {
       const rec = uniqueRecs[i];
       
-      // Extract title from description if not provided
-      let title = rec.title;
+      // Get title from multiple possible sources
+      // AI might use 'title' or 'name' depending on the item type
+      let title = rec.title || rec.name;
+      
+      // If still no title, try to extract from first line of description
       if (!title && rec.description) {
-        // Try to extract title from first line of description
         const firstLine = rec.description.split('\n')[0].trim();
-        title = firstLine.length > 100 ? 'Event Recommendation' : firstLine;
+        // Only use if it's reasonably short (a title, not a paragraph)
+        if (firstLine.length <= 100) {
+          title = firstLine;
+        }
       }
       
+      // Log what we have for debugging
+      console.log(`Rec ${i + 1} - title: ${rec.title}, name: ${rec.name}, resolved title: ${title}`);
+      
       if (!title) {
-        console.log(`Skipping recommendation ${i + 1}: missing title and description`);
+        console.log(`Skipping recommendation ${i + 1}: could not determine title from title, name, or description`);
         continue;
       }
 
