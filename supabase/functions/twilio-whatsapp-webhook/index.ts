@@ -899,9 +899,16 @@ Deno.serve(async (req) => {
       console.log("Response is not valid JSON, treating as conversational text");
       parsedResponse = null;
       
+      // CRITICAL FIX: Detect when AI outputs raw function call syntax instead of using tool mechanism
+      // Pattern: provide_recommendations(...) or give_recommendations(...)
+      const functionCallPattern = /\b(provide_recommendations|give_recommendations)\s*\([^)]*\)/i;
+      if (functionCallPattern.test(assistantMessage)) {
+        console.log("WARNING: AI outputted raw function call syntax instead of using tool mechanism. Sending fallback.");
+        assistantMessage = "Let me find some great options for you! 🔍 What neighborhood are you interested in, or is anywhere in Buenos Aires fine?";
+      }
       // CRITICAL FIX: If the message looks like it contains JSON but failed to parse,
       // strip out any JSON-like content to avoid sending raw code to user
-      if (cleanedMessage.includes('"recommendations"') || cleanedMessage.includes('"type":')) {
+      else if (cleanedMessage.includes('"recommendations"') || cleanedMessage.includes('"type":')) {
         console.log("WARNING: Response contains JSON-like content but failed to parse. Stripping it.");
         // Extract only the human-readable text before any JSON
         const jsonPatternStart = cleanedMessage.search(/[\[{]/);

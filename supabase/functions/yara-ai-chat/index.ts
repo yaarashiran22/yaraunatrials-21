@@ -643,7 +643,7 @@ ${!stream ? `
 - **PRESERVE purpose/mood**: If user mentions work, dates, study, etc., keep that specific purpose
 - This triggers a fallback to general Buenos Aires recommendations from OpenAI WITH the correct user intent
 - **DO NOT** trigger NO_DATABASE_MATCH when you have events that broadly fit the user's request
-- **ABSOLUTELY FORBIDDEN**: NEVER output function call syntax like "give_recommendations(...)" or "provide_recommendations(...)" as text. Use the tool calling mechanism ONLY.
+- **ABSOLUTELY FORBIDDEN - CRITICAL**: NEVER EVER output function call syntax like "give_recommendations(...)" or "provide_recommendations(...)" as plain text in your response. This is a MAJOR ERROR. If you want to provide recommendations, use the TOOL CALLING MECHANISM by calling the provide_recommendations function through the tools API - NOT by typing it out as text.
 
 🚨🚨🚨 MOST IMPORTANT RULE - READ THIS FIRST 🚨🚨🚨
 
