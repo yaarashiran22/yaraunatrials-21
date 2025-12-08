@@ -689,7 +689,8 @@ REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
 - Use type: "topListItem"
 - id: CRITICAL - use the individual item.id from top_list_items (NOT the topList.id)
 - title: use the bar/café/club name from the item
-- description: include "Location: [item.location]" and the item.description
+- description: ALWAYS START WITH "📍 [Neighborhood]" - use item.location field, OR extract neighborhood from item.description (e.g., "Palermo", "San Telmo", "Chacarita"). Then include the rest of item.description
+- **CRITICAL NEIGHBORHOOD RULE**: EVERY bar/club/café recommendation MUST include a neighborhood. If item.location is null, extract it from description text (look for neighborhoods like "Palermo", "Palermo Soho", "San Telmo", "Chacarita", "Recoleta", "Puerto Madero", etc.)
 - url: include the item.url field if available (for Instagram links)
 - DO NOT include image_url for topListItems
 - Extract individual items from relevant topLists and recommend them as separate recommendations
