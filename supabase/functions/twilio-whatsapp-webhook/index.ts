@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // CONFIGURATION: Set to true to enable bot, false to disable
-const BOT_ENABLED = false;
+const BOT_ENABLED = true;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
