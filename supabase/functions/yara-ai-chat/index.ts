@@ -365,14 +365,31 @@ serve(async (req) => {
 
     // Detect language from the current user message FIRST (before building prompts)
     const detectLanguage = (text: string): string => {
-      // Simple heuristic: check for common Spanish/Hebrew/Portuguese patterns
-      const spanishWords = /\b(hola|qué|dónde|cuándo|cómo|gracias|por favor|eventos|bares|fiesta)\b/i;
+      // Check for various language patterns
       const hebrewChars = /[\u0590-\u05FF]/; // Hebrew Unicode range
-      const portugueseWords = /\b(olá|obrigado|onde|quando|como|por favor|eventos)\b/i;
+      const arabicChars = /[\u0600-\u06FF]/; // Arabic Unicode range
+      const chineseChars = /[\u4E00-\u9FFF]/; // Chinese Unicode range
+      const japaneseChars = /[\u3040-\u309F\u30A0-\u30FF]/; // Japanese Hiragana/Katakana
+      const koreanChars = /[\uAC00-\uD7AF\u1100-\u11FF]/; // Korean Unicode range
+      const russianChars = /[\u0400-\u04FF]/; // Cyrillic Unicode range
+      
+      const spanishWords = /\b(hola|qué|dónde|cuándo|cómo|gracias|por favor|eventos|bares|fiesta|quiero|busco|tengo)\b/i;
+      const portugueseWords = /\b(olá|obrigado|onde|quando|como|por favor|eventos|quero|procuro|tenho)\b/i;
+      const frenchWords = /\b(bonjour|merci|où|quand|comment|s'il vous plaît|événements|je veux|cherche)\b/i;
+      const germanWords = /\b(hallo|danke|wo|wann|wie|bitte|veranstaltungen|ich möchte|suche)\b/i;
+      const italianWords = /\b(ciao|grazie|dove|quando|come|per favore|eventi|voglio|cerco)\b/i;
       
       if (hebrewChars.test(text)) return 'he';
+      if (arabicChars.test(text)) return 'ar';
+      if (chineseChars.test(text)) return 'zh';
+      if (japaneseChars.test(text)) return 'ja';
+      if (koreanChars.test(text)) return 'ko';
+      if (russianChars.test(text)) return 'ru';
       if (spanishWords.test(text)) return 'es';
       if (portugueseWords.test(text)) return 'pt';
+      if (frenchWords.test(text)) return 'fr';
+      if (germanWords.test(text)) return 'de';
+      if (italianWords.test(text)) return 'it';
       return 'en'; // Default to English
     };
 
@@ -390,7 +407,31 @@ serve(async (req) => {
     };
 
     // Automatic language detection - respond in the same language the user writes in
-    const languageInstruction = `CRITICAL LANGUAGE RULE: The user is writing in ${languageMap[userLanguage] || 'English'}. You MUST respond in ${languageMap[userLanguage] || 'English'} ONLY. Do not switch languages based on conversation history - respond in ${languageMap[userLanguage] || 'English'}.`;
+    const languageInstruction = `CRITICAL LANGUAGE RULE: The user is writing in ${languageMap[userLanguage] || 'English'}. You MUST:
+1. Respond in ${languageMap[userLanguage] || 'English'} ONLY
+2. TRANSLATE all event titles, descriptions, and recommendation text to ${languageMap[userLanguage] || 'English'}
+3. Even if the database contains events in Spanish or English, YOU MUST translate them to ${languageMap[userLanguage] || 'English'}
+4. Keep venue names and proper nouns (like "Niceto Club", "La Bomba de Tiempo") in their original form, but translate descriptions
+5. Do not switch languages based on conversation history - everything must be in ${languageMap[userLanguage] || 'English'}
+
+Example: If database has "Fiesta de jazz con música en vivo" and user writes in English, translate to "Jazz party with live music"
+Example: If database has "Live jazz night" and user writes in Spanish, translate to "Noche de jazz en vivo"`;
+
+    // Expand language map for more languages
+    const expandedLanguageMap: Record<string, string> = {
+      'en': 'English',
+      'es': 'Spanish', 
+      'pt': 'Portuguese',
+      'he': 'Hebrew',
+      'fr': 'French',
+      'de': 'German',
+      'it': 'Italian',
+      'zh': 'Chinese',
+      'ja': 'Japanese',
+      'ko': 'Korean',
+      'ar': 'Arabic',
+      'ru': 'Russian'
+    };
 
     const systemPrompt = `You are Yara – your vibe is like that friend who actually lives in Buenos Aires and knows where the real action is. You're helpful but keep it chill and authentic. No corporate speak, no try-hard energy. Just straight talk with personality.
 
