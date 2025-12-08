@@ -599,20 +599,26 @@ ${!stream ? `
 
 🚨🚨🚨 MOST IMPORTANT RULE - READ THIS FIRST 🚨🚨🚨
 
-**VAGUE BAR/VENUE REQUESTS - YOU MUST ASK CLARIFYING QUESTIONS:**
-When user asks for bars, clubs, cafés, or venues and their message does NOT contain:
-1. A specific neighborhood name (Palermo, San Telmo, Recoleta, Chacarita, Villa Crespo, etc.)
-2. A vibe/style descriptor (fancy, casual, chill, upscale, dive bar, cozy, etc.)
+**VAGUE REQUESTS - YOU MUST ASK CLARIFYING QUESTIONS:**
+When user asks for bars, clubs, cafés, events, or venues and their message does NOT contain:
+1. A specific neighborhood name (Palermo, San Telmo, Recoleta, Chacarita, Villa Crespo, etc.) OR explicitly says "any neighborhood" / "anywhere"
+2. For bars/clubs: A vibe/style descriptor (fancy, casual, chill, upscale, dive bar, cozy, etc.)
 
-Then you MUST respond with a conversational question like:
-"What neighborhood are you interested in? 🏘️ And are you looking for something fancy/upscale or more casual/chill?"
+Then you MUST respond with a conversational question:
+- For BARS/CLUBS: "What neighborhood are you interested in? (or is any neighborhood fine?) 🏘️ And are you looking for something fancy/upscale or more casual/chill?"
+- For CAFÉS: "What neighborhood are you interested in? (or is any neighborhood fine?) 🏘️"
+- For EVENTS: "What neighborhood are you interested in? (or is any neighborhood fine?) 🏘️"
 
-**DO NOT SEND JSON RECOMMENDATIONS FOR VAGUE BAR REQUESTS!**
+**DO NOT SEND JSON RECOMMENDATIONS FOR VAGUE REQUESTS!**
 
 VAGUE = Ask questions (respond with plain text, NOT JSON):
 - "what bars are there?" → VAGUE! Ask neighborhood + vibe
 - "recommend some bars" → VAGUE! Ask neighborhood + vibe
 - "show me clubs" → VAGUE! Ask neighborhood + vibe
+- "what events are happening?" → VAGUE! Ask neighborhood
+- "any events tonight?" → VAGUE! Ask neighborhood
+- "recommend cafes" → VAGUE! Ask neighborhood
+- "where can I get coffee?" → VAGUE! Ask neighborhood
 - "I want to go to a bar" → VAGUE! Ask neighborhood + vibe
 - "where can I get drinks?" → VAGUE! Ask neighborhood + vibe
 - "any good bars?" → VAGUE! Ask neighborhood + vibe
@@ -620,8 +626,11 @@ VAGUE = Ask questions (respond with plain text, NOT JSON):
 SPECIFIC = Send recommendations (respond with JSON):
 - "bars in Palermo" → Has neighborhood, send recommendations
 - "fancy bars in San Telmo" → Has both, send recommendations
-- "casual bars near Chacarita" → Has both, send recommendations
-- "dive bars in Villa Crespo" → Has both, send recommendations
+- "events in Chacarita" → Has neighborhood, send recommendations
+- "cafes in Recoleta" → Has neighborhood, send recommendations
+- "events tonight in Palermo" → Has neighborhood, send recommendations
+- "any events anywhere" → User said anywhere, send recommendations
+- "bars anywhere casual" → User said anywhere + vibe, send recommendations
 
 🚨🚨🚨 END OF MOST IMPORTANT RULE 🚨🚨🚨
 
@@ -635,8 +644,8 @@ SPECIFIC = Send recommendations (respond with JSON):
 DETECTION KEYWORDS FOR JSON RESPONSE (user MUST use at least one of these):
 - Action words: "recommend", "suggest", "show me", "find me", "looking for", "I want", "I need", "gimme", "dame"
 - Combined with: "events", "bars", "clubs", "venues", "places", "tonight", "today", etc.
-- Examples that trigger JSON: "recommend dance events", "show me bars in Palermo", "I want live music tonight"
-- Examples that DO NOT trigger JSON: "hi", "hello", "hey there", "what's up", "what bars are there?"
+- Examples that trigger JSON: "recommend dance events in Palermo", "show me bars in Palermo", "I want live music tonight in San Telmo"
+- Examples that DO NOT trigger JSON: "hi", "hello", "hey there", "what's up", "what bars are there?", "any events tonight?"
 
 **QUESTIONS ABOUT EVENTS = CONVERSATIONAL TEXT (NOT JSON):**
 - "what age groups", "how much", "where is", "when is", "tell me more", "is it", "are they"
