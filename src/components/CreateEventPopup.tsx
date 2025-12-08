@@ -41,7 +41,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
   const [targetAudience, setTargetAudience] = useState("");
   const [musicType, setMusicType] = useState("");
   const [venueSize, setVenueSize] = useState("");
-  const [priceRange, setPriceRange] = useState("");
+  
   const [venueName, setVenueName] = useState("");
   const [address, setAddress] = useState("");
   const [ticketLink, setTicketLink] = useState("");
@@ -225,7 +225,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
           target_audience: targetAudience.trim() || null,
           music_type: musicType.trim() || null,
           venue_size: venueSize || null,
-          price_range: priceRange || null,
+          
           venue_name: venueName.trim(),
           address: address.trim() || null,
           ticket_link: ticketLink.trim() || null
@@ -256,7 +256,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
       setTargetAudience("");
       setMusicType("");
       setVenueSize("");
-      setPriceRange("");
+      
       setVenueName("");
       setAddress("");
       setTicketLink("");
@@ -512,20 +512,6 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
             </Select>
           </div>
 
-          {/* Price Range Field */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.priceRange')}</label>
-            <Select value={priceRange} onValueChange={setPriceRange}>
-              <SelectTrigger className="w-full h-12 text-left bg-white border-2 border-border rounded-full">
-                <SelectValue placeholder={t('createEvent.choosePriceRange')} />
-              </SelectTrigger>
-              <SelectContent className="bg-white border shadow-lg z-[9999]">
-                <SelectItem value="cheap" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.cheap')}</SelectItem>
-                <SelectItem value="moderate" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.moderate')}</SelectItem>
-                <SelectItem value="expensive" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.expensive')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
           {/* What Mood Section */}
           <div className="space-y-2">
