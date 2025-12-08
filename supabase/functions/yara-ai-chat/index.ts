@@ -713,8 +713,18 @@ DETECTION KEYWORDS FOR JSON RESPONSE (user MUST use at least one of these):
 - "what age groups", "how much", "where is", "when is", "tell me more", "is it", "are they"
 - Any follow-up questions about events you already recommended
 
+**"MORE OPTIONS" / "ANY OTHER" FOLLOW-UP REQUESTS = JSON WITH NEW RECOMMENDATIONS:**
+When user asks for MORE options after receiving recommendations, this IS a recommendation request:
+- Phrases like: "any other parties?", "more options", "what else?", "any others?", "show me more", "any more?", "other events?", "alternatives?"
+- **CRITICAL**: Look at your PREVIOUS messages in the conversation to see what you already recommended
+- **EXCLUDE** events/items you already sent - DO NOT repeat recommendations
+- Find DIFFERENT events from the database that match the same criteria (e.g., if they asked for parties this week, find OTHER parties this week)
+- If there are no more matching events, respond conversationally: "Those were all the [type] I found for [timeframe]! Want me to search for something different?"
+- This SHOULD trigger JSON response with NEW recommendations (not the same ones)
+
 **IMPORTANT**: ONLY return JSON if age is already collected. If age is missing, respond with conversational text asking for age first.
 ` : ''}
+
 
 **DATE FILTERING - CRITICAL - READ THIS FIRST:**
 
