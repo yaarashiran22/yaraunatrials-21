@@ -367,12 +367,13 @@ serve(async (req) => {
     // Detect language from the current user message FIRST (before building prompts)
     const detectLanguage = (text: string): string => {
       // Check for various language patterns
-      const hebrewChars = /[\u0590-\u05FF]/; // Hebrew Unicode range
-      const arabicChars = /[\u0600-\u06FF]/; // Arabic Unicode range
-      const chineseChars = /[\u4E00-\u9FFF]/; // Chinese Unicode range
-      const japaneseChars = /[\u3040-\u309F\u30A0-\u30FF]/; // Japanese Hiragana/Katakana
-      const koreanChars = /[\uAC00-\uD7AF\u1100-\u11FF]/; // Korean Unicode range
-      const russianChars = /[\u0400-\u04FF]/; // Cyrillic Unicode range
+      const hebrewChars = /[\u0590-\u05FF]/g; // Hebrew Unicode range
+      const arabicChars = /[\u0600-\u06FF]/g; // Arabic Unicode range
+      const chineseChars = /[\u4E00-\u9FFF]/g; // Chinese Unicode range
+      const japaneseChars = /[\u3040-\u309F\u30A0-\u30FF]/g; // Japanese Hiragana/Katakana
+      const koreanChars = /[\uAC00-\uD7AF\u1100-\u11FF]/g; // Korean Unicode range
+      const russianChars = /[\u0400-\u04FF]/g; // Cyrillic Unicode range
+      const latinChars = /[a-zA-Z]/g; // Latin alphabet
       
       const spanishWords = /\b(hola|qué|dónde|cuándo|cómo|gracias|por favor|eventos|bares|fiesta|quiero|busco|tengo)\b/i;
       const portugueseWords = /\b(olá|obrigado|onde|quando|como|por favor|eventos|quero|procuro|tenho)\b/i;
@@ -380,12 +381,32 @@ serve(async (req) => {
       const germanWords = /\b(hallo|danke|wo|wann|wie|bitte|veranstaltungen|ich möchte|suche)\b/i;
       const italianWords = /\b(ciao|grazie|dove|quando|come|per favore|eventi|voglio|cerco)\b/i;
       
-      if (hebrewChars.test(text)) return 'he';
-      if (arabicChars.test(text)) return 'ar';
-      if (chineseChars.test(text)) return 'zh';
-      if (japaneseChars.test(text)) return 'ja';
-      if (koreanChars.test(text)) return 'ko';
-      if (russianChars.test(text)) return 'ru';
+      // Count characters of each type to determine MAJORITY language
+      const hebrewCount = (text.match(hebrewChars) || []).length;
+      const arabicCount = (text.match(arabicChars) || []).length;
+      const chineseCount = (text.match(chineseChars) || []).length;
+      const japaneseCount = (text.match(japaneseChars) || []).length;
+      const koreanCount = (text.match(koreanChars) || []).length;
+      const russianCount = (text.match(russianChars) || []).length;
+      const latinCount = (text.match(latinChars) || []).length;
+      
+      // Total meaningful characters
+      const totalNonLatin = hebrewCount + arabicCount + chineseCount + japaneseCount + koreanCount + russianCount;
+      
+      // Only detect non-Latin language if it's the MAJORITY of the text (more non-Latin than Latin chars)
+      // This prevents a single Arabic/Hebrew word from switching the whole response language
+      if (totalNonLatin > latinCount && totalNonLatin >= 3) {
+        // Find which non-Latin script is dominant
+        const maxNonLatin = Math.max(hebrewCount, arabicCount, chineseCount, japaneseCount, koreanCount, russianCount);
+        if (hebrewCount === maxNonLatin) return 'he';
+        if (arabicCount === maxNonLatin) return 'ar';
+        if (chineseCount === maxNonLatin) return 'zh';
+        if (japaneseCount === maxNonLatin) return 'ja';
+        if (koreanCount === maxNonLatin) return 'ko';
+        if (russianCount === maxNonLatin) return 'ru';
+      }
+      
+      // For Latin-based languages, check for specific words
       if (spanishWords.test(text)) return 'es';
       if (portugueseWords.test(text)) return 'pt';
       if (frenchWords.test(text)) return 'fr';
