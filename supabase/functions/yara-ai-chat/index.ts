@@ -155,8 +155,9 @@ serve(async (req) => {
       const currentDayIndex = nowBuenosAires.getDay();
       let daysUntilTarget = targetDayIndex - currentDayIndex;
       
-      // If the target day is today or has passed this week, get next week's occurrence
-      if (daysUntilTarget <= 0) {
+      // If the target day has PASSED this week (negative), get next week's occurrence
+      // But if it's TODAY (0), keep it as today!
+      if (daysUntilTarget < 0) {
         daysUntilTarget += 7;
       }
       
