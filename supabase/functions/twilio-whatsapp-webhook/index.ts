@@ -837,18 +837,25 @@ Deno.serve(async (req) => {
       multipleMessages = aiResponse.messages; // Array of messages if split
     }
 
-    console.log("Yara AI raw response:", assistantMessage);
+    console.log("Yara AI raw response:", assistantMessage?.substring(0, 500));
     if (multipleMessages) {
       console.log(`Response split into ${multipleMessages.length} messages for Twilio`);
     }
 
     // Try to parse as JSON - extract JSON from text if needed
     let cleanedMessage = assistantMessage.trim();
+    let prefixText = ""; // Text before JSON, if any
 
     // Try to extract JSON from the response
     // Look for a JSON object starting with { and ending with }
     const jsonMatch = cleanedMessage.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
+      // Capture any text before the JSON (intro text like "Here are some events...")
+      const jsonStartIndex = cleanedMessage.indexOf(jsonMatch[0]);
+      if (jsonStartIndex > 0) {
+        prefixText = cleanedMessage.substring(0, jsonStartIndex).trim();
+        console.log("Found prefix text before JSON:", prefixText?.substring(0, 100));
+      }
       cleanedMessage = jsonMatch[0];
       console.log("Extracted JSON from response:", cleanedMessage.substring(0, 200) + "...");
     }
@@ -861,10 +868,36 @@ Deno.serve(async (req) => {
         parsedResponse.recommendations?.length || 0,
         "recommendations",
       );
+      
+      // CRITICAL FIX: If we successfully parsed JSON with recommendations, 
+      // do NOT fall through to conversational path
+      if (parsedResponse.recommendations && Array.isArray(parsedResponse.recommendations)) {
+        // Use prefix text as intro message if the response didn't include one
+        if (prefixText && !parsedResponse.intro_message) {
+          parsedResponse.intro_message = prefixText;
+          console.log("Using prefix text as intro_message:", prefixText);
+        }
+      }
     } catch (e) {
       // Not JSON, just a regular conversational response
       console.log("Response is not valid JSON, treating as conversational text");
       parsedResponse = null;
+      
+      // CRITICAL FIX: If the message looks like it contains JSON but failed to parse,
+      // strip out any JSON-like content to avoid sending raw code to user
+      if (cleanedMessage.includes('"recommendations"') || cleanedMessage.includes('"type":')) {
+        console.log("WARNING: Response contains JSON-like content but failed to parse. Stripping it.");
+        // Extract only the human-readable text before any JSON
+        const jsonPatternStart = cleanedMessage.search(/[\[{]/);
+        if (jsonPatternStart > 0) {
+          assistantMessage = cleanedMessage.substring(0, jsonPatternStart).trim();
+          console.log("Stripped JSON, remaining text:", assistantMessage);
+        }
+        // If the entire message is JSON-like, send a fallback
+        if (!assistantMessage || assistantMessage.length < 10) {
+          assistantMessage = "I found some options for you! Let me format those properly...";
+        }
+      }
     }
 
     // Handle recommendations response (even if empty - don't show raw JSON)
@@ -1058,27 +1091,43 @@ ${twimlMessages}
   } catch (error) {
     console.error("Error in Twilio webhook:", error);
 
-    // Log error to database for monitoring
+    // Initialize supabase for error logging if not already initialized
+    let supabaseForLogging;
     try {
-      await supabase.from('chatbot_errors').insert({
-        function_name: 'twilio-whatsapp-webhook',
-        error_message: error.message || 'Unknown error in webhook',
-        error_stack: error.stack || null,
-        user_query: body || 'No message body',
-        phone_number: from || 'Unknown',
-        context: {
-          hasMedia: !!mediaUrl,
-          messageSid: messageSid || null,
-          timestamp: new Date().toISOString()
-        }
-      });
-    } catch (logError) {
-      console.error("Failed to log webhook error to database:", logError);
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (supabaseUrl && supabaseKey) {
+        supabaseForLogging = createClient(supabaseUrl, supabaseKey);
+      }
+    } catch (e) {
+      console.error("Could not create supabase client for logging:", e);
     }
 
-    // Return empty TwiML response on error
+    // Log error to database for monitoring (only if we have the client)
+    if (supabaseForLogging) {
+      try {
+        await supabaseForLogging.from('chatbot_errors').insert({
+          function_name: 'twilio-whatsapp-webhook',
+          error_message: error.message || 'Unknown error in webhook',
+          error_stack: error.stack || null,
+          user_query: 'Error occurred before message extraction',
+          phone_number: 'Unknown',
+          context: {
+            timestamp: new Date().toISOString(),
+            errorType: error.name || 'UnknownError'
+          }
+        });
+      } catch (logError) {
+        console.error("Failed to log webhook error to database:", logError);
+      }
+    }
+
+    // CRITICAL FIX: Return empty TwiML on error to prevent Twilio from retrying
+    // This prevents the "Sorry, I encountered an error" message from being sent
+    // multiple times when there are transient issues
+    console.log("Returning empty TwiML response due to error (prevents duplicate error messages)");
     return new Response(
-      '<?xml version="1.0" encoding="UTF-8"?><Response><Message>Sorry, I encountered an error. Please try again later.</Message></Response>',
+      '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
       {
         headers: { ...corsHeaders, "Content-Type": "text/xml" },
         status: 200,
