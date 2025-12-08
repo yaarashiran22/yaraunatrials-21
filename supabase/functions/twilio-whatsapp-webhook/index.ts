@@ -833,8 +833,24 @@ Deno.serve(async (req) => {
     let multipleMessages: string[] | undefined;
 
     if (aiResponse) {
-      assistantMessage = aiResponse.message || "Sorry, I encountered an error processing your request.";
+      console.log("Full aiResponse object:", JSON.stringify(aiResponse).substring(0, 1000));
+      
+      // Check if message exists and is not empty
+      if (aiResponse.message && typeof aiResponse.message === 'string' && aiResponse.message.trim()) {
+        assistantMessage = aiResponse.message;
+      } else if (aiResponse.error) {
+        // AI function returned an error in the response body
+        console.error("Yara AI returned error in response:", aiResponse.error);
+        assistantMessage = "Sorry, I'm having trouble right now. Please try again in a moment! 🙏";
+      } else {
+        // Empty or undefined message - log for debugging
+        console.error("Yara AI returned empty message. Full response:", JSON.stringify(aiResponse));
+        assistantMessage = "Hmm, I couldn't process that. Could you try rephrasing? 🤔";
+      }
       multipleMessages = aiResponse.messages; // Array of messages if split
+    } else {
+      console.error("Yara AI returned null/undefined response");
+      assistantMessage = "Sorry, I'm having trouble connecting. Please try again! 🙏";
     }
 
     console.log("Yara AI raw response:", assistantMessage?.substring(0, 500));
