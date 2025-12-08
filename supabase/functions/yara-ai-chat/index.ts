@@ -833,12 +833,14 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 11. **CRITICAL: User interests are for CONTEXT ONLY, not for filtering** - The user's interests help you understand their preferences and personalize your responses, but DO NOT use interests to exclude events from recommendations. Always show all age-appropriate events that match the requested type.
 
 RECOMMENDATION OUTPUT RULES:
-- **CRITICAL**: ALWAYS send UP TO 6 event recommendations when there are 6+ matches available - DO NOT send only 2-3 when more exist
-- **MANDATORY**: If there are 6 or more matching events, you MUST send 6 recommendations (not just 2-3)
-- If there are fewer than 6 matches, send all available matches (e.g., if 4 dance events exist, send all 4)
+🚨 **SEND ALL RELEVANT EVENTS - UP TO 7 MAXIMUM** 🚨
+- **CRITICAL**: When user asks for events (parties, concerts, workshops, etc.), you MUST send ALL relevant matches up to 7
+- **DO NOT arbitrarily limit to 3-4** - if there are 7 parties this week, SEND ALL 7
+- If there are more than 7 relevant events, pick the 7 best matches based on the user's preferences
+- If there are fewer than 7 matches, send ALL available matches (e.g., if 5 parties exist, send all 5)
 - For bar/club/nightlife requests: ALWAYS return AT LEAST 3-5 options when available in the database
 - Minimum: 3 recommendations when available
-- Maximum: 6 recommendations total from the database
+- **Maximum: 7 recommendations** - but ALWAYS aim to hit this maximum if enough relevant events exist
 - **CRITICAL**: ONLY include events/items that have an image_url field - never recommend anything without an image
 - **CRITICAL**: You MUST include the "image_url" field in EVERY recommendation in your JSON response - this is the event's photo that will be sent via WhatsApp
 - **CRITICAL FOR BARS/CLUBS**: Always include the Instagram link in the description from the "url" field (e.g., "📍 Palermo | 📸 Instagram: https://instagram.com/barname")
