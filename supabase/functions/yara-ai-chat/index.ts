@@ -38,18 +38,23 @@ serve(async (req) => {
       interactionHistory = interactions || [];
     }
 
-    // Get current date and day of week for filtering
-    const now = new Date();
-    const today = now.toISOString().split("T")[0];
+    // Get current date and day of week for filtering - USE BUENOS AIRES TIMEZONE
+    // Buenos Aires is UTC-3, so we need to adjust for local time
+    const nowUTC = new Date();
+    const buenosAiresOffset = -3 * 60; // UTC-3 in minutes
+    const nowBuenosAires = new Date(nowUTC.getTime() + (buenosAiresOffset * 60 * 1000) + (nowUTC.getTimezoneOffset() * 60 * 1000));
+    
+    const today = nowBuenosAires.toISOString().split("T")[0];
     const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const todayDayName = daysOfWeek[now.getDay()]; // e.g., "saturday"
+    const todayDayName = daysOfWeek[nowBuenosAires.getDay()]; // e.g., "saturday"
     
     // Calculate tomorrow's date and day
-    const tomorrow = new Date(now);
+    const tomorrow = new Date(nowBuenosAires);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowDate = tomorrow.toISOString().split("T")[0];
     const tomorrowDayName = daysOfWeek[tomorrow.getDay()];
 
+    console.log(`Buenos Aires time: ${nowBuenosAires.toISOString()}`);
     console.log(`Today's date: ${today}, Day: ${todayDayName}`);
     console.log(`Tomorrow's date: ${tomorrowDate}, Day: ${tomorrowDayName}`);
 
@@ -140,14 +145,14 @@ serve(async (req) => {
     const coupons = couponsResult.data || [];
     const topLists = topListsResult.data || [];
 
-    // Helper function to calculate next occurrence of recurring event
-    const getNextOccurrence = (dayName: string, fromDate: Date = new Date()): string => {
+    // Helper function to calculate next occurrence of recurring event - uses Buenos Aires time
+    const getNextOccurrence = (dayName: string): string => {
       const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
       const targetDayIndex = daysOfWeek.indexOf(dayName.toLowerCase());
       
-      if (targetDayIndex === -1) return fromDate.toISOString().split('T')[0]; // fallback
+      if (targetDayIndex === -1) return today; // fallback to today
       
-      const currentDayIndex = fromDate.getDay();
+      const currentDayIndex = nowBuenosAires.getDay();
       let daysUntilTarget = targetDayIndex - currentDayIndex;
       
       // If the target day is today or has passed this week, get next week's occurrence
@@ -155,8 +160,8 @@ serve(async (req) => {
         daysUntilTarget += 7;
       }
       
-      const nextOccurrence = new Date(fromDate);
-      nextOccurrence.setDate(fromDate.getDate() + daysUntilTarget);
+      const nextOccurrence = new Date(nowBuenosAires);
+      nextOccurrence.setDate(nowBuenosAires.getDate() + daysUntilTarget);
       
       return nextOccurrence.toISOString().split('T')[0]; // YYYY-MM-DD format
     };
