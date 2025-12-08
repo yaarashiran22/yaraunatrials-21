@@ -1001,6 +1001,14 @@ IMPORTANT - NO DATABASE MATCHES:
       // Regular conversational response
       message = data.choices?.[0]?.message?.content || "";
       console.log("AI response (conversational):", message);
+      
+      // SAFETY CHECK: If AI returned empty content, provide a fallback
+      if (!message || message.trim() === "") {
+        console.error("AI returned empty content! Full response:", JSON.stringify(data, null, 2));
+        message = userLanguage === 'es'
+          ? "¡Hola! ¿En qué te puedo ayudar hoy? Puedo recomendarte eventos, bares, fiestas y más en Buenos Aires 🎉"
+          : "Hey! What can I help you with today? I can recommend events, bars, parties and more in Buenos Aires 🎉";
+      }
 
       // FALLBACK: For general Buenos Aires questions OR recommendation requests with no database matches
       // Trigger fallback only when Yara explicitly indicates no data
