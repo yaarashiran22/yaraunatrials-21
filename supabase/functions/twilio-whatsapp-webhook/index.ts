@@ -159,158 +159,27 @@ Deno.serve(async (req) => {
 
     const userLanguage = whatsappUser?.preferred_language || "en";
 
-    // Check if user wants to upload an event
-    const uploadIntentPatterns = /\b(upload|post|share|add|submit)\s+(an?\s+)?(event|gig|show|concert|party)\b/i;
+    // Check if user wants to upload an event - just send the link, no in-chat flow
+    const uploadIntentPatterns = /\b(upload|post|share|add|submit|crear|subir|agregar|publicar)\s+(an?\s+|un\s+|una\s+)?(event|evento|gig|show|concert|concierto|party|fiesta)\b/i;
     const isUploadIntent = uploadIntentPatterns.test(body.trim());
 
-    // Handle event upload flow
-    if (activeUpload || isUploadIntent) {
-      console.log("Event upload flow detected");
+    // If there's an active upload flow stuck, clear it
+    if (activeUpload) {
+      console.log("Clearing stuck upload flow for:", from);
+      await supabase
+        .from("whatsapp_event_uploads")
+        .delete()
+        .eq("phone_number", from);
+    }
 
-      let currentState = activeUpload?.state || "awaiting_intent";
-      let uploadId = activeUpload?.id;
-      let responseMessage = "";
+    // Handle event upload intent - just send the link
+    if (isUploadIntent) {
+      console.log("Upload intent detected - sending link");
 
-      // Start new upload flow
-      if (!activeUpload && isUploadIntent) {
-        const { data: newUpload } = await supabase
-          .from("whatsapp_event_uploads")
-          .insert({ phone_number: from, state: "awaiting_image" })
-          .select()
-          .single();
-
-        uploadId = newUpload.id;
-        currentState = "awaiting_image";
-        responseMessage =
-          userLanguage === "es"
-            ? "¡Genial! Vamos a agregar tu evento. Primero, envíame la imagen del evento 📸"
-            : "Awesome! Let's add your event. First, send me the event image 📸";
-      }
-      // Process based on current state
-      else if (activeUpload) {
-        switch (currentState) {
-          case "awaiting_image":
-            // Check for media (image) - already extracted at top
-            if (mediaUrl) {
-              await supabase
-                .from("whatsapp_event_uploads")
-                .update({ image_url: mediaUrl, state: "awaiting_title" })
-                .eq("id", uploadId);
-
-              responseMessage =
-                userLanguage === "es"
-                  ? "Perfecto! Ahora envíame el título del evento 🎉"
-                  : "Perfect! Now send me the event title 🎉";
-            } else {
-              responseMessage =
-                userLanguage === "es" ? "Por favor envía una imagen del evento 📸" : "Please send an event image 📸";
-            }
-            break;
-
-          case "awaiting_title":
-            await supabase
-              .from("whatsapp_event_uploads")
-              .update({ title: body, state: "awaiting_description" })
-              .eq("id", uploadId);
-
-            responseMessage =
-              userLanguage === "es"
-                ? "Genial! Ahora dame una breve descripción del evento ✍️"
-                : "Great! Now give me a brief description of the event ✍️";
-            break;
-
-          case "awaiting_description":
-            await supabase
-              .from("whatsapp_event_uploads")
-              .update({ description: body, state: "awaiting_date" })
-              .eq("id", uploadId);
-
-            responseMessage =
-              userLanguage === "es"
-                ? "Perfecto! Cuál es la fecha del evento? (formato: YYYY-MM-DD) 📅"
-                : "Perfect! What's the event date? (format: YYYY-MM-DD) 📅";
-            break;
-
-          case "awaiting_date":
-            await supabase
-              .from("whatsapp_event_uploads")
-              .update({ date: body, state: "awaiting_time" })
-              .eq("id", uploadId);
-
-            responseMessage =
-              userLanguage === "es"
-                ? "Genial! A qué hora es el evento? (formato: HH:MM) ⏰"
-                : "Great! What time is the event? (format: HH:MM) ⏰";
-            break;
-
-          case "awaiting_time":
-            await supabase
-              .from("whatsapp_event_uploads")
-              .update({ time: body, state: "awaiting_instagram" })
-              .eq("id", uploadId);
-
-            responseMessage =
-              userLanguage === "es"
-                ? "Casi terminamos! Cuál es el Instagram del evento o venue? (sin @) 📱"
-                : "Almost done! What's the event or venue Instagram? (without @) 📱";
-            break;
-
-          case "awaiting_instagram":
-            // Get the complete upload data
-            const { data: completeUpload } = await supabase
-              .from("whatsapp_event_uploads")
-              .select("*")
-              .eq("id", uploadId)
-              .single();
-
-            // Insert event into BOTH tables for full compatibility
-            // Insert into events table (main events feed)
-            const { error: eventsTableError } = await supabase.from("events").insert({
-              title: completeUpload.title,
-              description: completeUpload.description,
-              date: completeUpload.date,
-              time: completeUpload.time,
-              image_url: completeUpload.image_url,
-              event_type: "event",
-              market: "argentina",
-              location: "Buenos Aires",
-            });
-
-            // Also insert into items table (legacy support)
-            const { error: itemsTableError } = await supabase.from("items").insert({
-              title: completeUpload.title,
-              description: completeUpload.description,
-              meetup_date: completeUpload.date,
-              meetup_time: completeUpload.time,
-              image_url: completeUpload.image_url,
-              category: "event",
-              status: "active",
-              location: "Buenos Aires",
-            });
-
-            const eventError = eventsTableError || itemsTableError;
-
-            if (eventError) {
-              console.error("Error creating event:", eventError);
-              responseMessage =
-                userLanguage === "es"
-                  ? "Hubo un error al crear el evento. Por favor intenta de nuevo."
-                  : "There was an error creating the event. Please try again.";
-            } else {
-              // Mark upload as complete
-              await supabase
-                .from("whatsapp_event_uploads")
-                .update({ instagram_handle: body, state: "complete" })
-                .eq("id", uploadId);
-
-              responseMessage =
-                userLanguage === "es"
-                  ? "¡Listo! Tu evento ha sido agregado exitosamente 🎉 Aparecerá en la página de eventos pronto!"
-                  : "Done! Your event has been added successfully 🎉 It will appear on the events page soon!";
-            }
-            break;
-        }
-      }
+      const responseMessage =
+        userLanguage === "es"
+          ? "¡Genial! Podés subir tu evento directamente en nuestra página 🎉\n\n👉 https://theunahub.com/create-event\n\nEs súper fácil y tu evento va a aparecer en la app!"
+          : "Awesome! You can upload your event directly on our page 🎉\n\n👉 https://theunahub.com/create-event\n\nIt's super easy and your event will appear in the app!";
 
       // Store conversation
       await supabase.from("whatsapp_conversations").insert({
