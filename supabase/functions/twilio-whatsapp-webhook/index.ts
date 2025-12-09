@@ -487,34 +487,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Smart name/age collection for ANY new user (not just on recommendation requests)
-    if (whatsappUser && (!whatsappUser.name || !whatsappUser.age)) {
-      const messageCount = conversationHistory.length;
-
-      // Ask for name/age on second message (to avoid asking on greeting)
-      if (messageCount === 1) {
-        const askBothMessage =
-          userLanguage === "es"
-            ? "Para darte las mejores recomendaciones personalizadas, ¿cómo te llamas y cuántos años tenés?😊"
-            : "To give you the best personalized recommendations, what's your name and age?😊";
-
-        await supabase.from("whatsapp_conversations").insert({
-          phone_number: from,
-          role: "assistant",
-          content: askBothMessage,
-        });
-
-        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${askBothMessage}</Message>
-</Response>`;
-
-        return new Response(twimlResponse, {
-          headers: { ...corsHeaders, "Content-Type": "text/xml" },
-          status: 200,
-        });
-      }
-    }
+    // Name/age collection removed - users can provide info naturally in conversation
+    // The chatbot will still detect and store name/age when users mention it (lines 249-308)
 
     // Detect if this is a recommendation request
     const recommendationKeywords =
