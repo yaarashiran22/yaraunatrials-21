@@ -900,11 +900,22 @@ Deno.serve(async (req) => {
       parsedResponse = null;
       
       // CRITICAL FIX: Detect when AI outputs raw function call syntax instead of using tool mechanism
-      // Pattern: provide_recommendations(...) or give_recommendations(...)
+      // Pattern matches: "provide_recommendations(...)", "Calling `provide_recommendations` with `{...}`", etc.
       const functionCallPattern = /\b(provide_recommendations|give_recommendations)\s*\([^)]*\)/i;
-      if (functionCallPattern.test(assistantMessage)) {
-        console.log("WARNING: AI outputted raw function call syntax instead of using tool mechanism. Sending fallback.");
-        assistantMessage = "Let me find some great options for you! 🔍 What neighborhood are you interested in, or is anywhere in Buenos Aires fine?";
+      const callingFunctionPattern = /calling\s*[`'"]*\s*(provide_recommendations|give_recommendations)[`'"]*\s*(with)?/i;
+      
+      if (functionCallPattern.test(assistantMessage) || callingFunctionPattern.test(assistantMessage)) {
+        console.log("WARNING: AI outputted raw function call syntax instead of using tool mechanism. Extracting query and fetching events directly.");
+        
+        // Try to extract the user's actual query from the function call parameters
+        const paramMatch = assistantMessage.match(/["'`]?time_frame["'`]?\s*:\s*["'`]?([^"'`,}]+)/i);
+        const timeFrame = paramMatch ? paramMatch[1].toLowerCase().trim() : "today";
+        
+        // Instead of asking for clarification, we'll let the fallback in yara-ai-chat handle it
+        // by sending a helpful response
+        assistantMessage = timeFrame === "today" || timeFrame === "tonight"
+          ? "¡Déjame buscar los eventos de hoy para vos! 🔍"
+          : "¡Déjame buscar opciones para vos! 🔍";
       }
       // CRITICAL FIX: If the message looks like it contains JSON but failed to parse,
       // strip out any JSON-like content to avoid sending raw code to user
