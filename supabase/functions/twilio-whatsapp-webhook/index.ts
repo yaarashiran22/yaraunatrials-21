@@ -64,19 +64,9 @@ Deno.serve(async (req) => {
       console.error("Error sending typing indicator:", error);
     }
 
-    // Check for active event upload flow BEFORE checking for empty body
-    const { data: activeUpload } = await supabase
-      .from("whatsapp_event_uploads")
-      .select("*")
-      .eq("phone_number", from)
-      .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    // Allow empty body if we have media AND an active upload (user sending image)
-    if (!body && !mediaUrl && !activeUpload) {
-      console.error("No message body or media received");
+    // Check for empty body - no media support needed since event uploads happen via website
+    if (!body) {
+      console.error("No message body received");
       return new Response('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', {
         headers: { ...corsHeaders, "Content-Type": "text/xml" },
         status: 200,
