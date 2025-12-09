@@ -616,7 +616,7 @@ Deno.serve(async (req) => {
       const functionCallPattern = /\b(provide_recommendations|give_recommendations)\s*\([^)]*\)/i;
       if (functionCallPattern.test(assistantMessage)) {
         console.log("WARNING: AI outputted raw function call syntax instead of using tool mechanism. Sending fallback.");
-        assistantMessage = "Let me find some great options for you! 🔍 What neighborhood are you interested in, or is anywhere in Buenos Aires fine?";
+        assistantMessage = "Let me find some great options for you! 🔍";
       }
       // CRITICAL FIX: If the message looks like it contains JSON but failed to parse,
       // strip out any JSON-like content to avoid sending raw code to user
