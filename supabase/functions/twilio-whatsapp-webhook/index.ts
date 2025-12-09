@@ -163,29 +163,46 @@ Deno.serve(async (req) => {
     const uploadIntentPatterns = /\b(upload|post|share|add|submit)\s+(an?\s+)?(event|gig|show|concert|party)\b/i;
     const isUploadIntent = uploadIntentPatterns.test(body.trim());
 
-    // Handle event upload flow
-    if (activeUpload || isUploadIntent) {
-      console.log("Event upload flow detected");
+    // Handle event upload intent - redirect to website
+    if (isUploadIntent && !activeUpload) {
+      console.log("Event upload intent detected - redirecting to website");
+
+      const responseMessage =
+        userLanguage === "es"
+          ? "¡Genial que quieras compartir tu evento! 🎉 Podés subirlo directamente acá: https://theunahub.com/create-event"
+          : "Awesome that you want to share your event! 🎉 You can upload it directly here: https://theunahub.com/create-event";
+
+      // Store conversation
+      await supabase.from("whatsapp_conversations").insert({
+        phone_number: from,
+        role: "user",
+        content: body,
+      });
+
+      await supabase.from("whatsapp_conversations").insert({
+        phone_number: from,
+        role: "assistant",
+        content: responseMessage,
+      });
+
+      const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${responseMessage}</Message>
+</Response>`;
+
+      return new Response(twimlResponse, {
+        headers: { ...corsHeaders, "Content-Type": "text/xml" },
+        status: 200,
+      });
+    }
+
+    // Handle existing event upload flow (for users already in progress)
+    if (activeUpload) {
+      console.log("Active event upload flow detected");
 
       let currentState = activeUpload?.state || "awaiting_intent";
       let uploadId = activeUpload?.id;
       let responseMessage = "";
-
-      // Start new upload flow
-      if (!activeUpload && isUploadIntent) {
-        const { data: newUpload } = await supabase
-          .from("whatsapp_event_uploads")
-          .insert({ phone_number: from, state: "awaiting_image" })
-          .select()
-          .single();
-
-        uploadId = newUpload.id;
-        currentState = "awaiting_image";
-        responseMessage =
-          userLanguage === "es"
-            ? "¡Genial! Vamos a agregar tu evento. Primero, envíame la imagen del evento 📸"
-            : "Awesome! Let's add your event. First, send me the event image 📸";
-      }
       // Process based on current state
       else if (activeUpload) {
         switch (currentState) {
