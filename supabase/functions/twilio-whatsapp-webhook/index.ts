@@ -196,16 +196,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Handle existing event upload flow (for users already in progress)
-    if (activeUpload) {
-      console.log("Active event upload flow detected");
+    // Handle existing event upload flow (for users already in progress - NOT complete)
+    if (activeUpload && activeUpload.state !== "complete") {
+      console.log("Active event upload flow detected - state:", activeUpload.state);
 
       let currentState = activeUpload?.state || "awaiting_intent";
       let uploadId = activeUpload?.id;
       let responseMessage = "";
+      
       // Process based on current state
-      else if (activeUpload) {
-        switch (currentState) {
+      switch (currentState) {
           case "awaiting_image":
             // Check for media (image) - already extracted at top
             if (mediaUrl) {
@@ -327,7 +327,6 @@ Deno.serve(async (req) => {
             }
             break;
         }
-      }
 
       // Store conversation
       await supabase.from("whatsapp_conversations").insert({
