@@ -364,11 +364,11 @@ Deno.serve(async (req) => {
             ? `¡Hola ${whatsappUser.name}! 👋 ¿Qué estás buscando hoy?`
             : `Hey ${whatsappUser.name}! 👋 What are you looking for today?`;
       } else {
-        // Generic greeting for returning users without name
+        // Short greeting for returning users without name
         greetingMessage =
           userLanguage === "es"
-            ? "¡Hola! 👋 ¿En qué puedo ayudarte a encontrar en Buenos Aires?"
-            : "Hey, welcome to Yara! I'm your AI guide for finding indie events, and anything in the local underground scene. Tell me- what are you looking for?";
+            ? "¡Hola! 👋 ¿Qué estás buscando hoy?"
+            : "Hey! 👋 What are you looking for today?";
       }
 
       // Store greeting response
