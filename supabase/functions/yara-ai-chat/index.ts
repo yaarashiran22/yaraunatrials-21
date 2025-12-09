@@ -1020,8 +1020,67 @@ IMPORTANT - NO DATABASE MATCHES:
       message = data.choices?.[0]?.message?.content || "";
       console.log("AI response (conversational):", message);
       
+      // CRITICAL FIX: Detect when AI outputs function call syntax as text instead of JSON
+      // Pattern: "Calling `provide_recommendations` with `{...}`"
+      const functionCallPattern = /calling\s*[`'"]*\s*(provide_recommendations|give_recommendations)[`'"]*\s*(with)?/i;
+      const isFunctionCallText = functionCallPattern.test(message);
+      
+      if (isFunctionCallText) {
+        console.log("DETECTED: AI outputted function call as text. Building recommendations directly.");
+        
+        // Extract time_frame from the fake function call if present
+        const timeFrameMatch = message.match(/["'`]?time_frame["'`]?\s*:\s*["'`]?([^"'`,}]+)/i);
+        const timeFrame = timeFrameMatch ? timeFrameMatch[1].toLowerCase().trim() : null;
+        
+        // Determine which events to show based on time_frame
+        let relevantEvents = ageFilteredEvents;
+        let timeDescription = "happening soon";
+        
+        if (timeFrame === "today" || timeFrame === "tonight") {
+          relevantEvents = ageFilteredEvents.filter(e => e.date === today);
+          timeDescription = userLanguage === 'es' ? "de hoy" : "tonight";
+        } else if (timeFrame === "tomorrow") {
+          relevantEvents = ageFilteredEvents.filter(e => e.date === tomorrowDate);
+          timeDescription = userLanguage === 'es' ? "de mañana" : "tomorrow";
+        } else if (timeFrame === "this week" || timeFrame === "this weekend" || timeFrame === "esta semana" || timeFrame === "fin de semana") {
+          // Get events within the next 7 days
+          const weekFromNow = new Date(nowBuenosAires);
+          weekFromNow.setDate(weekFromNow.getDate() + 7);
+          const weekFromNowStr = weekFromNow.toISOString().split("T")[0];
+          relevantEvents = ageFilteredEvents.filter(e => e.date >= today && e.date <= weekFromNowStr);
+          timeDescription = userLanguage === 'es' ? "de esta semana" : "this week";
+        }
+        
+        // Limit to 7 events
+        relevantEvents = relevantEvents.slice(0, 7);
+        
+        if (relevantEvents.length > 0) {
+          const recommendations = relevantEvents.map(e => ({
+            type: "event",
+            id: e.id,
+            title: e.title,
+            description: `📍 ${e.location || 'Buenos Aires'}. ${e.date ? formatDate(e.date) : ''} ${e.time || ''}. ${e.description?.substring(0, 100) || ''}`,
+            why_recommended: userLanguage === 'es' 
+              ? `Evento ${timeDescription} que te puede interesar`
+              : `Event ${timeDescription} you might enjoy`,
+            image_url: e.image_url
+          }));
+          
+          message = JSON.stringify({
+            intro_message: userLanguage === 'es' 
+              ? `¡Encontré ${relevantEvents.length} eventos ${timeDescription}! 🎉`
+              : `Found ${relevantEvents.length} events ${timeDescription}! 🎉`,
+            recommendations
+          });
+          console.log("Built recommendations from function call text:", message);
+        } else {
+          message = userLanguage === 'es'
+            ? `No encontré eventos ${timeDescription}. ¿Querés que busque para otra fecha? 📅`
+            : `I couldn't find events ${timeDescription}. Want me to search for another date? 📅`;
+        }
+      }
       // SAFETY CHECK: If AI returned empty content, check if user was asking about events and provide relevant fallback
-      if (!message || message.trim() === "") {
+      else if (!message || message.trim() === "") {
         console.error("AI returned empty content! Full response:", JSON.stringify(data, null, 2));
         
         // Check if user was asking about events/tonight/today - provide actual recommendations if so
