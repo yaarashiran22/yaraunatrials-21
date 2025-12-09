@@ -64,8 +64,18 @@ Deno.serve(async (req) => {
       console.error("Error sending typing indicator:", error);
     }
 
-    // Check for empty body
-    if (!body && !mediaUrl) {
+    // Check for active event upload flow BEFORE checking for empty body
+    const { data: activeUpload } = await supabase
+      .from("whatsapp_event_uploads")
+      .select("*")
+      .eq("phone_number", from)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Allow empty body if we have media AND an active upload (user sending image)
+    if (!body && !mediaUrl && !activeUpload) {
       console.error("No message body or media received");
       return new Response('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', {
         headers: { ...corsHeaders, "Content-Type": "text/xml" },
@@ -149,17 +159,158 @@ Deno.serve(async (req) => {
 
     const userLanguage = whatsappUser?.preferred_language || "en";
 
-    // Check if user wants to upload an event - redirect to website
+    // Check if user wants to upload an event
     const uploadIntentPatterns = /\b(upload|post|share|add|submit)\s+(an?\s+)?(event|gig|show|concert|party)\b/i;
     const isUploadIntent = uploadIntentPatterns.test(body.trim());
 
-    if (isUploadIntent) {
-      console.log("Event upload intent detected - redirecting to website");
+    // Handle event upload flow
+    if (activeUpload || isUploadIntent) {
+      console.log("Event upload flow detected");
 
-      const responseMessage =
-        userLanguage === "es"
-          ? "¡Genial que quieras compartir tu evento! 🎉 Podés subirlo directamente acá: https://theunahub.com/create-event"
-          : "Awesome that you want to share your event! 🎉 You can upload it directly here: https://theunahub.com/create-event";
+      let currentState = activeUpload?.state || "awaiting_intent";
+      let uploadId = activeUpload?.id;
+      let responseMessage = "";
+
+      // Start new upload flow
+      if (!activeUpload && isUploadIntent) {
+        const { data: newUpload } = await supabase
+          .from("whatsapp_event_uploads")
+          .insert({ phone_number: from, state: "awaiting_image" })
+          .select()
+          .single();
+
+        uploadId = newUpload.id;
+        currentState = "awaiting_image";
+        responseMessage =
+          userLanguage === "es"
+            ? "¡Genial! Vamos a agregar tu evento. Primero, envíame la imagen del evento 📸"
+            : "Awesome! Let's add your event. First, send me the event image 📸";
+      }
+      // Process based on current state
+      else if (activeUpload) {
+        switch (currentState) {
+          case "awaiting_image":
+            // Check for media (image) - already extracted at top
+            if (mediaUrl) {
+              await supabase
+                .from("whatsapp_event_uploads")
+                .update({ image_url: mediaUrl, state: "awaiting_title" })
+                .eq("id", uploadId);
+
+              responseMessage =
+                userLanguage === "es"
+                  ? "Perfecto! Ahora envíame el título del evento 🎉"
+                  : "Perfect! Now send me the event title 🎉";
+            } else {
+              responseMessage =
+                userLanguage === "es" ? "Por favor envía una imagen del evento 📸" : "Please send an event image 📸";
+            }
+            break;
+
+          case "awaiting_title":
+            await supabase
+              .from("whatsapp_event_uploads")
+              .update({ title: body, state: "awaiting_description" })
+              .eq("id", uploadId);
+
+            responseMessage =
+              userLanguage === "es"
+                ? "Genial! Ahora dame una breve descripción del evento ✍️"
+                : "Great! Now give me a brief description of the event ✍️";
+            break;
+
+          case "awaiting_description":
+            await supabase
+              .from("whatsapp_event_uploads")
+              .update({ description: body, state: "awaiting_date" })
+              .eq("id", uploadId);
+
+            responseMessage =
+              userLanguage === "es"
+                ? "Perfecto! Cuál es la fecha del evento? (formato: YYYY-MM-DD) 📅"
+                : "Perfect! What's the event date? (format: YYYY-MM-DD) 📅";
+            break;
+
+          case "awaiting_date":
+            await supabase
+              .from("whatsapp_event_uploads")
+              .update({ date: body, state: "awaiting_time" })
+              .eq("id", uploadId);
+
+            responseMessage =
+              userLanguage === "es"
+                ? "Genial! A qué hora es el evento? (formato: HH:MM) ⏰"
+                : "Great! What time is the event? (format: HH:MM) ⏰";
+            break;
+
+          case "awaiting_time":
+            await supabase
+              .from("whatsapp_event_uploads")
+              .update({ time: body, state: "awaiting_instagram" })
+              .eq("id", uploadId);
+
+            responseMessage =
+              userLanguage === "es"
+                ? "Casi terminamos! Cuál es el Instagram del evento o venue? (sin @) 📱"
+                : "Almost done! What's the event or venue Instagram? (without @) 📱";
+            break;
+
+          case "awaiting_instagram":
+            // Get the complete upload data
+            const { data: completeUpload } = await supabase
+              .from("whatsapp_event_uploads")
+              .select("*")
+              .eq("id", uploadId)
+              .single();
+
+            // Insert event into BOTH tables for full compatibility
+            // Insert into events table (main events feed)
+            const { error: eventsTableError } = await supabase.from("events").insert({
+              title: completeUpload.title,
+              description: completeUpload.description,
+              date: completeUpload.date,
+              time: completeUpload.time,
+              image_url: completeUpload.image_url,
+              event_type: "event",
+              market: "argentina",
+              location: "Buenos Aires",
+            });
+
+            // Also insert into items table (legacy support)
+            const { error: itemsTableError } = await supabase.from("items").insert({
+              title: completeUpload.title,
+              description: completeUpload.description,
+              meetup_date: completeUpload.date,
+              meetup_time: completeUpload.time,
+              image_url: completeUpload.image_url,
+              category: "event",
+              status: "active",
+              location: "Buenos Aires",
+            });
+
+            const eventError = eventsTableError || itemsTableError;
+
+            if (eventError) {
+              console.error("Error creating event:", eventError);
+              responseMessage =
+                userLanguage === "es"
+                  ? "Hubo un error al crear el evento. Por favor intenta de nuevo."
+                  : "There was an error creating the event. Please try again.";
+            } else {
+              // Mark upload as complete
+              await supabase
+                .from("whatsapp_event_uploads")
+                .update({ instagram_handle: body, state: "complete" })
+                .eq("id", uploadId);
+
+              responseMessage =
+                userLanguage === "es"
+                  ? "¡Listo! Tu evento ha sido agregado exitosamente 🎉 Aparecerá en la página de eventos pronto!"
+                  : "Done! Your event has been added successfully 🎉 It will appear on the events page soon!";
+            }
+            break;
+        }
+      }
 
       // Store conversation
       await supabase.from("whatsapp_conversations").insert({
@@ -213,11 +364,11 @@ Deno.serve(async (req) => {
             ? `¡Hola ${whatsappUser.name}! 👋 ¿Qué estás buscando hoy?`
             : `Hey ${whatsappUser.name}! 👋 What are you looking for today?`;
       } else {
-        // Short greeting for returning users without name
+        // Generic greeting for returning users without name
         greetingMessage =
           userLanguage === "es"
-            ? "¡Hola! 👋 ¿Qué estás buscando hoy?"
-            : "Hey! 👋 What are you looking for today?";
+            ? "¡Hola! 👋 ¿En qué puedo ayudarte a encontrar en Buenos Aires?"
+            : "Hey, welcome to Yara! I'm your AI guide for finding indie events, and anything in the local underground scene. Tell me- what are you looking for?";
       }
 
       // Store greeting response
@@ -487,16 +638,153 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Name/age collection removed - users can provide info naturally in conversation
-    // The chatbot will still detect and store name/age when users mention it (lines 249-308)
+    // Smart name/age collection for ANY new user (not just on recommendation requests)
+    if (whatsappUser && (!whatsappUser.name || !whatsappUser.age)) {
+      const messageCount = conversationHistory.length;
+
+      // Ask for name/age on second message (to avoid asking on greeting)
+      if (messageCount === 1) {
+        const askBothMessage =
+          userLanguage === "es"
+            ? "Para darte las mejores recomendaciones personalizadas, ¿cómo te llamas y cuántos años tenés?😊"
+            : "To give you the best personalized recommendations, what's your name and age?😊";
+
+        await supabase.from("whatsapp_conversations").insert({
+          phone_number: from,
+          role: "assistant",
+          content: askBothMessage,
+        });
+
+        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${askBothMessage}</Message>
+</Response>`;
+
+        return new Response(twimlResponse, {
+          headers: { ...corsHeaders, "Content-Type": "text/xml" },
+          status: 200,
+        });
+      }
+    }
 
     // Detect if this is a recommendation request
     const recommendationKeywords =
       /\b(recommend|suggest|show me|find me|looking for|i'm looking for|im looking for|i want|i need|can you find|help me find|gimme|dame|quiero|busco|necesito|muéstrame|muestrame)\b/i;
     const isRecommendationRequest = recommendationKeywords.test(body);
 
-    // Progressive profiling removed - just provide recommendations directly
-    // Users can mention neighborhood/budget in their request if needed
+    // Progressive profiling: Ask for neighborhood on second recommendation (only if not mentioned)
+    if (isRecommendationRequest && whatsappUser) {
+      const recCount = whatsappUser.recommendation_count || 0;
+
+      // Second recommendation request: Ask for preferred neighborhood (only if not mentioned in current message)
+      if (
+        recCount === 1 &&
+        (!whatsappUser.favorite_neighborhoods || whatsappUser.favorite_neighborhoods.length === 0)
+      ) {
+        // Check if user already mentioned a neighborhood in this message
+        const neighborhoodKeywords = [
+          "palermo",
+          "palermo soho",
+          "palermo hollywood",
+          "villa crespo",
+          "san telmo",
+          "recoleta",
+          "belgrano",
+          "caballito",
+          "almagro",
+          "chacarita",
+          "colegiales",
+          "puerto madero",
+          "barracas",
+          "la boca",
+          "retiro",
+          "microcentro",
+          "monserrat",
+          "boedo",
+          "flores",
+          "parque patricios",
+          "constitución",
+          "balvanera",
+          "once",
+          "núñez",
+          "saavedra",
+          "villa urquiza",
+          "villa del parque",
+          "versalles",
+        ];
+
+        const bodyLower = body.toLowerCase();
+        const hasNeighborhoodInMessage = neighborhoodKeywords.some((n) => bodyLower.includes(n));
+
+        // Only ask if they didn't mention a neighborhood in their message
+        if (!hasNeighborhoodInMessage) {
+          const askNeighborhoodMessage =
+            "What neighborhood do you usually hang out in or prefer to go out in Buenos Aires?📍";
+
+          await supabase.from("whatsapp_conversations").insert({
+            phone_number: from,
+            role: "user",
+            content: body,
+          });
+
+          await supabase.from("whatsapp_conversations").insert({
+            phone_number: from,
+            role: "assistant",
+            content: askNeighborhoodMessage,
+          });
+
+          // Increment recommendation count so we don't ask again
+          await supabase
+            .from("whatsapp_users")
+            .update({ recommendation_count: recCount + 1 })
+            .eq("id", whatsappUser.id);
+
+          const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${askNeighborhoodMessage}</Message>
+</Response>`;
+
+          return new Response(twimlResponse, {
+            headers: { ...corsHeaders, "Content-Type": "text/xml" },
+            status: 200,
+          });
+        }
+        // If neighborhood is mentioned, continue to process the recommendation
+      }
+
+      // Third recommendation request: Ask for budget preference if missing
+      if (recCount === 2 && !whatsappUser.budget_preference) {
+        const askBudgetMessage = "Are you looking for something fancy-ish or more local/casual vibes? 💰";
+
+        await supabase.from("whatsapp_conversations").insert({
+          phone_number: from,
+          role: "user",
+          content: body,
+        });
+
+        await supabase.from("whatsapp_conversations").insert({
+          phone_number: from,
+          role: "assistant",
+          content: askBudgetMessage,
+        });
+
+        // Increment recommendation count so we don't ask again
+        await supabase
+          .from("whatsapp_users")
+          .update({ recommendation_count: recCount + 1 })
+          .eq("id", whatsappUser.id);
+
+        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${askBudgetMessage}</Message>
+</Response>`;
+
+        return new Response(twimlResponse, {
+          headers: { ...corsHeaders, "Content-Type": "text/xml" },
+          status: 200,
+        });
+      }
+    }
 
     // Build conversation history for AI
     const messages = conversationHistory.map((msg) => ({
@@ -616,7 +904,7 @@ Deno.serve(async (req) => {
       const functionCallPattern = /\b(provide_recommendations|give_recommendations)\s*\([^)]*\)/i;
       if (functionCallPattern.test(assistantMessage)) {
         console.log("WARNING: AI outputted raw function call syntax instead of using tool mechanism. Sending fallback.");
-        assistantMessage = "Let me find some great options for you! 🔍";
+        assistantMessage = "Let me find some great options for you! 🔍 What neighborhood are you interested in, or is anywhere in Buenos Aires fine?";
       }
       // CRITICAL FIX: If the message looks like it contains JSON but failed to parse,
       // strip out any JSON-like content to avoid sending raw code to user

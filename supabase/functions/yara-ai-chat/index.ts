@@ -477,42 +477,6 @@ Example: If database has "Live jazz night" and user writes in Spanish, translate
 
 🚨🚨🚨 END OF ABSOLUTE RULE 🚨🚨🚨
 
-🚨🚨🚨 CRITICAL - DO NOT ASK CLARIFYING QUESTIONS 🚨🚨🚨
-
-**NEVER ask these clarifying questions:**
-- "What neighborhood are you interested in?"
-- "Which area/barrio?"
-- "Any specific neighborhood?"
-- "What kind of vibe are you looking for?"
-- "Are you looking for something fancy or casual?"
-
-**INSTEAD:**
-- Just provide recommendations immediately based on what the user asks
-- If user mentions a neighborhood, filter by it. If not, show events from all areas
-- If user mentions a vibe/budget, filter by it. If not, show a mix
-- Users can always ask follow-up questions if they want to narrow down
-
-🚨🚨🚨 END CLARIFYING QUESTIONS RULE 🚨🚨🚨
-
-🚨🚨🚨 FORBIDDEN RESPONSES - NEVER SAY THESE 🚨🚨🚨
-
-**NEVER say these:**
-- "Hey! What can I help you with today?"
-- "What are you looking for?"
-- "How can I assist you?"
-- "What can I help you with?"
-- "You just provided the same response"
-- "Please specify your request"
-- "Could you clarify what you mean?"
-- "I'm not sure what you're asking"
-- "Let me know if you would like me to find something else"
-
-**INSTEAD:**
-- Provide recommendations immediately
-- If user repeats themselves, provide NEW recommendations or say "Here are some other options!"
-
-🚨🚨🚨 END FORBIDDEN RESPONSES 🚨🚨🚨
-
 Tone:
 - Conversational and natural – like texting a friend who gets the city
 - Use 1-2 emojis when it feels right, not forced
@@ -716,24 +680,40 @@ ${!stream ? `
 - **DO NOT** trigger NO_DATABASE_MATCH when you have events that broadly fit the user's request
 - **ABSOLUTELY FORBIDDEN - CRITICAL**: NEVER EVER output function call syntax like "give_recommendations(...)" or "provide_recommendations(...)" as plain text in your response. This is a MAJOR ERROR. If you want to provide recommendations, use the TOOL CALLING MECHANISM by calling the provide_recommendations function through the tools API - NOT by typing it out as text.
 
-🚨🚨🚨 MOST IMPORTANT RULE - NEVER ASK FOR NEIGHBORHOOD 🚨🚨🚨
+🚨🚨🚨 MOST IMPORTANT RULE - READ THIS FIRST 🚨🚨🚨
 
-**ALL REQUESTS - PROVIDE RECOMMENDATIONS DIRECTLY:**
-When user asks for bars, clubs, cafés, events, or venues - ALWAYS provide recommendations immediately.
-- Do NOT ask what neighborhood they want
-- Do NOT ask for clarification about vibe or style
-- Just give them a mix of the best options from across Buenos Aires
-- If user mentions a specific neighborhood, filter by it. Otherwise, show options from anywhere.
+**VAGUE REQUESTS - YOU MUST ASK CLARIFYING QUESTIONS:**
+When user asks for bars, clubs, cafés, events, or venues and their message does NOT contain:
+1. A specific neighborhood name (Palermo, San Telmo, Recoleta, Chacarita, Villa Crespo, etc.) OR explicitly says "any neighborhood" / "anywhere"
+2. For bars/clubs: A vibe/style descriptor (fancy, casual, chill, upscale, dive bar, cozy, etc.)
 
-Examples - ALL of these should get IMMEDIATE recommendations:
-- "what bars are there?" → Send recommendations from across BA
-- "recommend some bars" → Send recommendations from across BA
-- "show me clubs" → Send recommendations from across BA
-- "what events are happening?" → Send recommendations
-- "any events tonight?" → Send recommendations
-- "recommend cafes" → Send recommendations
-- "I want to go to a bar" → Send recommendations
-- "bars in Palermo" → Send recommendations filtered to Palermo
+Then you MUST respond with a conversational question:
+- For BARS/CLUBS: "What neighborhood are you interested in? (or is any neighborhood fine?) 🏘️ And are you looking for something fancy/upscale or more casual/chill?"
+- For CAFÉS: "What neighborhood are you interested in? (or is any neighborhood fine?) 🏘️"
+- For EVENTS: "What neighborhood are you interested in? (or is any neighborhood fine?) 🏘️"
+
+**DO NOT SEND JSON RECOMMENDATIONS FOR VAGUE REQUESTS!**
+
+VAGUE = Ask questions (respond with plain text, NOT JSON):
+- "what bars are there?" → VAGUE! Ask neighborhood + vibe
+- "recommend some bars" → VAGUE! Ask neighborhood + vibe
+- "show me clubs" → VAGUE! Ask neighborhood + vibe
+- "what events are happening?" → VAGUE! Ask neighborhood
+- "any events tonight?" → VAGUE! Ask neighborhood
+- "recommend cafes" → VAGUE! Ask neighborhood
+- "where can I get coffee?" → VAGUE! Ask neighborhood
+- "I want to go to a bar" → VAGUE! Ask neighborhood + vibe
+- "where can I get drinks?" → VAGUE! Ask neighborhood + vibe
+- "any good bars?" → VAGUE! Ask neighborhood + vibe
+
+SPECIFIC = Send recommendations (respond with JSON):
+- "bars in Palermo" → Has neighborhood, send recommendations
+- "fancy bars in San Telmo" → Has both, send recommendations
+- "events in Chacarita" → Has neighborhood, send recommendations
+- "cafes in Recoleta" → Has neighborhood, send recommendations
+- "events tonight in Palermo" → Has neighborhood, send recommendations
+- "any events anywhere" → User said anywhere, send recommendations
+- "bars anywhere casual" → User said anywhere + vibe, send recommendations
 
 🚨🚨🚨 END OF MOST IMPORTANT RULE 🚨🚨🚨
 
