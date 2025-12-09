@@ -640,7 +640,42 @@ Deno.serve(async (req) => {
       role: msg.role as "user" | "assistant",
       content: msg.content,
     }));
-    messages.push({ role: "user", content: body });
+    
+    // CRITICAL FIX: Detect when user is answering "any neighborhood" to a clarifying question
+    // In this case, inject context so the AI knows this is a follow-up answer
+    const lastAssistantMessage = conversationHistory.filter(m => m.role === 'assistant').slice(-1)[0];
+    const isNeighborhoodQuestion = lastAssistantMessage && 
+      /what neighborhood|which neighborhood|any neighborhood fine|is any neighborhood fine|any barrio/i.test(lastAssistantMessage.content);
+    const isAnyAnswer = /^(any|any neighborhood|anywhere|cualquier|da igual|no importa|doesn't matter|dont care|no preference|all|todas?|cualquiera)[\s!?.]*$/i.test(body.trim());
+    
+    // Find the original request before the neighborhood question
+    let originalRequest = '';
+    if (isNeighborhoodQuestion && isAnyAnswer) {
+      console.log("Detected 'any neighborhood' answer to neighborhood question - injecting context");
+      
+      // Look back in history for the original event/recommendation request
+      for (let i = conversationHistory.length - 1; i >= 0; i--) {
+        const msg = conversationHistory[i];
+        if (msg.role === 'user') {
+          const eventRequest = /\b(event|events|party|parties|bar|bars|club|clubs|tonight|today|tomorrow|happening|going on|recommendations?|recommend|show me|find me|looking for|what's on|whats on)\b/i;
+          if (eventRequest.test(msg.content)) {
+            originalRequest = msg.content;
+            console.log("Found original request:", originalRequest);
+            break;
+          }
+        }
+      }
+      
+      // Inject a modified user message that includes the context
+      if (originalRequest) {
+        const contextualMessage = `[User previously asked: "${originalRequest}" and you asked what neighborhood. They answered "${body.trim()}" meaning they want results from any/all neighborhoods. Now provide recommendations for their original request with no neighborhood filter.]`;
+        messages.push({ role: "user", content: contextualMessage });
+      } else {
+        messages.push({ role: "user", content: body });
+      }
+    } else {
+      messages.push({ role: "user", content: body });
+    }
 
     // Call Yara AI chat function with user profile context (ONE call only)
     const { data: aiResponse, error: aiError } = await supabase.functions.invoke("yara-ai-chat", {
