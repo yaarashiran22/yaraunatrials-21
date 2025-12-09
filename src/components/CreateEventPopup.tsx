@@ -420,9 +420,9 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
             </div>
           </div>
 
-          {/* Venue Name and Type Field */}
+          {/* Event Organizer Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.venueName')}*</label>
+            <label className="text-sm font-medium text-foreground block text-left">Event Organizer*</label>
             <Input 
               value={venueName}
               onChange={(e) => setVenueName(e.target.value)}
