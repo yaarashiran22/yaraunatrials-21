@@ -680,42 +680,13 @@ ${!stream ? `
 - **DO NOT** trigger NO_DATABASE_MATCH when you have events that broadly fit the user's request
 - **ABSOLUTELY FORBIDDEN - CRITICAL**: NEVER EVER output function call syntax like "give_recommendations(...)" or "provide_recommendations(...)" as plain text in your response. This is a MAJOR ERROR. If you want to provide recommendations, use the TOOL CALLING MECHANISM by calling the provide_recommendations function through the tools API - NOT by typing it out as text.
 
-🚨🚨🚨 MOST IMPORTANT RULE - READ THIS FIRST 🚨🚨🚨
-
-**VAGUE REQUESTS - YOU MUST ASK CLARIFYING QUESTIONS:**
-When user asks for bars, clubs, cafés, events, or venues and their message does NOT contain:
-1. A specific neighborhood name (Palermo, San Telmo, Recoleta, Chacarita, Villa Crespo, etc.) OR explicitly says "any neighborhood" / "anywhere"
-2. For bars/clubs: A vibe/style descriptor (fancy, casual, chill, upscale, dive bar, cozy, etc.)
-
-Then you MUST respond with a conversational question:
-- For BARS/CLUBS: "What neighborhood are you interested in? (or is any neighborhood fine?) 🏘️ And are you looking for something fancy/upscale or more casual/chill?"
-- For CAFÉS: "What neighborhood are you interested in? (or is any neighborhood fine?) 🏘️"
-- For EVENTS: "What neighborhood are you interested in? (or is any neighborhood fine?) 🏘️"
-
-**DO NOT SEND JSON RECOMMENDATIONS FOR VAGUE REQUESTS!**
-
-VAGUE = Ask questions (respond with plain text, NOT JSON):
-- "what bars are there?" → VAGUE! Ask neighborhood + vibe
-- "recommend some bars" → VAGUE! Ask neighborhood + vibe
-- "show me clubs" → VAGUE! Ask neighborhood + vibe
-- "what events are happening?" → VAGUE! Ask neighborhood
-- "any events tonight?" → VAGUE! Ask neighborhood
-- "recommend cafes" → VAGUE! Ask neighborhood
-- "where can I get coffee?" → VAGUE! Ask neighborhood
-- "I want to go to a bar" → VAGUE! Ask neighborhood + vibe
-- "where can I get drinks?" → VAGUE! Ask neighborhood + vibe
-- "any good bars?" → VAGUE! Ask neighborhood + vibe
-
-SPECIFIC = Send recommendations (respond with JSON):
-- "bars in Palermo" → Has neighborhood, send recommendations
-- "fancy bars in San Telmo" → Has both, send recommendations
-- "events in Chacarita" → Has neighborhood, send recommendations
-- "cafes in Recoleta" → Has neighborhood, send recommendations
-- "events tonight in Palermo" → Has neighborhood, send recommendations
-- "any events anywhere" → User said anywhere, send recommendations
-- "bars anywhere casual" → User said anywhere + vibe, send recommendations
-
-🚨🚨🚨 END OF MOST IMPORTANT RULE 🚨🚨🚨
+**CRITICAL - ANSWER ALL EVENT/VENUE REQUESTS DIRECTLY:**
+When user asks about events, bars, clubs, cafés - provide recommendations directly without asking clarifying questions.
+- "what events are tonight?" → Send recommendations for tonight's events
+- "any events tonight?" → Send recommendations for tonight's events  
+- "recommend bars" → Send top bar recommendations from any neighborhood
+- "what's happening today?" → Send today's events
+- DO NOT ask for neighborhood clarification - just provide the best available options
 
 **CRITICAL - ONLY USE JSON FOR EXPLICIT RECOMMENDATION REQUESTS:**
 - Use JSON ONLY when user is EXPLICITLY asking for suggestions/recommendations with action keywords AND specifies enough detail
@@ -1049,12 +1020,54 @@ IMPORTANT - NO DATABASE MATCHES:
       message = data.choices?.[0]?.message?.content || "";
       console.log("AI response (conversational):", message);
       
-      // SAFETY CHECK: If AI returned empty content, provide a fallback
+      // SAFETY CHECK: If AI returned empty content, check if user was asking about events and provide relevant fallback
       if (!message || message.trim() === "") {
         console.error("AI returned empty content! Full response:", JSON.stringify(data, null, 2));
-        message = userLanguage === 'es'
-          ? "¡Hola! ¿En qué te puedo ayudar hoy? Puedo recomendarte eventos, bares, fiestas y más en Buenos Aires 🎉"
-          : "Hey! What can I help you with today? I can recommend events, bars, parties and more in Buenos Aires 🎉";
+        
+        // Check if user was asking about events/tonight/today - provide actual recommendations if so
+        const lastUserMsgLower = lastUserMessage.toLowerCase();
+        const isEventQuery = lastUserMsgLower.includes("event") || lastUserMsgLower.includes("tonight") || 
+                            lastUserMsgLower.includes("today") || lastUserMsgLower.includes("esta noche") || 
+                            lastUserMsgLower.includes("hoy") || lastUserMsgLower.includes("party") ||
+                            lastUserMsgLower.includes("parties") || lastUserMsgLower.includes("fiesta");
+        
+        if (isEventQuery && ageFilteredEvents.length > 0) {
+          // Filter for today's events if query mentions tonight/today
+          const isTodayQuery = lastUserMsgLower.includes("tonight") || lastUserMsgLower.includes("today") || 
+                              lastUserMsgLower.includes("esta noche") || lastUserMsgLower.includes("hoy");
+          
+          const relevantEvents = isTodayQuery 
+            ? ageFilteredEvents.filter(e => e.date === today).slice(0, 5)
+            : ageFilteredEvents.slice(0, 5);
+          
+          if (relevantEvents.length > 0) {
+            // Build a JSON response with available events
+            const recommendations = relevantEvents.map(e => ({
+              type: "event",
+              id: e.id,
+              title: e.title,
+              description: `📍 ${e.location || 'Buenos Aires'}. ${e.date ? formatDate(e.date) : ''} ${e.time || ''}. ${e.description?.substring(0, 100) || ''}`,
+              why_recommended: "This event matches your search for events " + (isTodayQuery ? "tonight" : "happening soon"),
+              image_url: e.image_url
+            }));
+            
+            message = JSON.stringify({
+              intro_message: userLanguage === 'es' 
+                ? `¡Encontré ${relevantEvents.length} eventos para vos! 🎉`
+                : `Found ${relevantEvents.length} events for you! 🎉`,
+              recommendations
+            });
+            console.log("Built fallback event recommendations:", message);
+          } else {
+            message = userLanguage === 'es'
+              ? "No encontré eventos para esa fecha. ¿Querés que busque para otro día? 📅"
+              : "I couldn't find events for that date. Want me to search for another day? 📅";
+          }
+        } else {
+          message = userLanguage === 'es'
+            ? "¡Hola! ¿En qué te puedo ayudar hoy? Puedo recomendarte eventos, bares, fiestas y más en Buenos Aires 🎉"
+            : "Hey! What can I help you with today? I can recommend events, bars, parties and more in Buenos Aires 🎉";
+        }
       }
 
       // FALLBACK: For general Buenos Aires questions OR recommendation requests with no database matches
