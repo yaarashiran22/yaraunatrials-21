@@ -233,7 +233,7 @@ const CreateEventPage = () => {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/')}
             className="rounded-full text-foreground"
           >
             <ArrowLeft className="h-5 w-5" />
