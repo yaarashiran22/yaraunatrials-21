@@ -466,7 +466,7 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
 
           {/* Instagram Link Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground block text-left">Instagram Link*</label>
+            <label className="text-sm font-medium text-foreground block text-left">Instagram Page Link*</label>
             <Input 
               value={externalLink}
               onChange={(e) => setExternalLink(e.target.value)}
@@ -497,20 +497,6 @@ const CreateEventPopup = ({ isOpen, onClose, onEventCreated, initialEventType = 
             />
           </div>
 
-          {/* Venue Size Field */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground block text-left">{t('createEvent.venueSize')}</label>
-            <Select value={venueSize} onValueChange={setVenueSize}>
-              <SelectTrigger className="w-full h-12 text-left bg-white border-2 border-border rounded-full">
-                <SelectValue placeholder={t('createEvent.chooseVenueSize')} />
-              </SelectTrigger>
-              <SelectContent className="bg-white border shadow-lg z-[9999]">
-                <SelectItem value="intimate" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.intimateVenue')}</SelectItem>
-                <SelectItem value="moderate" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.moderateVenue')}</SelectItem>
-                <SelectItem value="big" className="text-left cursor-pointer hover:bg-muted">{t('createEvent.bigVenue')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
 
           {/* What Mood Section */}
