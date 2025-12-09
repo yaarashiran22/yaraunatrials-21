@@ -5,7 +5,6 @@ import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
-import CreateEventPopup from "./CreateEventPopup";
 
 const CreateActionSelector = () => {
   const navigate = useNavigate();
@@ -13,8 +12,6 @@ const CreateActionSelector = () => {
   const { user } = useAuth();
   const { profile } = useProfile(user?.id);
   const [isOpen, setIsOpen] = useState(false);
-  const [showEventPopup, setShowEventPopup] = useState(false);
-
 
   const actions = [
     {
@@ -24,16 +21,16 @@ const CreateActionSelector = () => {
         navigate('/create-post');
         setIsOpen(false);
       },
-      visible: true // Always visible for all users
+      visible: true
     },
     {
       icon: Calendar,
       label: t('navigation.createEvent'),
       onClick: () => {
-        setShowEventPopup(true);
+        navigate('/create-event');
         setIsOpen(false);
       },
-      visible: true // Anyone can create events
+      visible: true
     },
     {
       icon: ShoppingBag,
@@ -42,9 +39,9 @@ const CreateActionSelector = () => {
         navigate('/new-item');
         setIsOpen(false);
       },
-      visible: true // Always visible for all users
+      visible: true
     }
-  ].filter(action => action.visible); // Filter out non-visible actions
+  ].filter(action => action.visible);
 
   if (isOpen) {
     return (
@@ -80,25 +77,14 @@ const CreateActionSelector = () => {
   }
 
   return (
-    <>
-      <Button
-        size="lg"
-        onClick={() => setIsOpen(true)}
-        className="rounded-full w-14 h-14 shadow-lg flex flex-col items-center justify-center"
-        style={{ backgroundColor: '#BB31E9', color: 'hsl(0 0% 100%)' }}
-      >
-        <Plus className="h-6 w-6 text-primary-foreground" />
-      </Button>
-      
-      <CreateEventPopup 
-        isOpen={showEventPopup}
-        onClose={() => setShowEventPopup(false)}
-        onEventCreated={() => {
-          setShowEventPopup(false);
-          // Optionally refresh events data here
-        }}
-      />
-    </>
+    <Button
+      size="lg"
+      onClick={() => setIsOpen(true)}
+      className="rounded-full w-14 h-14 shadow-lg flex flex-col items-center justify-center"
+      style={{ backgroundColor: '#BB31E9', color: 'hsl(0 0% 100%)' }}
+    >
+      <Plus className="h-6 w-6 text-primary-foreground" />
+    </Button>
   );
 };
 
