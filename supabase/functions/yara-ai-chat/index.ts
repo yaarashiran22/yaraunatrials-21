@@ -509,7 +509,8 @@ Intimate jazz vibes in a cozy basement bar. Perfect for music lovers!
 
 Use natural language, emojis for visual breaks, and keep it conversational. NO JSON!
 ` : `
-When user explicitly requests recommendations, return structured JSON with the provide_recommendations function.
+When user explicitly requests recommendations, return a raw JSON object (NOT function call syntax - just pure JSON starting with { and ending with }).
+NEVER output text like "Calling provide_recommendations with..." - just return the JSON directly.
 `}
 
 CRITICAL DATE INFORMATION - YOU ALREADY KNOW THIS:
