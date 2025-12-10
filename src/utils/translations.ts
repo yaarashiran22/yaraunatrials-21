@@ -153,6 +153,11 @@ export const translations = {
       meetupCreatedSuccess: 'Meetup created successfully!',
       meetupCreatedDesc: 'Your meetup has been added to the meetups page',
       createEventError: 'Could not create the event. Please try again.',
+      createEvent: 'Create Event',
+      creating: 'Creating...',
+      mood: 'Mood',
+      instagramLink: 'Instagram Link',
+      uploadMedia: 'Click to upload image or video',
     },
     profile: {
       recommendations: "My Recommendations",
@@ -377,6 +382,11 @@ export const translations = {
       meetupCreatedSuccess: '¡Reunión creada exitosamente!',
       meetupCreatedDesc: 'Tu reunión ha sido agregada a la página de reuniones',
       createEventError: 'No se pudo crear el evento. Por favor intenta de nuevo.',
+      createEvent: 'Crear Evento',
+      creating: 'Creando...',
+      mood: 'Ambiente',
+      instagramLink: 'Link de Instagram',
+      uploadMedia: 'Haz clic para subir imagen o video',
     },
     profile: {
       recommendations: "Mis Recomendaciones",
