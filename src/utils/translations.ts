@@ -157,6 +157,7 @@ export const translations = {
       creating: 'Creating...',
       mood: 'Mood',
       instagramLink: 'Instagram Link',
+      ticketLink: 'Ticket Link (Optional)',
       uploadMedia: 'Click to upload image or video',
     },
     profile: {
@@ -386,6 +387,7 @@ export const translations = {
       creating: 'Creando...',
       mood: 'Ambiente',
       instagramLink: 'Link de Instagram',
+      ticketLink: 'Link de Entradas (Opcional)',
       uploadMedia: 'Haz clic para subir imagen o video',
     },
     profile: {

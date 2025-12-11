@@ -428,6 +428,17 @@ const CreateEventPage = () => {
             />
           </div>
 
+          {/* Ticket Link Field */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-white block text-left">{t('createEvent.ticketLink')}</label>
+            <Input 
+              value={ticketLink}
+              onChange={(e) => setTicketLink(e.target.value)}
+              placeholder="https://..."
+              className="w-full h-12 text-left text-black placeholder:text-gray-400 bg-white border-2 border-gray-200 rounded-full"
+            />
+          </div>
+
           {/* Mood Selection */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-white block text-left">{t('createEvent.mood')}*</label>
