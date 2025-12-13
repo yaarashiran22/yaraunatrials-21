@@ -124,9 +124,16 @@ Deno.serve(async (req) => {
       
       let messageBody = `*${title}*\n\n${formattedDescription}`;
       
-      // Add URL link if available (Instagram for clubs/bars, WhatsApp for communities)
-      if (rec.url) {
-        messageBody += `\n\n🔗 ${rec.url}`;
+      // Add URL/Instagram link if available
+      // Check multiple fields: url (for top list items), external_link (for events), ticket_link
+      const linkUrl = rec.url || rec.external_link;
+      if (linkUrl) {
+        messageBody += `\n\n📸 ${linkUrl}`;
+      }
+      
+      // Add ticket link separately if available (for events)
+      if (rec.ticket_link && rec.ticket_link !== linkUrl) {
+        messageBody += `\n🎟️ ${rec.ticket_link}`;
       }
       
       // CRITICAL: Only add personalized_note for events, NOT for topListItems (clubs/bars/communities)
