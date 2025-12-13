@@ -1126,7 +1126,18 @@ IMPORTANT - NO DATABASE MATCHES:
           message.toLowerCase().includes("no encontré eventos") || 
           message.toLowerCase().includes("couldn't find any events") ||
           message.toLowerCase().includes("don't have information about") ||
-          message.toLowerCase().includes("no tengo información sobre")
+          message.toLowerCase().includes("no tengo información sobre") ||
+          // Additional patterns for restaurant/venue queries with no matches
+          message.toLowerCase().includes("no tengo recomendaciones") ||
+          message.toLowerCase().includes("don't have recommendations") ||
+          message.toLowerCase().includes("no tengo datos") ||
+          message.toLowerCase().includes("i don't have data") ||
+          message.toLowerCase().includes("no cuento con información") ||
+          message.toLowerCase().includes("no tengo información específica") ||
+          message.toLowerCase().includes("i don't have specific information") ||
+          // Patterns for restaurant-specific queries
+          message.toLowerCase().includes("restaurantes") && message.toLowerCase().includes("no tengo") ||
+          message.toLowerCase().includes("restaurants") && message.toLowerCase().includes("don't have")
         );
       
       if (shouldFallbackToLovableAI) {
