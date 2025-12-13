@@ -799,50 +799,38 @@ REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
 ` : ''}
 
 RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
-**CRITICAL: DO NOT FILTER BY USER INTERESTS** - Only filter by: (1) the event type/keywords the user requested, and (2) age appropriateness
+**CRITICAL: BE INCLUSIVE, NOT SELECTIVE** - Show ALL events that match the user's request, not just the ones that perfectly match their profile.
 
-1. **CRITICAL: Search BOTH title AND description equally** - if user asks for "party", check if "party" appears in EITHER the title OR the description. Example: event with title "Night Out" and description "Join us for a party at..." MUST match "party" search
-2. **Description matching is just as important as title matching** - don't prioritize title over description, treat them equally
-3. **Single word matches count** - if the user searches for "workshops" and an event has "workshop" anywhere in title OR description, it's a VALID match
-4. **CRITICAL WORKSHOP/EVENT TYPE DETECTION**: When user asks for "workshops", "classes", "courses", etc.:
-   - **STRICT RULE**: ONLY recommend events that EXPLICITLY contain workshop-related keywords in their title OR description
-   - Keywords that MUST appear: workshop, class, course, taller, masterclass, training, seminar, lesson, tutorial, "learn about", "how to", teaching
-   - An event with title "Creative vermuth workshop" is a WORKSHOP - INCLUDE IT
-   - An event with description "Join our cooking class" is a WORKSHOP - INCLUDE IT
-   - **ABSOLUTE EXCLUSIONS - NEVER RECOMMEND THESE AS WORKSHOPS**:
-     * "Live jazz jam session" - This is a JAM SESSION, NOT a workshop
-     * Any "jam session" - These are performances/social events, NOT workshops
-     * Concerts, shows, performances - NOT workshops unless they explicitly say "workshop" or "class"
-     * Social gatherings, meetups, parties - NOT workshops unless they explicitly say "workshop" or "class"
-   - **DO NOT justify jam sessions as "interactive events" or "creative workshops"** - they are NOT workshops
-   - If an event doesn't use the words "workshop", "class", "course", "taller", "lesson", or "tutorial", DO NOT recommend it for workshop requests
-5. **Check mood field** - if event has mood field, use it for matching (e.g., "Creative" mood matches creative requests)
-6. **Use semantic matching for broad queries** - When user asks general questions like "artistic events", "cultural events", "creative events", be VERY INCLUSIVE:
-   - "artistic events" = ANY events involving: music, art, indie culture, live performances, exhibitions, cultural festivals, creative workshops, theater, jazz, cultural meetups, art galleries, cultural centers
-   - "creative events" = art workshops, painting classes, craft events, DIY sessions, creative meetups, vermuth making, cooking classes, music creation
-   - "cultural events" = exhibitions, festivals, cultural centers, museums, traditional performances, international celebrations
-   - **CRITICAL**: For broad queries, PRIORITIZE showing diverse options rather than saying NO_DATABASE_MATCH
-7. **Be inclusive, not exclusive** - if user asks for a general category like "bars" or "party", include ALL age-appropriate events that contain those words in title OR description, regardless of the user's interest profile
-8. **Don't force matches only when truly unrelated** - if user asks for "jazz concerts" and there are no music events at all, DON'T recommend food events. But if they ask for "party" and an event description mentions "party", ALWAYS recommend it
+1. **CRITICAL: When user asks for "events today" or "events tonight"** - Show ALL events happening on that date, not just personalized picks. Include chill events, house music, art events, parties, etc. - SHOW EVERYTHING for that date.
+2. **CRITICAL: Search BOTH title AND description equally** - if user asks for "party", check if "party" appears in EITHER the title OR the description.
+3. **Description matching is just as important as title matching** - don't prioritize title over description, treat them equally
+4. **Single word matches count** - if the user searches for "workshops" and an event has "workshop" anywhere in title OR description, it's a VALID match
+5. **CRITICAL WORKSHOP/EVENT TYPE DETECTION**: When user asks for "workshops", "classes", "courses", etc.:
+   - **STRICT RULE**: ONLY recommend events that EXPLICITLY contain workshop-related keywords
+   - Keywords that MUST appear: workshop, class, course, taller, masterclass, training, seminar, lesson, tutorial
+   - **NEVER treat**: jam session = workshop, concert = workshop, show = workshop
+6. **Check mood field** - if event has mood field, use it for matching (e.g., "Creative" mood matches creative requests)
+7. **Use semantic matching for broad queries** - When user asks general questions like "artistic events", "cultural events", "creative events", be VERY INCLUSIVE
+8. **Be inclusive, not exclusive** - if user asks for a general category like "bars" or "party", include ALL age-appropriate events
 9. **Exact keyword matches win** - if an event title OR description contains the exact words the user used, prioritize it
 10. **Category synonyms**: Treat these as equivalent:
     - workshops = classes = courses = talleres = masterclasses = trainings = lessons = seminars = tutorials
     - party = fiesta = celebration = gathering
     - bar = pub = cerveceria = cocktail bar
-    - **CRITICAL - "shows" interpretation**: shows = concerts = performances = gigs = live music = live performances = live entertainment = spectacles
-    - When user asks for "shows" or "live shows", include ALL of: concerts, performances, live music events, gigs, theater, comedy shows, any live entertainment
-    - **NEVER treat**: jam session = workshop, concert = workshop, show = workshop
-11. **CRITICAL: User interests are for CONTEXT ONLY, not for filtering** - The user's interests help you understand their preferences and personalize your responses, but DO NOT use interests to exclude events from recommendations. Always show all age-appropriate events that match the requested type.
+    - shows = concerts = performances = gigs = live music
+11. **CRITICAL: User interests are for CONTEXT ONLY, not for filtering** - DO NOT use interests to exclude events. Always show all age-appropriate events that match the requested type/date.
 
 RECOMMENDATION OUTPUT RULES:
-🚨 **SEND ALL RELEVANT EVENTS - UP TO 7 MAXIMUM** 🚨
-- **CRITICAL**: When user asks for events (parties, concerts, workshops, etc.), you MUST send ALL relevant matches up to 7
-- **DO NOT arbitrarily limit to 3-4** - if there are 7 parties this week, SEND ALL 7
-- If there are more than 7 relevant events, pick the 7 best matches based on the user's preferences
-- If there are fewer than 7 matches, send ALL available matches (e.g., if 5 parties exist, send all 5)
-- For bar/club/nightlife requests: ALWAYS return AT LEAST 3-5 options when available in the database
+🚨 **SEND ALL RELEVANT EVENTS - UP TO 8 MAXIMUM** 🚨
+- **CRITICAL**: When user asks for "events today" or "events tonight", you MUST send ALL events happening on that date up to 8
+- **DO NOT arbitrarily limit to 3-4** - if there are 8 events today, SEND ALL 8
+- **DO NOT over-personalize** - show variety across different event types (chill, party, art, music, etc.)
+- If there are more than 8 relevant events, pick a DIVERSE mix (not just parties or just one type)
+- If there are fewer than 8 matches, send ALL available matches
+- For bar/club/nightlife requests: ALWAYS return AT LEAST 3-5 options when available
 - Minimum: 3 recommendations when available
-- **Maximum: 7 recommendations** - but ALWAYS aim to hit this maximum if enough relevant events exist
+- **Maximum: 8 recommendations** - ALWAYS aim to hit this maximum when enough events exist
+- **DIVERSITY RULE**: Include events with different moods (chill, party, cultural, artistic) for broad date-based queries
 - **CRITICAL**: ONLY include events/items that have an image_url field - never recommend anything without an image
 - **CRITICAL**: You MUST include the "image_url" field in EVERY recommendation in your JSON response - this is the event's photo that will be sent via WhatsApp
 - **CRITICAL FOR BARS/CLUBS**: Always include the Instagram link in the description from the "url" field (e.g., "📍 Palermo | 📸 Instagram: https://instagram.com/barname")
