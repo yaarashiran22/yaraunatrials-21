@@ -270,63 +270,6 @@ Deno.serve(async (req) => {
     if (whatsappUser) {
       const updates: any = {};
 
-      // Detect name from user message
-      if (!whatsappUser.name) {
-        // Check if the previous message was asking for name
-        const lastAssistantMessage =
-          conversationHistory.length > 0 ? conversationHistory[conversationHistory.length - 1] : null;
-
-        const wasAskingForName =
-          lastAssistantMessage?.role === "assistant" &&
-          /what'?s your name|can i ask what your name is|what is your name|tell me your name/i.test(
-            lastAssistantMessage.content,
-          );
-
-        let detectedName = null;
-
-        if (wasAskingForName) {
-          // If we just asked for name, be more flexible in extracting it
-          // Match: "Sarah", "It's Sarah", "My name is Sarah", "I'm Sarah", "Call me Sarah"
-          const flexibleNamePattern =
-            /^(?:it'?s\s+|my name is\s+|i'?m\s+|i am\s+|me llamo\s+|call me\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)[\s!.]*$/i;
-          const nameMatch = body.match(flexibleNamePattern);
-
-          if (nameMatch) {
-            detectedName = nameMatch[1].trim();
-            console.log(`Detected name from direct response: ${detectedName}`);
-          }
-        } else {
-          // Otherwise, only match explicit name statements
-          const namePattern = /(?:my name is|i'm|i am|me llamo|call me)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i;
-          const nameMatch = body.match(namePattern);
-
-          if (nameMatch) {
-            detectedName = nameMatch[1].trim();
-            console.log(`Detected name from explicit statement: ${detectedName}`);
-          }
-        }
-
-        if (detectedName) {
-          updates.name = detectedName;
-        }
-      }
-
-      // Detect age from user message
-      const agePattern = /\b(\d{1,2})\b/g;
-      const ageMatches = body.match(agePattern);
-      if (ageMatches && !whatsappUser.age) {
-        // Check if the context suggests they're providing age
-        const ageContextPatterns = /(i'm|im|i am|we're|were|we are|age|years? old|año|años)/i;
-        if (ageContextPatterns.test(body) || body.trim().length < 20) {
-          // Take the first reasonable age (between 10 and 99)
-          const ages = ageMatches.map((m) => parseInt(m)).filter((a) => a >= 10 && a <= 99);
-          if (ages.length > 0) {
-            updates.age = ages[0];
-            console.log(`Detected age: ${ages[0]}`);
-          }
-        }
-      }
-
       // Detect neighborhood from user message
       const neighborhoodKeywords = [
         "palermo",
@@ -507,34 +450,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Smart name/age collection for ANY new user (not just on recommendation requests)
-    if (whatsappUser && (!whatsappUser.name || !whatsappUser.age)) {
-      const messageCount = conversationHistory.length;
-
-      // Ask for name/age on second message (to avoid asking on greeting)
-      if (messageCount === 1) {
-        const askBothMessage =
-          userLanguage === "es"
-            ? "Para darte las mejores recomendaciones personalizadas, ¿cómo te llamas y cuántos años tenés?😊"
-            : "To give you the best personalized recommendations, what's your name and age?😊";
-
-        await supabase.from("whatsapp_conversations").insert({
-          phone_number: from,
-          role: "assistant",
-          content: askBothMessage,
-        });
-
-        const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${askBothMessage}</Message>
-</Response>`;
-
-        return new Response(twimlResponse, {
-          headers: { ...corsHeaders, "Content-Type": "text/xml" },
-          status: 200,
-        });
-      }
-    }
+    // Name/age collection removed - bot no longer asks for personal info
 
     // Detect if this is a recommendation request
     const recommendationKeywords =
