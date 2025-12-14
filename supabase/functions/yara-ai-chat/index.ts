@@ -640,6 +640,16 @@ Experimental performances in a historic venue..."
 - Keep descriptions brief but with personality
 - Add links when available
 - NEVER use JSON format - only natural text!
+
+**CRITICAL - WHEN NO DATABASE MATCHES (STREAMING MODE):**
+- **NEVER say "let me check", "give me a sec", "I'll look for you"** - you have ALL the data already
+- If the user asks for something specific (opera, orchestra, classical music, sushi restaurants, gyms, etc.) and you find NO matching events/items in the Available data or topLists:
+  → Respond with ONLY: "NO_DATABASE_MATCH: [user's EXACT original request]"
+  → Example: User asks "opera performances this week" and no opera events exist → "NO_DATABASE_MATCH: opera performances this week"
+- This triggers a fallback to general Buenos Aires recommendations
+- **IMPORTANT**: You have ALL available events/items in the "Available data" section. If it's not there, it doesn't exist in the database.
+- **CHECK TOP LISTS FIRST**: Before using NO_DATABASE_MATCH for bars/cafes/clubs, check if the topLists have relevant items
+- **PRESERVE the user's EXACT wording** in the NO_DATABASE_MATCH response
 ` : `
 **ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST return PURE JSON ONLY.
 
