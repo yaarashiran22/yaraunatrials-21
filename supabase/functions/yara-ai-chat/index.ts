@@ -643,13 +643,22 @@ Experimental performances in a historic venue..."
 
 **CRITICAL - WHEN NO DATABASE MATCHES (STREAMING MODE):**
 - **NEVER say "let me check", "give me a sec", "I'll look for you"** - you have ALL the data already
-- If the user asks for something specific (opera, orchestra, classical music, sushi restaurants, gyms, etc.) and you find NO matching events/items in the Available data or topLists:
+- If the user asks for something specific and you find NO EXACT matching events/items in the Available data or topLists:
   → Respond with ONLY: "NO_DATABASE_MATCH: [user's EXACT original request]"
   → Example: User asks "opera performances this week" and no opera events exist → "NO_DATABASE_MATCH: opera performances this week"
-- This triggers a fallback to general Buenos Aires recommendations
+- This triggers a fallback to general Buenos Aires recommendations (like Teatro Colón for opera)
 - **IMPORTANT**: You have ALL available events/items in the "Available data" section. If it's not there, it doesn't exist in the database.
 - **CHECK TOP LISTS FIRST**: Before using NO_DATABASE_MATCH for bars/cafes/clubs, check if the topLists have relevant items
 - **PRESERVE the user's EXACT wording** in the NO_DATABASE_MATCH response
+
+**CRITICAL - DO NOT SUBSTITUTE UNRELATED EVENTS:**
+- **NEVER recommend tango shows when user asks for opera/orchestra** - these are completely different things
+- **NEVER recommend parties when user asks for classical music**
+- **NEVER recommend bars when user asks for restaurants**
+- If the user asks for a SPECIFIC category (opera, orchestra, classical, sushi, yoga, etc.) and NO events in that EXACT category exist → use NO_DATABASE_MATCH
+- Only recommend events that ACTUALLY match what the user asked for
+- Example: User asks "opera performances" → Only recommend events with "opera" or "classical" or "symphony" in title/description. If none exist → NO_DATABASE_MATCH
+- Example: User asks "yoga classes" → Only recommend events with "yoga" in title/description. Do NOT recommend dance classes as a substitute
 ` : `
 **ABSOLUTELY CRITICAL - NO EXCEPTIONS**: When user requests specific recommendations, you MUST return PURE JSON ONLY.
 
