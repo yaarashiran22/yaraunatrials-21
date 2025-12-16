@@ -146,15 +146,43 @@ Deno.serve(async (req) => {
         console.log(`Message body length: ${messageBody.length} chars`);
         console.log(`Has image: ${!!rec.image_url}, Has URL: ${!!rec.url}`);
         
-        // Build request body - only include MediaUrl if image exists
+        // Build request body
         const requestBody: Record<string, string> = {
           From: cleanFrom,
           To: cleanTo,
           Body: messageBody
         };
         
+        // Validate image URL before including it
+        let useImage = false;
         if (rec.image_url) {
-          console.log(`Image URL: ${rec.image_url}`);
+          try {
+            // Quick HEAD request to check if image is accessible
+            const imageCheck = await fetch(rec.image_url, { 
+              method: 'HEAD',
+              signal: AbortSignal.timeout(3000) // 3 second timeout
+            });
+            
+            if (imageCheck.ok) {
+              const contentType = imageCheck.headers.get('content-type') || '';
+              const contentLength = parseInt(imageCheck.headers.get('content-length') || '0');
+              
+              // Check if it's an image and under 5MB (Twilio limit)
+              if (contentType.startsWith('image/') && contentLength < 5 * 1024 * 1024) {
+                useImage = true;
+                console.log(`✅ Image validated: ${rec.image_url} (${contentType}, ${contentLength} bytes)`);
+              } else {
+                console.log(`⚠️ Skipping image - invalid type or too large: ${contentType}, ${contentLength} bytes`);
+              }
+            } else {
+              console.log(`⚠️ Image not accessible (${imageCheck.status}): ${rec.image_url}`);
+            }
+          } catch (imgError) {
+            console.log(`⚠️ Image check failed, sending without media: ${imgError.message}`);
+          }
+        }
+        
+        if (useImage) {
           requestBody.MediaUrl = rec.image_url;
         }
         
@@ -173,8 +201,34 @@ Deno.serve(async (req) => {
         if (!twilioResponse.ok) {
           const errorText = await twilioResponse.text();
           console.error(`❌ Failed to send ${rec.title}: ${twilioResponse.status} - ${errorText}`);
-          console.error(`Full error response:`, errorText);
-          results.push({ success: false, title: rec.title, error: errorText });
+          
+          // If media failed, retry without media
+          if (errorText.includes('media') && useImage) {
+            console.log(`🔄 Retrying without media...`);
+            delete requestBody.MediaUrl;
+            
+            const retryResponse = await fetch(
+              `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams(requestBody).toString()
+              }
+            );
+            
+            if (retryResponse.ok) {
+              const result = await retryResponse.json();
+              console.log(`✅ Sent ${rec.title} (without media). SID: ${result.sid}`);
+              results.push({ success: true, title: rec.title, sid: result.sid, note: 'sent without media' });
+            } else {
+              results.push({ success: false, title: rec.title, error: errorText });
+            }
+          } else {
+            results.push({ success: false, title: rec.title, error: errorText });
+          }
         } else {
           const result = await twilioResponse.json();
           console.log(`✅ Sent ${rec.title}. SID: ${result.sid}, Status: ${result.status}`);
