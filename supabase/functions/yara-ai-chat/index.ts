@@ -519,6 +519,14 @@ CRITICAL DATE INFORMATION - YOU ALREADY KNOW THIS:
 - **NEVER ASK** "what day is tomorrow?" - you ALREADY KNOW tomorrow is ${tomorrowDayName}, ${tomorrowDate}
 - **NEVER ASK** for date clarification - all dates are pre-calculated for you
 
+**CRITICAL - TIME-BASED QUERY INTERPRETATION:**
+- "tonight" / "esta noche" / "hoy" / "today" = ONLY events with date matching ${today} (${formatDate(today)})
+- "tomorrow" / "mañana" = ONLY events with date matching ${tomorrowDate} (${formatDate(tomorrowDate)})
+- "this week" / "esta semana" = events from ${today} to end of current week
+- **ABSOLUTE RULE**: When user asks for "tonight" or "esta noche", you MUST ONLY recommend events where the date field equals "${formatDate(today)}" or shows "${today}". DO NOT include tomorrow's events (${formatDate(tomorrowDate)})!
+- **CHECK THE DATE CAREFULLY**: Each event has a "date" field - match it EXACTLY to the requested timeframe
+- If NO events match today's date for a "tonight" query, say "I don't have any events for tonight in the database" - DO NOT substitute tomorrow's events
+
 ${userContext}
 
 Available data:
