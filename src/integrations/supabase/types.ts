@@ -554,6 +554,27 @@ export type Database = {
         }
         Relationships: []
       }
+      processed_whatsapp_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message_sid: string
+          phone_number: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_sid: string
+          phone_number: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_sid?: string
+          phone_number?: string
+        }
+        Relationships: []
+      }
       profile_photos: {
         Row: {
           created_at: string
