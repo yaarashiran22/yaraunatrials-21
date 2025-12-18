@@ -714,6 +714,21 @@ Deno.serve(async (req) => {
           parsedResponse.intro_message = prefixText;
           console.log("Using prefix text as intro_message:", prefixText);
         }
+      } else {
+        // CRITICAL FIX: JSON parsed but recommendations is not a valid array
+        // Clear parsedResponse and strip JSON from assistantMessage to prevent sending raw code
+        console.log("WARNING: JSON parsed but recommendations is not a valid array. Clearing parsed response.");
+        
+        // Extract intro_message before clearing parsedResponse
+        const introMsg = parsedResponse?.intro_message;
+        parsedResponse = null;
+        
+        if (introMsg && typeof introMsg === 'string' && introMsg.length > 10) {
+          assistantMessage = introMsg;
+          console.log("Using intro_message from parsed JSON:", introMsg);
+        } else {
+          assistantMessage = "I found some options for you! Let me check the details...";
+        }
       }
     } catch (e) {
       // Not JSON, just a regular conversational response
@@ -740,7 +755,8 @@ Deno.serve(async (req) => {
       }
       // CRITICAL FIX: If the message looks like it contains JSON but failed to parse,
       // strip out any JSON-like content to avoid sending raw code to user
-      else if (cleanedMessage.includes('"recommendations"') || cleanedMessage.includes('"type":')) {
+      else if (cleanedMessage.includes('"recommendations"') || cleanedMessage.includes('"type":') || 
+               cleanedMessage.includes('"intro_message"') || cleanedMessage.includes('"title":')) {
         console.log("WARNING: Response contains JSON-like content but failed to parse. Stripping it.");
         // Extract only the human-readable text before any JSON
         const jsonPatternStart = cleanedMessage.search(/[\[{]/);
