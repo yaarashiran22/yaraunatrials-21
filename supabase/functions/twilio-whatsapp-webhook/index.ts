@@ -40,6 +40,42 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // IDEMPOTENCY CHECK: Prevent duplicate message processing from Twilio retries
+    if (messageSid) {
+      const { data: existingMessage } = await supabase
+        .from("processed_whatsapp_messages")
+        .select("id")
+        .eq("message_sid", messageSid)
+        .maybeSingle();
+
+      if (existingMessage) {
+        console.log(`Duplicate message detected (MessageSid: ${messageSid}) - skipping processing`);
+        return new Response('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', {
+          headers: { ...corsHeaders, "Content-Type": "text/xml" },
+          status: 200,
+        });
+      }
+
+      // Mark this message as being processed
+      const { error: insertError } = await supabase
+        .from("processed_whatsapp_messages")
+        .insert({ message_sid: messageSid, phone_number: from });
+
+      if (insertError) {
+        // If insert fails due to unique constraint, another request beat us
+        if (insertError.code === "23505") {
+          console.log(`Race condition detected for MessageSid: ${messageSid} - skipping`);
+          return new Response('<?xml version="1.0" encoding="UTF-8"?><Response></Response>', {
+            headers: { ...corsHeaders, "Content-Type": "text/xml" },
+            status: 200,
+          });
+        }
+        console.error("Error marking message as processed:", insertError);
+      } else {
+        console.log(`Message ${messageSid} marked as processing`);
+      }
+    }
+
     // Send typing indicator
     const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
     const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
