@@ -196,7 +196,8 @@ Deno.serve(async (req) => {
     const userLanguage = whatsappUser?.preferred_language || "en";
 
     // Check if user wants to upload an event - just send the link, no in-chat flow
-    const uploadIntentPatterns = /\b(upload|post|share|add|submit|crear|subir|agregar|publicar)\s+(an?\s+|un\s+|una\s+)?(event|evento|gig|show|concert|concierto|party|fiesta)\b/i;
+    // Include "sumar" (Spanish for add/sum) which is commonly used
+    const uploadIntentPatterns = /\b(upload|post|share|add|submit|crear|subir|agregar|publicar|sumar)\s+(an?\s+|un\s+|una\s+)?(event|evento|gig|show|concert|concierto|party|fiesta)\b/i;
     const isUploadIntent = uploadIntentPatterns.test(body.trim());
 
     // If there's an active upload flow stuck, clear it
