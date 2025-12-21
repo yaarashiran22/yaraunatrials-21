@@ -104,7 +104,7 @@ serve(async (req) => {
       supabase
         .from("events")
         .select(
-          "id, title, description, date, time, location, address, venue_name, price, mood, music_type, venue_size, external_link, image_url, target_audience",
+          "id, title, description, date, time, location, address, venue_name, price, mood, music_type, venue_size, external_link, ticket_link, image_url, target_audience",
         )
         .order("date", { ascending: true })
         .limit(200), // Fetch more to ensure we get recurring events
@@ -240,6 +240,7 @@ serve(async (req) => {
         music_type: e.music_type,
         venue_size: e.venue_size,
         external_link: e.external_link,
+        ticket_link: e.ticket_link, // Include ticket link for events with tickets
         image_url: e.image_url,
         target_audience: e.target_audience,
       })),
@@ -946,6 +947,10 @@ IMPORTANT - NO DATABASE MATCHES:
                       url: {
                         type: "string",
                         description: "Optional - Instagram link or external URL for the item. For topListItem, use the url field from the database.",
+                      },
+                      ticket_link: {
+                        type: "string",
+                        description: "IMPORTANT - For events with tickets, include the ticket_link from the database. This is the direct link where users can buy tickets.",
                       },
                     },
                     required: [
