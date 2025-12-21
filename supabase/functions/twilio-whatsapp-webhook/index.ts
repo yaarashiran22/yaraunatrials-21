@@ -834,40 +834,80 @@ Deno.serve(async (req) => {
           .eq("id", whatsappUser.id);
       }
 
-      // Store the assistant message
-      await supabase.from("whatsapp_conversations").insert({
-        phone_number: from,
-        role: "assistant",
-        content: JSON.stringify(parsedResponse),
-      });
-
       // Get Twilio WhatsApp number
       const twilioWhatsAppNumber = Deno.env.get("TWILIO_WHATSAPP_NUMBER") || "whatsapp:+17622513744";
 
       // Prepare the intro message
       const introMessage = parsedResponse.intro_message || "Here are some recommendations for you! 🎯";
 
+      // CRITICAL FIX: Store a human-readable version instead of raw JSON
+      // This prevents users from seeing JSON if background function fails
+      const humanReadableContent = `${introMessage}\n\n[${parsedResponse.recommendations.length} recommendations sent]`;
+      
+      await supabase.from("whatsapp_conversations").insert({
+        phone_number: from,
+        role: "assistant",
+        content: humanReadableContent,
+      });
+
       // Trigger send-whatsapp-recommendations in background - it will send intro FIRST, then recommendations
       console.log("Triggering send-whatsapp-recommendations with intro message...");
-      supabase.functions
-        .invoke("send-whatsapp-recommendations", {
-          body: {
-            recommendations: parsedResponse.recommendations,
-            toNumber: from,
-            fromNumber: twilioWhatsAppNumber,
-            introText: introMessage, // Pass intro to background function - it will send it first
-          },
-        })
-        .then(({ data, error }) => {
-          if (error) {
-            console.error("Error invoking send-whatsapp-recommendations:", error);
-          } else {
-            console.log("Send-whatsapp-recommendations completed successfully:", data);
-          }
-        })
-        .catch((error) => {
-          console.error("Failed to invoke send-whatsapp-recommendations:", error);
+      
+      try {
+        const { data: sendData, error: sendError } = await supabase.functions
+          .invoke("send-whatsapp-recommendations", {
+            body: {
+              recommendations: parsedResponse.recommendations,
+              toNumber: from,
+              fromNumber: twilioWhatsAppNumber,
+              introText: introMessage, // Pass intro to background function - it will send it first
+            },
+          });
+        
+        if (sendError) {
+          console.error("Error invoking send-whatsapp-recommendations:", sendError);
+          // CRITICAL FIX: If background function fails, send intro via TwiML as fallback
+          const escapedIntro = introMessage
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&apos;");
+          
+          const fallbackTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${escapedIntro}</Message>
+</Response>`;
+          
+          console.log("Sending fallback TwiML with intro message due to background function error");
+          return new Response(fallbackTwiml, {
+            headers: { ...corsHeaders, "Content-Type": "text/xml" },
+            status: 200,
+          });
+        }
+        
+        console.log("Send-whatsapp-recommendations completed successfully:", sendData);
+      } catch (invokeError) {
+        console.error("Failed to invoke send-whatsapp-recommendations:", invokeError);
+        // CRITICAL FIX: Send intro as fallback on exception
+        const escapedIntro = introMessage
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&apos;");
+        
+        const fallbackTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${escapedIntro}</Message>
+</Response>`;
+        
+        console.log("Sending fallback TwiML with intro message due to exception");
+        return new Response(fallbackTwiml, {
+          headers: { ...corsHeaders, "Content-Type": "text/xml" },
+          status: 200,
         });
+      }
 
       // Return empty TwiML response (background function handles everything)
       const emptyTwiml = `<?xml version="1.0" encoding="UTF-8"?>
