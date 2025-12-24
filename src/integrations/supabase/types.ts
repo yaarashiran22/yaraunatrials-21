@@ -1073,6 +1073,7 @@ export type Database = {
           budget_preference: string | null
           created_at: string
           favorite_neighborhoods: string[] | null
+          first_day_followup_sent_at: string | null
           id: string
           interests: string[] | null
           music_preferences: string[] | null
@@ -1090,6 +1091,7 @@ export type Database = {
           budget_preference?: string | null
           created_at?: string
           favorite_neighborhoods?: string[] | null
+          first_day_followup_sent_at?: string | null
           id?: string
           interests?: string[] | null
           music_preferences?: string[] | null
@@ -1107,6 +1109,7 @@ export type Database = {
           budget_preference?: string | null
           created_at?: string
           favorite_neighborhoods?: string[] | null
+          first_day_followup_sent_at?: string | null
           id?: string
           interests?: string[] | null
           music_preferences?: string[] | null
