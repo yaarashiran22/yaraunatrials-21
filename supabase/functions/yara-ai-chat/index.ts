@@ -284,6 +284,9 @@ serve(async (req) => {
     let userProfileInfo: string[] = [];
     let userContext = "";
     let missingFields: string[] = [];
+    
+    // Track if user has any preferences set (for preference collection logic)
+    let hasPreferencesSet = false;
 
     if (userProfile) {
       const parts = [];
@@ -306,6 +309,21 @@ serve(async (req) => {
       if (userProfile.interests?.length) {
         parts.push(`Interests: ${userProfile.interests.join(", ")}`);
         userProfileInfo.push(`my interests are ${userProfile.interests.join(", ")}`);
+        hasPreferencesSet = true;
+      }
+
+      // Add music preferences to context
+      if (userProfile.music_preferences?.length) {
+        parts.push(`Music Preferences: ${userProfile.music_preferences.join(", ")}`);
+        userProfileInfo.push(`I like ${userProfile.music_preferences.join(", ")} music`);
+        hasPreferencesSet = true;
+      }
+
+      // Add favorite neighborhoods to context
+      if (userProfile.favorite_neighborhoods?.length) {
+        parts.push(`Favorite Neighborhoods: ${userProfile.favorite_neighborhoods.join(", ")}`);
+        userProfileInfo.push(`I prefer hanging out in ${userProfile.favorite_neighborhoods.join(", ")}`);
+        hasPreferencesSet = true;
       }
 
       if (userProfile.location) {
@@ -318,8 +336,14 @@ serve(async (req) => {
         userProfileInfo.push(`you've given me ${userProfile.recommendation_count} recommendations so far`);
       }
 
+      // Track if preferences have been asked before (check if any preference field has been set OR explicitly marked as asked)
+      if (userProfile.preferences_asked) {
+        hasPreferencesSet = true; // Treat as "asked" even if they didn't provide preferences
+      }
+
       if (parts.length > 0) {
         userContext = `\n\nUser Profile Context:\n${parts.join("\n")}`;
+        userContext += `\nHas Preferences Set: ${hasPreferencesSet ? 'YES' : 'NO'}`;
         console.log("User Profile Context:", userContext);
       }
 
