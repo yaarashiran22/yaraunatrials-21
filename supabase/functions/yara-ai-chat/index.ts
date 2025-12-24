@@ -1156,24 +1156,36 @@ IMPORTANT - NO DATABASE MATCHES:
 
       // FALLBACK: For general Buenos Aires questions OR recommendation requests with no database matches
       // Trigger fallback only when Yara explicitly indicates no data
+      const messageLower = message.toLowerCase();
       const shouldFallbackToLovableAI = 
         !toolCall && (
           message.startsWith("NO_DATABASE_MATCH:") || 
-          message.toLowerCase().includes("no encontré eventos") || 
-          message.toLowerCase().includes("couldn't find any events") ||
-          message.toLowerCase().includes("don't have information about") ||
-          message.toLowerCase().includes("no tengo información sobre") ||
+          // Standard "no results" patterns
+          messageLower.includes("no encontré eventos") || 
+          messageLower.includes("couldn't find any events") ||
+          messageLower.includes("couldn't find any") ||  // Catches "couldn't find any vegan food events"
+          messageLower.includes("i couldn't find") ||    // Catches variations like "I couldn't find any matching events"
+          messageLower.includes("don't have information about") ||
+          messageLower.includes("no tengo información sobre") ||
           // Additional patterns for restaurant/venue queries with no matches
-          message.toLowerCase().includes("no tengo recomendaciones") ||
-          message.toLowerCase().includes("don't have recommendations") ||
-          message.toLowerCase().includes("no tengo datos") ||
-          message.toLowerCase().includes("i don't have data") ||
-          message.toLowerCase().includes("no cuento con información") ||
-          message.toLowerCase().includes("no tengo información específica") ||
-          message.toLowerCase().includes("i don't have specific information") ||
+          messageLower.includes("no tengo recomendaciones") ||
+          messageLower.includes("don't have recommendations") ||
+          messageLower.includes("no tengo datos") ||
+          messageLower.includes("i don't have data") ||
+          messageLower.includes("no cuento con información") ||
+          messageLower.includes("no tengo información específica") ||
+          messageLower.includes("i don't have specific information") ||
+          // Patterns for "not in database" responses
+          messageLower.includes("not in the database") ||
+          messageLower.includes("no está en la base de datos") ||
+          messageLower.includes("not in my database") ||
+          messageLower.includes("no está en mi base") ||
+          // Patterns for specific item types not found
+          messageLower.includes("no encontré") ||        // Catches "no encontré eventos veganos"
+          messageLower.includes("no pude encontrar") ||  // "I couldn't find" in Spanish
           // Patterns for restaurant-specific queries
-          message.toLowerCase().includes("restaurantes") && message.toLowerCase().includes("no tengo") ||
-          message.toLowerCase().includes("restaurants") && message.toLowerCase().includes("don't have")
+          (messageLower.includes("restaurantes") && messageLower.includes("no tengo")) ||
+          (messageLower.includes("restaurants") && messageLower.includes("don't have"))
         );
       
       if (shouldFallbackToLovableAI) {
