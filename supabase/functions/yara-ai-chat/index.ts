@@ -713,6 +713,8 @@ Experimental performances in a historic venue..."
 - Keep descriptions brief but with personality
 - Add links when available
 - NEVER use JSON format - only natural text!
+- **FOLLOW-UP QUESTION**: After listing recommendations, ALWAYS end with a friendly follow-up like "Anything else you're looking for?" 
+  - CRITICAL: Match the user's language! If they write in Spanish → "¿Algo más que estés buscando?"; Portuguese → "Algo mais que você está procurando?"; Hebrew → "משהו נוסף שאת/ה מחפש/ת?"; etc.
 
 **CRITICAL - WHEN NO DATABASE MATCHES (STREAMING MODE):**
 - **NEVER say "let me check", "give me a sec", "I'll look for you"** - you have ALL the data already
@@ -875,8 +877,16 @@ REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
       "url": "CRITICAL MANDATORY for topListItem. Step 1: Check if database item.url exists and has a value. Step 2: If yes, copy it exactly (e.g., 'https://www.instagram.com/underclub.bsas/?hl=en'). Step 3: If item.url is null, extract URL from item.description. ALWAYS include this field for topListItems. Leave empty ONLY for events.",
       "image_url": "CRITICAL - For events/businesses/coupons: copy EXACT image_url from database. For topListItem: DO NOT include this field"
     }
-  ]
+  ],
+  "followup_message": "Anything else you're looking for?"
 }
+
+**FOLLOW-UP MESSAGE RULE**: The "followup_message" field is MANDATORY. It MUST match the user's language:
+- English: "Anything else you're looking for?"
+- Spanish: "¿Algo más que estés buscando?"
+- Portuguese: "Algo mais que você está procurando?"
+- Hebrew: "משהו נוסף שאת/ה מחפש/ת?"
+- Detect the user's language from their messages and translate accordingly.
 
 **FOR TOP LIST ITEMS (when recommending bars, cafés, clubs, etc.)**:
 - Use type: "topListItem"
