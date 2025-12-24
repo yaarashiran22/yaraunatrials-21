@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.archive-expired-events]
 verify_jwt = false
+
+[functions.send-followup-messages]
+verify_jwt = false
