@@ -1310,38 +1310,65 @@ IMPORTANT - NO DATABASE MATCHES:
           console.log(`After age validation: ${parsed.recommendations.length} recommendations`);
         }
 
-        // CRITICAL FIX: Enrich recommendations with image_url from database if AI omitted them
+        // CRITICAL FIX: Enrich recommendations with image_url, external_link, ticket_link from database if AI omitted them
         if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
-          // Create lookup maps for quick access
-          const eventImageMap = new Map(ageFilteredEvents.map(e => [e.id, e.image_url]));
-          const businessImageMap = new Map(businesses.map(b => [b.id, b.image_url]));
-          const couponImageMap = new Map(coupons.map(c => [c.id, c.image_url]));
+          // Create lookup maps for quick access - include all relevant fields
+          const eventDataMap = new Map(ageFilteredEvents.map(e => [e.id, { 
+            image_url: e.image_url, 
+            external_link: e.external_link,
+            ticket_link: e.ticket_link 
+          }]));
+          const businessDataMap = new Map(businesses.map(b => [b.id, { 
+            image_url: b.image_url 
+          }]));
+          const couponDataMap = new Map(coupons.map(c => [c.id, { 
+            image_url: c.image_url 
+          }]));
           
           parsed.recommendations = parsed.recommendations.map((rec: any) => {
-            // If AI didn't include image_url, fetch it from our database
-            if (!rec.image_url) {
-              let imageUrl = null;
-              
-              if (rec.type === 'event') {
-                imageUrl = eventImageMap.get(rec.id);
-              } else if (rec.type === 'business') {
-                imageUrl = businessImageMap.get(rec.id);
-              } else if (rec.type === 'coupon') {
-                imageUrl = couponImageMap.get(rec.id);
+            let enrichedRec = { ...rec };
+            
+            if (rec.type === 'event') {
+              const eventData = eventDataMap.get(rec.id);
+              if (eventData) {
+                // Enrich image_url if missing
+                if (!enrichedRec.image_url && eventData.image_url) {
+                  enrichedRec.image_url = eventData.image_url;
+                  console.log(`Enriched "${rec.title}" with image_url from database`);
+                }
+                // Enrich external_link (Instagram) if missing - store as both external_link and url for compatibility
+                if (!enrichedRec.external_link && !enrichedRec.url && eventData.external_link) {
+                  enrichedRec.external_link = eventData.external_link;
+                  enrichedRec.url = eventData.external_link; // Also set url for send-whatsapp-recommendations compatibility
+                  console.log(`Enriched "${rec.title}" with external_link/Instagram from database: ${eventData.external_link}`);
+                }
+                // Enrich ticket_link if missing
+                if (!enrichedRec.ticket_link && eventData.ticket_link) {
+                  enrichedRec.ticket_link = eventData.ticket_link;
+                  console.log(`Enriched "${rec.title}" with ticket_link from database`);
+                }
               }
-              // Note: topListItems don't have images, so skip those
-              
-              if (imageUrl) {
-                console.log(`Enriched recommendation "${rec.title}" with image_url from database`);
-                return { ...rec, image_url: imageUrl };
+            } else if (rec.type === 'business') {
+              const businessData = businessDataMap.get(rec.id);
+              if (businessData && !enrichedRec.image_url && businessData.image_url) {
+                enrichedRec.image_url = businessData.image_url;
+                console.log(`Enriched "${rec.title}" with image_url from database`);
+              }
+            } else if (rec.type === 'coupon') {
+              const couponData = couponDataMap.get(rec.id);
+              if (couponData && !enrichedRec.image_url && couponData.image_url) {
+                enrichedRec.image_url = couponData.image_url;
+                console.log(`Enriched "${rec.title}" with image_url from database`);
               }
             }
-            return rec;
+            // Note: topListItems already have url field handled by AI from the database
+            
+            return enrichedRec;
           });
           
           // Update message with enriched recommendations
           message = JSON.stringify(parsed);
-          console.log(`Enriched recommendations with images from database`);
+          console.log(`Enriched recommendations with data from database`);
         }
 
         // CRITICAL FIX: Filter out jam sessions when user asks for workshops

@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
       try {
         console.log(`[${i + 1}/${uniqueRecs.length}] Sending: ${rec.title}`);
         console.log(`Message body length: ${messageBody.length} chars`);
-        console.log(`Has image: ${!!rec.image_url}, Has URL: ${!!rec.url}`);
+        console.log(`Has image: ${!!rec.image_url}, Has URL: ${!!rec.url || !!rec.external_link}`);
         
         // Build request body
         const requestBody: Record<string, string> = {
