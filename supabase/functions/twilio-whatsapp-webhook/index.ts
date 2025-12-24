@@ -713,18 +713,33 @@ Deno.serve(async (req) => {
     let cleanedMessage = assistantMessage.trim();
     let prefixText = ""; // Text before JSON, if any
 
-    // Try to extract JSON from the response
-    // Look for a JSON object starting with { and ending with }
-    const jsonMatch = cleanedMessage.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      // Capture any text before the JSON (intro text like "Here are some events...")
-      const jsonStartIndex = cleanedMessage.indexOf(jsonMatch[0]);
-      if (jsonStartIndex > 0) {
-        prefixText = cleanedMessage.substring(0, jsonStartIndex).trim();
-        console.log("Found prefix text before JSON:", prefixText?.substring(0, 100));
+    // CRITICAL FIX: Strip markdown code block wrappers (```json ... ```) before parsing
+    // This prevents raw JSON from being sent to users when AI wraps response in code blocks
+    const markdownJsonMatch = cleanedMessage.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (markdownJsonMatch) {
+      console.log("Detected markdown-wrapped JSON, stripping code block markers");
+      // Capture any text before the markdown block
+      const markdownStartIndex = cleanedMessage.indexOf(markdownJsonMatch[0]);
+      if (markdownStartIndex > 0) {
+        prefixText = cleanedMessage.substring(0, markdownStartIndex).trim();
+        console.log("Found prefix text before markdown JSON:", prefixText?.substring(0, 100));
       }
-      cleanedMessage = jsonMatch[0];
-      console.log("Extracted JSON from response:", cleanedMessage.substring(0, 200) + "...");
+      cleanedMessage = markdownJsonMatch[1].trim();
+      console.log("Extracted JSON from markdown block:", cleanedMessage.substring(0, 200) + "...");
+    } else {
+      // Try to extract JSON from the response without markdown wrapper
+      // Look for a JSON object starting with { and ending with }
+      const jsonMatch = cleanedMessage.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        // Capture any text before the JSON (intro text like "Here are some events...")
+        const jsonStartIndex = cleanedMessage.indexOf(jsonMatch[0]);
+        if (jsonStartIndex > 0) {
+          prefixText = cleanedMessage.substring(0, jsonStartIndex).trim();
+          console.log("Found prefix text before JSON:", prefixText?.substring(0, 100));
+        }
+        cleanedMessage = jsonMatch[0];
+        console.log("Extracted JSON from response:", cleanedMessage.substring(0, 200) + "...");
+      }
     }
 
     let parsedResponse;
@@ -951,6 +966,19 @@ Deno.serve(async (req) => {
 
     // Regular conversational response (no recommendations)
     console.log("Sending conversational response");
+
+    // CRITICAL SAFETY CHECK: Never store or send raw JSON/markdown code blocks to users
+    // This is a final fallback to catch any edge cases
+    const hasRawJson = assistantMessage.includes('```json') || 
+                       assistantMessage.includes('"recommendations"') ||
+                       assistantMessage.includes('"intro_message"');
+    
+    if (hasRawJson) {
+      console.log("WARNING: Detected raw JSON in conversational response, using fallback message");
+      assistantMessage = userLanguage === 'es' 
+        ? "Encontré algunas opciones para vos! Dame un momento para mostrártelas..." 
+        : "I found some options for you! Give me a moment to show them...";
+    }
 
     try {
       // Store the assistant message
