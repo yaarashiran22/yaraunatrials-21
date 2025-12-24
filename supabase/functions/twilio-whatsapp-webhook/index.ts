@@ -680,6 +680,35 @@ Deno.serve(async (req) => {
       console.log(`Response split into ${multipleMessages.length} messages for Twilio`);
     }
 
+    // Detect if AI is asking for preferences and mark preferences_asked = true
+    // This should only happen once per user for vague recommendation requests
+    if (whatsappUser && !whatsappUser.preferences_asked) {
+      const preferenceQuestionPatterns = [
+        /what (type of|kind of) (music|vibe|events?)/i,
+        /what are you into/i,
+        /what's your vibe/i,
+        /what vibe are you looking for/i,
+        /personalize your recs/i,
+        /to personalize/i,
+        /what genre/i,
+        /what style/i,
+        /what mood/i,
+      ];
+      
+      const isAskingForPreferences = preferenceQuestionPatterns.some(pattern => 
+        pattern.test(assistantMessage)
+      );
+      
+      if (isAskingForPreferences) {
+        console.log("AI is asking for preferences - marking preferences_asked = true");
+        await supabase
+          .from("whatsapp_users")
+          .update({ preferences_asked: true })
+          .eq("id", whatsappUser.id);
+        whatsappUser.preferences_asked = true;
+      }
+    }
+
     // Try to parse as JSON - extract JSON from text if needed
     let cleanedMessage = assistantMessage.trim();
     let prefixText = ""; // Text before JSON, if any
