@@ -1025,8 +1025,12 @@ IMPORTANT - NO DATABASE MATCHES:
                     additionalProperties: false,
                   },
                 },
+                followup_message: {
+                  type: "string",
+                  description: "MANDATORY follow-up question in the user's language. English: 'Anything else you're looking for?', Spanish: '¿Algo más que estés buscando?', Portuguese: 'Algo mais que você está procurando?', Hebrew: 'משהו נוסף שאת/ה מחפש/ת?'",
+                },
               },
-              required: ["intro_message", "recommendations"],
+              required: ["intro_message", "recommendations", "followup_message"],
               additionalProperties: false,
             },
           },
@@ -1161,7 +1165,8 @@ IMPORTANT - NO DATABASE MATCHES:
             intro_message: userLanguage === 'es' 
               ? `¡Encontré ${relevantEvents.length} eventos ${timeDescription}! 🎉`
               : `Found ${relevantEvents.length} events ${timeDescription}! 🎉`,
-            recommendations
+            recommendations,
+            followup_message: userLanguage === 'es' ? '¿Algo más que estés buscando?' : 'Anything else you\'re looking for?'
           });
           console.log("Built recommendations from function call text:", message);
         } else {
@@ -1205,7 +1210,8 @@ IMPORTANT - NO DATABASE MATCHES:
               intro_message: userLanguage === 'es' 
                 ? `¡Encontré ${relevantEvents.length} eventos para vos! 🎉`
                 : `Found ${relevantEvents.length} events for you! 🎉`,
-              recommendations
+              recommendations,
+              followup_message: userLanguage === 'es' ? '¿Algo más que estés buscando?' : 'Anything else you\'re looking for?'
             });
             console.log("Built fallback event recommendations:", message);
           } else {
