@@ -1357,6 +1357,15 @@ IMPORTANT - NO DATABASE MATCHES:
       }
     }
 
+    // CRITICAL FIX: Strip markdown code block markers that AI sometimes adds
+    // This prevents raw JSON with ```json blocks from being sent to users
+    if (message.includes('```json') || message.includes('```')) {
+      console.log("Detected markdown code block in response, stripping markers...");
+      // Remove ```json and ``` markers
+      message = message.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      console.log("Stripped markdown code blocks from response");
+    }
+
     // Check if this is a recommendations response
     if (message.includes('"recommendations"')) {
       try {
