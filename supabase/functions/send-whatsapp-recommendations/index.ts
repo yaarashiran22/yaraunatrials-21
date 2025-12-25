@@ -11,7 +11,64 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { recommendations, toNumber, fromNumber, introText } = await req.json();
+    const body = await req.json();
+    
+    // Support both parameter naming conventions
+    const recommendations = body.recommendations || [];
+    const toNumber = body.toNumber || body.phoneNumber;
+    const fromNumber = body.fromNumber || Deno.env.get('TWILIO_WHATSAPP_NUMBER');
+    const introText = body.introText || body.introMessage;
+    
+    // Handle text-only messages (no recommendations)
+    if (!recommendations || recommendations.length === 0) {
+      if (!introText) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'No intro text or recommendations provided' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      console.log(`Sending text-only message to ${toNumber}: ${introText}`);
+      
+      const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+      const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+      
+      if (!twilioAccountSid || !twilioAuthToken) {
+        throw new Error('Missing Twilio credentials');
+      }
+      
+      const cleanFrom = fromNumber?.includes('whatsapp:') ? fromNumber : `whatsapp:${fromNumber}`;
+      const cleanTo = toNumber?.includes('whatsapp:') ? toNumber : `whatsapp:${toNumber}`;
+      
+      const response = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Basic ' + btoa(`${twilioAccountSid}:${twilioAuthToken}`),
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            From: cleanFrom,
+            To: cleanTo,
+            Body: introText
+          }).toString()
+        }
+      );
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`✅ Text-only message sent. SID: ${result.sid}`);
+        return new Response(
+          JSON.stringify({ success: true, messageSid: result.sid }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } else {
+        const errorText = await response.text();
+        console.error(`❌ Failed to send text-only message: ${errorText}`);
+        throw new Error(errorText);
+      }
+    }
     
     // Deduplicate recommendations by id to prevent sending duplicates
     const uniqueRecs = recommendations.reduce((acc: any[], rec: any) => {
