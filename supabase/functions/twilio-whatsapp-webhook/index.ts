@@ -848,10 +848,38 @@ Deno.serve(async (req) => {
         console.log(`After workshop filtering: ${parsedResponse.recommendations.length} recommendations`);
       }
 
-      // If no recommendations found, send a helpful message instead of JSON
+      // If no recommendations found, check if user was just saying thanks/gratitude
+      // In that case, don't send the generic "couldn't find matches" message
       if (parsedResponse.recommendations.length === 0) {
-        const noResultsMessage =
-          "I couldn't find specific matches for that right now. Try asking about something else - like 'bars in Palermo' or 'live music tonight'!";
+        const gratitudePatterns = /\b(thanks|thank you|gracias|thx|ty|merci|cheers|perfect|awesome|great|ok thanks|cool|nice|got it)\b/i;
+        const isGratitude = gratitudePatterns.test(body);
+        
+        if (isGratitude) {
+          console.log("User expressed gratitude but got empty recommendations - using fallback gratitude response");
+          const gratitudeResponse = userLanguage === 'es' 
+            ? "¡De nada! 🙌 Avisame si necesitás algo más!"
+            : "You're welcome! 😊 Let me know if you need anything else!";
+          
+          await supabase.from("whatsapp_conversations").insert({
+            phone_number: from,
+            role: "assistant",
+            content: gratitudeResponse,
+          });
+
+          const twimlResponse = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${gratitudeResponse}</Message>
+</Response>`;
+
+          return new Response(twimlResponse, {
+            headers: { ...corsHeaders, "Content-Type": "text/xml" },
+            status: 200,
+          });
+        }
+        
+        const noResultsMessage = userLanguage === 'es'
+          ? "No encontré opciones específicas para eso ahora. Probá preguntando algo diferente - como 'bares en Palermo' o 'música en vivo esta noche'!"
+          : "I couldn't find specific matches for that right now. Try asking about something else - like 'bars in Palermo' or 'live music tonight'!";
 
         await supabase.from("whatsapp_conversations").insert({
           phone_number: from,
