@@ -966,17 +966,17 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 11. **CRITICAL: User interests are for CONTEXT ONLY, not for filtering** - DO NOT use interests to exclude events. Always show all age-appropriate events that match the requested type/date.
 
 RECOMMENDATION OUTPUT RULES:
-🚨🚨🚨 **MANDATORY: SEND EXACTLY 8 EVENTS FOR DATE-BASED QUERIES** 🚨🚨🚨
-- **ABSOLUTE RULE FOR "events today" / "events tonight" / date-based queries**: You MUST return EXACTLY 8 recommendations if 8 or more events exist for that date. NO EXCEPTIONS.
-- **COUNT THE EVENTS**: If there are 19 events today, you MUST return 8 of them. If there are 10 events, return 8. Only return fewer than 8 if fewer exist.
-- **SENDING ONLY 5 WHEN 8+ EXIST IS A FAILURE** - You are failing if you send 5 events when the database has 15+ events for that day
+🚨🚨🚨 **MANDATORY: SEND UP TO 10 EVENTS FOR DATE-BASED QUERIES** 🚨🚨🚨
+- **ABSOLUTE RULE FOR "events today" / "events tonight" / date-based queries**: You MUST return UP TO 10 recommendations if 10 or more events exist for that date. NO EXCEPTIONS.
+- **COUNT THE EVENTS**: If there are 19 events today, you MUST return 10 of them. If there are 8 events, return all 8. Only return fewer than 10 if fewer exist.
+- **SENDING ONLY 5 WHEN 10+ EXIST IS A FAILURE** - You are failing if you send 5 events when the database has 15+ events for that day
 - **DO NOT BE SELECTIVE FOR DATE QUERIES** - Include events of ALL types: parties, art events, festivals, chill hangouts, music events, workshops, ferias, etc.
-- **DIVERSITY IS MANDATORY**: Your 8 picks MUST include variety - NOT just parties, NOT just one music genre. Mix different vibes.
-- If there are more than 8 relevant events, pick the 8 most diverse ones covering different moods/types
-- If there are fewer than 8 matches, send ALL available matches
+- **DIVERSITY IS MANDATORY**: Your 10 picks MUST include variety - NOT just parties, NOT just one music genre. Mix different vibes.
+- If there are more than 10 relevant events, pick the 10 most diverse ones covering different moods/types
+- If there are fewer than 10 matches, send ALL available matches
 - For bar/club/nightlife requests: ALWAYS return AT LEAST 3-5 options when available
 - Minimum: 3 recommendations when available
-- **FOR DATE-BASED QUERIES: MINIMUM IS 8 (or all available if less than 8)**
+- **FOR DATE-BASED QUERIES: MAXIMUM IS 10 (send all available if less than 10)**
 - **CRITICAL**: ONLY include events/items that have an image_url field - never recommend anything without an image
 - **CRITICAL**: You MUST include the "image_url" field in EVERY recommendation in your JSON response - this is the event's photo that will be sent via WhatsApp
 - **CRITICAL FOR BARS/CLUBS**: Always include the Instagram link in the description from the "url" field (e.g., "📍 Palermo | 📸 Instagram: https://instagram.com/barname")
