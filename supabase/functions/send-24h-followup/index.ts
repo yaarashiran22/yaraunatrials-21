@@ -16,7 +16,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Starting 24-hour follow-up check...");
+    console.log("Starting 5 PM Buenos Aires follow-up check...");
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -30,20 +30,34 @@ serve(async (req) => {
       throw new Error('Missing Twilio credentials');
     }
 
-    // Find users who:
-    // 1. Were created between 23.5 and 24.5 hours ago (1-hour window around 24h mark)
-    // 2. Haven't received follow-up yet
+    // Get current time in Buenos Aires (UTC-3)
     const now = new Date();
-    const twentyThreeAndHalfHoursAgo = new Date(now.getTime() - (23.5 * 60 * 60 * 1000));
-    const twentyFourAndHalfHoursAgo = new Date(now.getTime() - (24.5 * 60 * 60 * 1000));
+    const buenosAiresOffset = -3 * 60; // UTC-3 in minutes
+    const buenosAiresTime = new Date(now.getTime() + (buenosAiresOffset + now.getTimezoneOffset()) * 60 * 1000);
+    
+    console.log(`Current Buenos Aires time: ${buenosAiresTime.toISOString()}`);
+    
+    // Calculate "yesterday" in Buenos Aires time
+    // We want users who first messaged BEFORE today (Buenos Aires time) and haven't received follow-up
+    const todayStartBA = new Date(buenosAiresTime);
+    todayStartBA.setHours(0, 0, 0, 0);
+    
+    // Convert back to UTC for database query
+    const todayStartUTC = new Date(todayStartBA.getTime() - (buenosAiresOffset + now.getTimezoneOffset()) * 60 * 1000);
+    
+    console.log(`Looking for users who first messaged before ${todayStartUTC.toISOString()} (midnight BA time)`);
 
-    console.log(`Looking for users created between ${twentyFourAndHalfHoursAgo.toISOString()} and ${twentyThreeAndHalfHoursAgo.toISOString()}`);
+    // Find users who:
+    // 1. Were created before today (Buenos Aires time) - meaning they messaged yesterday or earlier
+    // 2. Haven't received follow-up yet
+    // 3. Were created within the last 7 days (don't send to very old users who never got follow-up)
+    const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
 
     const { data: usersNeedingFollowup, error: fetchError } = await supabase
       .from('whatsapp_users')
       .select('id, phone_number, preferred_language, name, created_at')
-      .gte('created_at', twentyFourAndHalfHoursAgo.toISOString())
-      .lte('created_at', twentyThreeAndHalfHoursAgo.toISOString())
+      .lt('created_at', todayStartUTC.toISOString())
+      .gte('created_at', sevenDaysAgo.toISOString())
       .is('first_day_followup_sent_at', null)
       .limit(50); // Process in batches
 
@@ -53,14 +67,14 @@ serve(async (req) => {
     }
 
     if (!usersNeedingFollowup || usersNeedingFollowup.length === 0) {
-      console.log("No users need 24-hour follow-up at this time");
+      console.log("No users need follow-up at this time");
       return new Response(
         JSON.stringify({ success: true, message: "No users need follow-up", count: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Found ${usersNeedingFollowup.length} users needing 24-hour follow-up`);
+    console.log(`Found ${usersNeedingFollowup.length} users needing 5 PM follow-up`);
 
     const results = [];
     
@@ -68,7 +82,7 @@ serve(async (req) => {
       const isSpanish = user.preferred_language === 'es';
       const message = isSpanish ? FOLLOWUP_ES : FOLLOWUP_EN;
       
-      console.log(`Sending 24h follow-up to ${user.phone_number} (${isSpanish ? 'Spanish' : 'English'})`);
+      console.log(`Sending 5 PM follow-up to ${user.phone_number} (${isSpanish ? 'Spanish' : 'English'}) - first msg: ${user.created_at}`);
       
       try {
         // Send WhatsApp message via Twilio
@@ -92,7 +106,7 @@ serve(async (req) => {
         const result = await response.json();
         
         if (response.ok) {
-          console.log(`✅ Sent 24h follow-up to ${user.phone_number}`);
+          console.log(`✅ Sent 5 PM follow-up to ${user.phone_number}`);
           
           // Mark user as having received follow-up
           await supabase
@@ -110,7 +124,8 @@ serve(async (req) => {
           results.push({ 
             phone_number: user.phone_number, 
             status: 'sent', 
-            language: isSpanish ? 'es' : 'en' 
+            language: isSpanish ? 'es' : 'en',
+            first_msg: user.created_at
           });
         } else {
           console.error(`❌ Failed to send to ${user.phone_number}:`, result);
@@ -136,7 +151,7 @@ serve(async (req) => {
     const sent = results.filter(r => r.status === 'sent').length;
     const failed = results.filter(r => r.status !== 'sent').length;
 
-    console.log(`24h follow-up complete: ${sent} sent, ${failed} failed`);
+    console.log(`5 PM follow-up complete: ${sent} sent, ${failed} failed`);
 
     return new Response(
       JSON.stringify({ 
@@ -148,7 +163,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in 24h follow-up:', error);
+    console.error('Error in 5 PM follow-up:', error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
