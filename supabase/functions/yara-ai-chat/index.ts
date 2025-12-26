@@ -442,8 +442,27 @@ serve(async (req) => {
 
     // Get the last user message to understand their query
     const lastUserMessage = messages[messages.length - 1]?.content || "";
-    const userLanguage = detectLanguage(lastUserMessage);
-    console.log(`Detected user language: ${userLanguage} from message: "${lastUserMessage}"`);
+    
+    // Check for EXPLICIT language switch requests FIRST (highest priority)
+    const explicitSpanishRequest = /\b(háblame en español|habla en español|en español|responde en español|spanish please|in spanish)\b/i.test(lastUserMessage);
+    const explicitEnglishRequest = /\b(speak english|in english|english please|háblame en inglés|habla en inglés|en inglés)\b/i.test(lastUserMessage);
+    const explicitPortugueseRequest = /\b(em português|fala em português|portuguese please|in portuguese)\b/i.test(lastUserMessage);
+    
+    // Determine language: explicit request > auto-detection
+    let userLanguage: string;
+    if (explicitSpanishRequest) {
+      userLanguage = 'es';
+      console.log('Explicit Spanish language request detected');
+    } else if (explicitEnglishRequest) {
+      userLanguage = 'en';
+      console.log('Explicit English language request detected');
+    } else if (explicitPortugueseRequest) {
+      userLanguage = 'pt';
+      console.log('Explicit Portuguese language request detected');
+    } else {
+      userLanguage = detectLanguage(lastUserMessage);
+    }
+    console.log(`Final user language: ${userLanguage} from message: "${lastUserMessage}"`);
 
     // Language map for system prompts
     const languageMap: Record<string, string> = {
@@ -610,9 +629,17 @@ Respond with PLAIN TEXT ONLY. Be warm and conversational.
 - "fiesta", "fiestas", "party", "parties", "evento", "eventos", "event", "events"
 - "club", "clubs", "bar", "bars", "boliche", "boliches"
 - "tonight", "hoy", "today", "mañana", "tomorrow", "esta noche"
-- "what's happening", "que hay", "qué hay", "what's going on"
+- "what's happening", "que hay", "qué hay", "what's going on", "que hacer", "qué hacer", "para hacer"
+- "que hay para hacer", "qué hay para hacer", "what to do", "what's there to do"
 - Even if these are the ONLY word in the message (e.g., user just says "Fiestas"), treat it as an event request and provide recommendations
 - **DO NOT** respond with a greeting when user asks for events, even if message is very short
+- **DO NOT** ask "what are you looking for?" when user asks "que hay para hacer hoy" - they want EVENT recommendations!
+
+🚨 **CRITICAL: VAGUE EVENT REQUESTS = GIVE RECOMMENDATIONS DIRECTLY:**
+- "que hay para hacer hoy" / "what's there to do today" → Give today's events immediately, DO NOT ask clarifying questions
+- "que hay hoy" / "what's on today" → Give today's events immediately
+- "algo para esta noche" / "something for tonight" → Give tonight's events immediately
+- These are NOT vague - they are asking for TODAY's events. Just show a variety of what's available!
 
 - **FOR FIRST-TIME GREETINGS** ("hi", "hey", "what's up", "hola", "holap", etc.) when user has NO prior messages AND message does NOT contain event keywords above: Use this welcome message:
   - English: "Hey there! I'm Yara, the AI assistant for finding the top events in Buenos Aires. Tell me- what are you looking for? :)"
