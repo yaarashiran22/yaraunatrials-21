@@ -714,6 +714,27 @@ Deno.serve(async (req) => {
     let cleanedMessage = assistantMessage.trim();
     let prefixText = ""; // Text before JSON, if any
 
+    // CRITICAL FIX: Handle double-stringified JSON (AI sometimes wraps JSON in quotes with escaped quotes)
+    // Pattern: "{ \"key\": \"value\" }" - the entire JSON is wrapped in a string
+    if (cleanedMessage.startsWith('"') && cleanedMessage.includes('\\"')) {
+      console.log("Detected double-stringified JSON (wrapped in quotes with escaped quotes)");
+      try {
+        // Try to parse the outer string first
+        const unescapedMessage = JSON.parse(cleanedMessage);
+        if (typeof unescapedMessage === 'string') {
+          cleanedMessage = unescapedMessage.trim();
+          console.log("Successfully unescaped double-stringified JSON:", cleanedMessage.substring(0, 200) + "...");
+        }
+      } catch (e) {
+        console.log("Failed to unescape double-stringified JSON, trying manual unescape");
+        // Manual fallback: remove outer quotes and unescape inner quotes
+        if (cleanedMessage.startsWith('"') && cleanedMessage.endsWith('"')) {
+          cleanedMessage = cleanedMessage.slice(1, -1).replace(/\\"/g, '"').replace(/\\n/g, '\n').trim();
+          console.log("Manually unescaped JSON:", cleanedMessage.substring(0, 200) + "...");
+        }
+      }
+    }
+
     // CRITICAL FIX: Strip markdown code block wrappers (```json ... ```) before parsing
     // This prevents raw JSON from being sent to users when AI wraps response in code blocks
     const markdownJsonMatch = cleanedMessage.match(/```(?:json)?\s*([\s\S]*?)```/);
