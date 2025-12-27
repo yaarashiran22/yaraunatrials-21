@@ -27,6 +27,9 @@ serve(async (req) => {
 
     // Fetch user's interaction history for behavioral learning
     let interactionHistory: any[] = [];
+    let isFirstTimeUser = true; // Default to first-time user
+    let conversationMessageCount = 0;
+    
     if (phoneNumber) {
       const { data: interactions } = await supabase
         .from("whatsapp_user_interactions")
@@ -36,6 +39,21 @@ serve(async (req) => {
         .limit(50);
 
       interactionHistory = interactions || [];
+      
+      // CRITICAL: Check conversation history to determine if returning user
+      // This is a PROGRAMMATIC check - don't rely on AI to figure this out
+      const { count: messageCount } = await supabase
+        .from("whatsapp_conversations")
+        .select("id", { count: 'exact', head: true })
+        .eq("phone_number", phoneNumber)
+        .eq("role", "user");
+      
+      conversationMessageCount = messageCount || 0;
+      // User is NOT first-time if they have more than 1 message in history
+      // (the current message they're sending counts as their first if truly new)
+      isFirstTimeUser = conversationMessageCount <= 1;
+      
+      console.log(`User ${phoneNumber}: ${conversationMessageCount} prior messages, isFirstTimeUser: ${isFirstTimeUser}`);
     }
 
     // Get current date and day of week for filtering - USE BUENOS AIRES TIMEZONE
@@ -641,9 +659,12 @@ Respond with PLAIN TEXT ONLY. Be warm and conversational.
 - "tonight", "hoy", "today", "mañana", "tomorrow", "esta noche"
 - "what's happening", "que hay", "qué hay", "what's going on", "que hacer", "qué hacer", "para hacer"
 - "que hay para hacer", "qué hay para hacer", "what to do", "what's there to do"
+- "tell me everything", "show me everything", "everything", "contame todo", "todo"
+- "what do you have", "que tenes", "qué tenés", "show me", "muéstrame"
 - Even if these are the ONLY word in the message (e.g., user just says "Fiestas"), treat it as an event request and provide recommendations
 - **DO NOT** respond with a greeting when user asks for events, even if message is very short
 - **DO NOT** ask "what are you looking for?" when user asks "que hay para hacer hoy" - they want EVENT recommendations!
+- **"Tell me everything" = user wants to see all events/options** - DO NOT treat as "who are you?"
 
 🚨 **CRITICAL: VAGUE EVENT REQUESTS = GIVE RECOMMENDATIONS DIRECTLY:**
 - "que hay para hacer hoy" / "what's there to do today" → Give today's events immediately, DO NOT ask clarifying questions
@@ -651,11 +672,21 @@ Respond with PLAIN TEXT ONLY. Be warm and conversational.
 - "algo para esta noche" / "something for tonight" → Give tonight's events immediately
 - These are NOT vague - they are asking for TODAY's events. Just show a variety of what's available!
 
-- **FOR FIRST-TIME GREETINGS** ("hi", "hey", "what's up", "hola", "holap", etc.) when user has NO prior messages AND message does NOT contain event keywords above: Use this welcome message:
+🚨 **CRITICAL - USER STATUS (PROGRAMMATICALLY VERIFIED):** 🚨
+**This user is: ${isFirstTimeUser ? 'FIRST-TIME USER (0-1 prior messages)' : 'RETURNING USER (' + conversationMessageCount + ' prior messages)'}**
+
+- **IF FIRST-TIME USER** AND message is a pure greeting ("hi", "hey", "hola", etc.) with NO event keywords:
   - English: "Hey there! I'm Yara, the AI assistant for finding the top events in Buenos Aires. Tell me- what are you looking for? :)"
   - Spanish: "¡Hola! Soy Yara, tu asistente de IA para encontrar los mejores eventos en Buenos Aires. Contame, ¿qué estás buscando? :)"
   - DO NOT provide recommendations, tourism info, or event suggestions unless they ask.
-  - Bad: "Hey! Buenos Aires has amazing places like La Boca..." (DON'T DO THIS)
+
+- **IF RETURNING USER** AND message is a greeting:
+  - Give a SHORT, casual greeting - they already know who you are!
+  - English: "Hey! 👋 What are you looking for today?"
+  - Spanish: "¡Hola! 👋 ¿Qué estás buscando hoy?"
+  - DO NOT give the full introduction again - they've already received it before
+  - **NEVER** send the welcome message to returning users
+
 - **FOR "WHO IS THIS?" / "WHAT IS THIS?" QUESTIONS** ("who is this", "what is this", "who are you", "qué es esto", "quién sos", etc.): 
   - These users are CONFUSED about who texted them - give a FULLER explanation:
   - English: "I'm Yara! 👋 I'm an AI assistant that helps people discover the best events, parties, bars, and things to do in Buenos Aires. You can ask me things like 'what's happening tonight?' or 'recommend me bars in Palermo'. How can I help you?"
