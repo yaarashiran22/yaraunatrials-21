@@ -877,7 +877,7 @@ When user asks for MORE options after receiving recommendations, this IS a recom
 - If there are no more matching events, respond conversationally: "Those were all the [type] I found for [timeframe]! Want me to search for something different?"
 - This SHOULD trigger JSON response with NEW recommendations (not the same ones)
 
-**IMPORTANT**: ONLY return JSON if age is already collected. If age is missing, respond with conversational text asking for age first.
+
 ` : ''}
 
 
