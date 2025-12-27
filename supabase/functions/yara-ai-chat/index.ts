@@ -117,15 +117,17 @@ serve(async (req) => {
       }
     };
 
-    // Fetch ALL events first, then filter in code
+    // Fetch events with database-level date filtering for performance
+    // Only fetch events where date >= today OR date contains 'every' (recurring)
     const [eventsResult, itemsResult, couponsResult, topListsResult] = await Promise.all([
       supabase
         .from("events")
         .select(
           "id, title, description, date, time, location, address, venue_name, price, mood, music_type, venue_size, external_link, ticket_link, image_url, target_audience",
         )
+        .or(`date.gte.${today},date.ilike.%every%`)
         .order("date", { ascending: true })
-        .limit(200), // Fetch more to ensure we get recurring events
+        .limit(100),
       supabase
         .from("items")
         .select("id, title, description, category, location, price, image_url")
@@ -210,13 +212,10 @@ serve(async (req) => {
     // NOW filter events by transformed dates - only include future events
     const filteredByDateEvents = eventsWithTransformedDates.filter(event => {
       const eventDate = event.date?.toLowerCase() || '';
-      const isInFuture = eventDate >= today;
-      
-      console.log(`Event "${event.title}" (${event.originalDate} → ${event.date}): ${isInFuture ? 'FUTURE/TODAY' : 'PAST'}`);
-      return isInFuture;
+      return eventDate >= today;
     });
 
-    console.log(`Filtered events from ${allEvents.length} to ${filteredByDateEvents.length} based on transformed date matching`);
+    console.log(`Filtered ${allEvents.length} events to ${filteredByDateEvents.length} future events`);
 
     // Helper function to check if user's age matches event's target_audience
     const isAgeAppropriate = (targetAudience: string | null, userAge: number | null): boolean => {
@@ -1377,29 +1376,29 @@ IMPORTANT - NO DATABASE MATCHES:
                 messages: [
                   {
                     role: "system",
-                    content: `You are Yara, a knowledgeable Buenos Aires local guide. The user asked: "${userQuery}". 
+                    content: `You are Yara, a helpful Buenos Aires assistant. The user asked: "${userQuery}". 
                     
-                    **CRITICAL LANGUAGE RULE**: The user is writing in ${languageMap[userLanguage] || 'English'}. You MUST respond ONLY in ${languageMap[userLanguage] || 'English'}. Do not use any other language.
+                    **CRITICAL LANGUAGE RULE**: Respond ONLY in ${languageMap[userLanguage] || 'English'}.
                     
-                    **CRITICAL**: Only provide Buenos Aires information if the user is EXPLICITLY asking for it. For greetings or casual chat, respond conversationally without recommendations.
+                    🚨🚨🚨 **ABSOLUTELY NO HALLUCINATIONS** 🚨🚨🚨
+                    - NEVER invent restaurant names, café names, bar names, or business names
+                    - NEVER make up addresses (e.g., "Avenida del Libertador 16,000" is FORBIDDEN unless you're 100% certain)
+                    - NEVER recommend specific venues unless they are WORLD-FAMOUS landmarks
                     
-                    **IF USER IS ASKING ABOUT BUENOS AIRES**:
+                    **YOU CAN ONLY MENTION THESE VERIFIED PLACES:**
+                    - Major landmarks: Obelisco, Casa Rosada, Teatro Colón, Recoleta Cemetery, La Bombonera stadium
+                    - Famous neighborhoods: La Boca (Caminito street), San Telmo (Sunday market), Palermo, Puerto Madero, Recoleta
+                    - Major museums: MALBA, Museo Nacional de Bellas Artes
+                    - Famous parks: Bosques de Palermo, Reserva Ecológica Costanera Sur, Jardín Botánico
                     
-                    **TOURISM & SIGHTSEEING**:
-                    - Tourist attractions: La Boca (Caminito), Recoleta Cemetery, Obelisco, Casa Rosada, Puerto Madero
-                    - Museums: MALBA, Museo Nacional de Bellas Artes, Evita Museum, MAMBA
-                    - Parks: Bosques de Palermo, Reserva Ecológica, Jardín Botánico
-                    - Neighborhoods: San Telmo (antiques/tango), Palermo (trendy), Recoleta (elegant)
-                    
-                    **OTHER TOPICS**:
-                    - Pet services (adoption centers, vets), shopping (electronics, clothes), healthcare, transportation, neighborhoods, sports
-                    - Give SPECIFIC venue/business names, addresses, and practical details
+                    **FOR ANY OTHER QUERIES (restaurants, cafés, specific venues):**
+                    - Say: "I don't have specific recommendations for that in my database, but I can help you find events, parties, and nightlife!"
+                    - DO NOT make up venue names or addresses
                     
                     **RESPONSE STYLE**:
-                    - If it's a greeting/casual message: Just be friendly, don't volunteer info
-                    - If they want Buenos Aires info: Give 2-4 specific recommendations with names and locations
+                    - Be honest when you don't know something
                     - Be warm with 1-2 emojis
-                    - Keep under 200 words
+                    - Keep under 150 words
                     
                     ${locationInstruction}`,
                   },
@@ -1408,7 +1407,7 @@ IMPORTANT - NO DATABASE MATCHES:
                     content: userQuery,
                   },
                 ],
-                max_tokens: 600,
+                max_tokens: 400,
               }),
             });
 
