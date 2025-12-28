@@ -1308,15 +1308,64 @@ IMPORTANT - NO DATABASE MATCHES:
                             lastUserMsgLower.includes("esta noche") || lastUserMsgLower.includes("hoy");
         const isTomorrowQuery = lastUserMsgLower.includes("tomorrow") || lastUserMsgLower.includes("mañana");
         
+        // CRITICAL: Detect music genre queries and filter by music_type
+        const genrePatterns: Record<string, string[]> = {
+          'tango': ['tango'],
+          'jazz': ['jazz', 'blues'],
+          'salsa': ['salsa', 'latin', 'cumbia', 'bachata', 'merengue'],
+          'techno': ['techno', 'electronic', 'house', 'edm', 'electrónica'],
+          'rock': ['rock', 'indie rock', 'alternative'],
+          'indie': ['indie'],
+          'latin': ['latin', 'salsa', 'cumbia', 'reggaeton', 'bachata'],
+          'cumbia': ['cumbia', 'latin'],
+          'reggaeton': ['reggaeton', 'latin'],
+          'hip-hop': ['hip-hop', 'hip hop', 'rap'],
+          'classical': ['classical', 'opera', 'symphony', 'orchestra'],
+          'opera': ['opera', 'classical'],
+          'folk': ['folk', 'folklore'],
+        };
+        
+        let detectedGenre: string | null = null;
+        let genreKeywords: string[] = [];
+        
+        for (const [genre, keywords] of Object.entries(genrePatterns)) {
+          if (lastUserMsgLower.includes(genre)) {
+            detectedGenre = genre;
+            genreKeywords = keywords;
+            console.log(`Detected genre query: ${genre}, will filter by keywords: ${keywords.join(', ')}`);
+            break;
+          }
+        }
+        
         let relevantEvents = ageFilteredEvents;
         let timeDescription = "happening soon";
         
+        // First filter by genre if detected
+        if (detectedGenre && genreKeywords.length > 0) {
+          relevantEvents = ageFilteredEvents.filter(e => {
+            const musicType = (e.music_type || '').toLowerCase();
+            const title = (e.title || '').toLowerCase();
+            const description = (e.description || '').toLowerCase();
+            
+            return genreKeywords.some(keyword => 
+              musicType.includes(keyword) || 
+              title.includes(keyword) || 
+              description.includes(keyword)
+            );
+          });
+          timeDescription = detectedGenre;
+          console.log(`Filtered to ${relevantEvents.length} ${detectedGenre} events`);
+        }
+        
+        // Then filter by date if applicable
         if (isTodayQuery) {
-          relevantEvents = ageFilteredEvents.filter(e => e.date === today);
-          timeDescription = userLanguage === 'es' ? "para esta noche" : "for tonight";
+          relevantEvents = relevantEvents.filter(e => e.date === today);
+          timeDescription = userLanguage === 'es' ? `de ${detectedGenre || ''} para esta noche`.trim() : `${detectedGenre || ''} for tonight`.trim();
         } else if (isTomorrowQuery) {
-          relevantEvents = ageFilteredEvents.filter(e => e.date === tomorrowDate);
-          timeDescription = userLanguage === 'es' ? "para mañana" : "for tomorrow";
+          relevantEvents = relevantEvents.filter(e => e.date === tomorrowDate);
+          timeDescription = userLanguage === 'es' ? `de ${detectedGenre || ''} para mañana`.trim() : `${detectedGenre || ''} for tomorrow`.trim();
+        } else if (detectedGenre) {
+          timeDescription = userLanguage === 'es' ? `de ${detectedGenre}` : detectedGenre;
         }
         
         relevantEvents = relevantEvents.slice(0, 6);
