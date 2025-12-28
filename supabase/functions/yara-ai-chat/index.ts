@@ -1565,11 +1565,15 @@ IMPORTANT - NO DATABASE MATCHES:
             const mood = (e.mood || '').toLowerCase();
             const eventType = (e.event_type || '').toLowerCase();
             
-            // Special handling for art/artsy - also match mood="creative"
+            // For art/artsy queries, require actual art-related content
+            // Don't match events just because they have "creative" in mood - that's too broad
             if (detectedEventType === 'art') {
-              if (mood.includes('creative')) {
-                return true;
-              }
+              const artKeywords = ['art', 'arte', 'exhibition', 'exhibición', 'gallery', 'galeria', 'museum', 'museo', 'feria', 'expo', 'cultural', 'sticker', 'print', 'illustration', 'painting', 'sculpture', 'artist'];
+              const hasArtContent = artKeywords.some(keyword => 
+                title.includes(keyword) || description.includes(keyword)
+              );
+              // Only match if has actual art keywords in title/description
+              return hasArtContent;
             }
             
             return eventTypeKeywords.some(keyword => 
