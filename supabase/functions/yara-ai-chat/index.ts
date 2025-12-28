@@ -1308,6 +1308,36 @@ IMPORTANT - NO DATABASE MATCHES:
                             lastUserMsgLower.includes("esta noche") || lastUserMsgLower.includes("hoy");
         const isTomorrowQuery = lastUserMsgLower.includes("tomorrow") || lastUserMsgLower.includes("mañana");
         
+        // CRITICAL: Detect special occasions/dates (New Year's Eve, Christmas, etc.)
+        const occasionPatterns: Record<string, { dates: string[], keywords: string[] }> = {
+          'new years eve': { 
+            dates: ['2025-12-31', '2026-12-31'], 
+            keywords: ['new year', 'año nuevo', 'reveillon', 'nochevieja', 'fin de año', 'new years']
+          },
+          'christmas': { 
+            dates: ['2025-12-24', '2025-12-25', '2026-12-24', '2026-12-25'], 
+            keywords: ['christmas', 'navidad', 'xmas', 'noche buena', 'nochebuena']
+          },
+          'valentines': { 
+            dates: ['2025-02-14', '2026-02-14'], 
+            keywords: ['valentine', 'san valentin', 'día del amor', 'dia del amor']
+          },
+        };
+        
+        let detectedOccasion: string | null = null;
+        let occasionDates: string[] = [];
+        let occasionKeywords: string[] = [];
+        
+        for (const [occasion, config] of Object.entries(occasionPatterns)) {
+          if (config.keywords.some(kw => lastUserMsgLower.includes(kw))) {
+            detectedOccasion = occasion;
+            occasionDates = config.dates;
+            occasionKeywords = config.keywords;
+            console.log(`Detected occasion query: ${occasion}, will filter by dates: ${occasionDates.join(', ')} and keywords: ${occasionKeywords.join(', ')}`);
+            break;
+          }
+        }
+        
         // CRITICAL: Detect music genre queries and filter by music_type
         const genrePatterns: Record<string, string[]> = {
           'tango': ['tango'],
@@ -1340,8 +1370,29 @@ IMPORTANT - NO DATABASE MATCHES:
         let relevantEvents = ageFilteredEvents;
         let timeDescription = "happening soon";
         
-        // First filter by genre if detected
-        if (detectedGenre && genreKeywords.length > 0) {
+        // First filter by occasion if detected (New Year's Eve, etc.)
+        if (detectedOccasion && occasionDates.length > 0) {
+          relevantEvents = ageFilteredEvents.filter(e => {
+            const eventDate = (e.date || '').toLowerCase();
+            const title = (e.title || '').toLowerCase();
+            const description = (e.description || '').toLowerCase();
+            
+            // Check if event date matches occasion dates
+            const dateMatches = occasionDates.some(d => eventDate.includes(d) || eventDate === d);
+            // Also check keywords in title/description
+            const keywordMatches = occasionKeywords.some(kw => 
+              title.includes(kw) || description.includes(kw)
+            );
+            
+            return dateMatches || keywordMatches;
+          });
+          timeDescription = userLanguage === 'es' 
+            ? (detectedOccasion === 'new years eve' ? 'para Año Nuevo' : `para ${detectedOccasion}`)
+            : `for ${detectedOccasion}`;
+          console.log(`Filtered to ${relevantEvents.length} ${detectedOccasion} events`);
+        }
+        // Then filter by genre if detected (and no occasion filter)
+        else if (detectedGenre && genreKeywords.length > 0) {
           relevantEvents = ageFilteredEvents.filter(e => {
             const musicType = (e.music_type || '').toLowerCase();
             const title = (e.title || '').toLowerCase();
@@ -1357,14 +1408,16 @@ IMPORTANT - NO DATABASE MATCHES:
           console.log(`Filtered to ${relevantEvents.length} ${detectedGenre} events`);
         }
         
-        // Then filter by date if applicable
+        // Then filter by date if applicable (today/tomorrow on top of other filters)
         if (isTodayQuery) {
           relevantEvents = relevantEvents.filter(e => e.date === today);
-          timeDescription = userLanguage === 'es' ? `de ${detectedGenre || ''} para esta noche`.trim() : `${detectedGenre || ''} for tonight`.trim();
+          const filterType = detectedOccasion || detectedGenre || '';
+          timeDescription = userLanguage === 'es' ? `de ${filterType} para esta noche`.trim() : `${filterType} for tonight`.trim();
         } else if (isTomorrowQuery) {
           relevantEvents = relevantEvents.filter(e => e.date === tomorrowDate);
-          timeDescription = userLanguage === 'es' ? `de ${detectedGenre || ''} para mañana`.trim() : `${detectedGenre || ''} for tomorrow`.trim();
-        } else if (detectedGenre) {
+          const filterType = detectedOccasion || detectedGenre || '';
+          timeDescription = userLanguage === 'es' ? `de ${filterType} para mañana`.trim() : `${filterType} for tomorrow`.trim();
+        } else if (detectedGenre && !detectedOccasion) {
           timeDescription = userLanguage === 'es' ? `de ${detectedGenre}` : detectedGenre;
         }
         
