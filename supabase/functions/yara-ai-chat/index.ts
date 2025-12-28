@@ -1034,11 +1034,15 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
     - bar = pub = cerveceria = cocktail bar
     - shows = concerts = performances = gigs = live music
 11. **CRITICAL: User interests are for CONTEXT ONLY, not for filtering** - DO NOT use interests to exclude events. Always show all age-appropriate events that match the requested type/date.
-12. **MUSIC GENRE synonyms**: Treat these as equivalent for filtering:
+12. **MUSIC GENRE synonyms - CRITICAL FOR SUBSTRING MATCHING**: 
+    **IMPORTANT**: music_type field often contains COMPOUND genres like "Progressive House", "Afrohouse/Dam", "Indie Rock". You MUST do SUBSTRING/PARTIAL matching, not exact matching!
+    - When user asks for "house music" → Match ANY music_type CONTAINING "house" (e.g., "Progressive House", "Afrohouse", "Deep House", "Tech House")
+    - When user asks for "rock" → Match ANY music_type CONTAINING "rock" (e.g., "Indie Rock", "Punk/Rock", "Rock, Soul")
     - salsa = latin = cumbia = bachata = merengue (Latin dance music)
-    - techno = electronic = house = EDM = electrónica
+    - techno = electronic = house = EDM = electrónica (match ANY of these in music_type)
     - jazz = blues = soul (jazz-related)
-    - rock = indie rock = alternative
+    - rock = indie rock = alternative = punk
+    **EXAMPLE**: User asks for "house events" → You MUST find "Progressive House" and "Afrohouse/Dam" events because they CONTAIN "house"
 
 RECOMMENDATION OUTPUT RULES:
 🚨🚨🚨 **MANDATORY: SEND UP TO 10 EVENTS FOR DATE-BASED QUERIES** 🚨🚨🚨
