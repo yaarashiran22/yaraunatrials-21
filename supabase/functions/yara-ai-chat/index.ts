@@ -1406,6 +1406,7 @@ IMPORTANT - NO DATABASE MATCHES:
           'classical': ['classical', 'opera', 'symphony', 'orchestra'],
           'opera': ['opera', 'classical'],
           'folk': ['folk', 'folklore'],
+          'african': ['african', 'afro', 'afrobeat', 'afrohouse', 'afromama', 'bomba de tiempo'],
         };
         
         // EXPANDED: Detect neighborhood queries
