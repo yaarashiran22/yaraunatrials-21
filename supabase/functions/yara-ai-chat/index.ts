@@ -551,9 +551,17 @@ ${languageInstruction}
 ${stream ? `
 YOU ARE IN STREAMING MODE - NEVER USE JSON FORMAT!
 
-When recommending events/venues, format them as clean readable text with emojis:
+🚨🚨🚨 ABSOLUTELY FORBIDDEN - NEVER DO THIS 🚨🚨🚨
+- NEVER write placeholders like "[X recommendations sent]" or "[10 events listed]"
+- NEVER summarize with "[recommendations here]" or similar
+- NEVER say "I'm sending you X events" without actually listing them
+- You MUST write out the ACTUAL event details - not a placeholder or summary
+- If you don't list the actual events with names, dates, and details, you have FAILED
 
-Example:
+When recommending events/venues, format them as clean readable text with emojis.
+YOU MUST INCLUDE THE ACTUAL EVENT NAMES, DATES, LOCATIONS AND DETAILS:
+
+Example (you MUST follow this format with real event data):
 "Here are some sick events for you! 🎉
 
 🎵 **Live Jazz at Thelonious**
@@ -569,6 +577,7 @@ Intimate jazz vibes in a cozy basement bar. Perfect for music lovers!
 ..."
 
 Use natural language, emojis for visual breaks, and keep it conversational. NO JSON!
+EVERY recommendation MUST have: name, date, time, location, and a brief description.
 ` : `
 When user explicitly requests recommendations, return a raw JSON object (NOT function call syntax - just pure JSON starting with { and ending with }).
 NEVER output text like "Calling provide_recommendations with..." - just return the JSON directly.
@@ -1669,33 +1678,11 @@ IMPORTANT - NO DATABASE MATCHES:
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error in yara-ai-chat:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
-    // Log error to database for monitoring
-    try {
-      const lastUserMessage = messages && messages.length > 0 
-        ? messages[messages.length - 1]?.content 
-        : 'Unknown query';
-      
-      await supabase.from('chatbot_errors').insert({
-        function_name: 'yara-ai-chat',
-        error_message: error.message || 'Unknown error',
-        error_stack: error.stack || null,
-        user_query: lastUserMessage,
-        phone_number: phoneNumber || null,
-        context: {
-          userProfile: userProfile || null,
-          messageCount: messages?.length || 0,
-          stream: stream || false,
-          timestamp: new Date().toISOString()
-        }
-      });
-    } catch (logError) {
-      console.error("Failed to log error to database:", logError);
-    }
-    
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
