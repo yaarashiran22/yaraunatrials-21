@@ -1765,6 +1765,90 @@ ${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
             : "Hey there! I'm Yara, the AI assistant for finding the top events in Buenos Aires. Tell me- what are you looking for? :)";
         }
       }
+      
+      // CRITICAL FIX: Detect when AI returns JSON with empty recommendations for a genre/music query
+      // This catches cases like {"intro_message": "No specific salsa events found", "recommendations": []}
+      else if (message.includes('"recommendations"') && message.includes('[]')) {
+        try {
+          const parsed = JSON.parse(message);
+          if (parsed.recommendations && parsed.recommendations.length === 0) {
+            console.log("AI returned empty recommendations array. Checking for genre query to rebuild from database...");
+            
+            const lastUserMsgLower = lastUserMessage.toLowerCase();
+            
+            // Genre patterns for music-specific queries
+            const genrePatterns: Record<string, string[]> = {
+              'salsa': ['salsa', 'latin', 'cumbia', 'bachata', 'merengue'],
+              'tango': ['tango'],
+              'jazz': ['jazz', 'blues'],
+              'techno': ['techno', 'electronic', 'house', 'edm', 'electrónica'],
+              'rock': ['rock', 'indie rock', 'alternative'],
+              'indie': ['indie'],
+              'latin': ['latin', 'salsa', 'cumbia', 'reggaeton', 'bachata'],
+              'cumbia': ['cumbia', 'latin'],
+              'reggaeton': ['reggaeton', 'latin'],
+              'african': ['african', 'afro', 'afrobeat', 'afrohouse', 'afromama', 'bomba de tiempo'],
+              'hip-hop': ['hip-hop', 'hip hop', 'rap'],
+              'classical': ['classical', 'opera', 'symphony', 'orchestra'],
+            };
+            
+            let detectedGenre: string | null = null;
+            let genreKeywords: string[] = [];
+            
+            for (const [genre, keywords] of Object.entries(genrePatterns)) {
+              if (lastUserMsgLower.includes(genre)) {
+                detectedGenre = genre;
+                genreKeywords = keywords;
+                console.log(`Detected genre query in empty recommendations: ${genre}`);
+                break;
+              }
+            }
+            
+            if (detectedGenre && genreKeywords.length > 0) {
+              // Filter events by genre from database
+              const genreEvents = ageFilteredEvents.filter(e => {
+                const musicType = (e.music_type || '').toLowerCase();
+                const title = (e.title || '').toLowerCase();
+                const description = (e.description || '').toLowerCase();
+                
+                return genreKeywords.some(keyword => 
+                  musicType.includes(keyword) || 
+                  title.includes(keyword) || 
+                  description.includes(keyword)
+                );
+              }).slice(0, 6);
+              
+              console.log(`Found ${genreEvents.length} ${detectedGenre} events in database`);
+              
+              if (genreEvents.length > 0) {
+                const recommendations = genreEvents.map(e => ({
+                  type: "event",
+                  id: e.id,
+                  title: e.title,
+                  description: `📍 ${e.location || 'Buenos Aires'}${e.venue_name ? ` at ${e.venue_name}` : ''}. 📅 ${e.date ? formatDate(e.date) : ''} ${e.time || ''}${e.music_type ? ` | Music: ${e.music_type}` : ''}${e.description ? '. ' + e.description.substring(0, 100) : ''}`,
+                  why_recommended: userLanguage === 'es' 
+                    ? `Evento de ${detectedGenre} que te puede gustar`
+                    : `${detectedGenre} event you might enjoy`,
+                  image_url: e.image_url,
+                  external_link: e.external_link,
+                  url: e.external_link
+                }));
+                
+                message = JSON.stringify({
+                  intro_message: userLanguage === 'es' 
+                    ? `¡Encontré ${genreEvents.length} eventos de ${detectedGenre}! 🎶`
+                    : `Found ${genreEvents.length} ${detectedGenre} events! 🎶`,
+                  recommendations,
+                  followup_message: userLanguage === 'es' ? '¿Algo más que estés buscando?' : 'Anything else you\'re looking for?'
+                });
+                console.log(`Rebuilt ${detectedGenre} recommendations from database`);
+              }
+            }
+          }
+        } catch (parseError) {
+          console.log("Failed to parse message for empty recommendations check:", parseError);
+        }
+      }
 
       // FALLBACK: For general Buenos Aires questions OR recommendation requests with no database matches
       // Trigger fallback only when Yara explicitly indicates no data
