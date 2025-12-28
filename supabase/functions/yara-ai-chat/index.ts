@@ -610,6 +610,14 @@ YOU ALREADY KNOW ALL DATES - NEVER ASK FOR DATE CLARIFICATION!
 - "tomorrow" / "mañana" / "events tomorrow" / "que hay mañana" = rawDate "${tomorrowDate}" or date "${tomorrowFormatted}"
 - "this week" / "esta semana" = ${today} through end of week
 
+**CRITICAL: WHEN NO DATE IS SPECIFIED:**
+- If user asks for "[type] events" (e.g., "jazz events", "techno events", "art events") WITHOUT mentioning a date:
+  - Return ALL events matching that type/genre from ANY date in the database
+  - Do NOT assume they mean "tonight" or "today"
+  - Example: "jazz events" → show ALL jazz events from any date
+  - Example: "jazz events tonight" → show only jazz events for today
+- Only filter by date when the user EXPLICITLY mentions: today, tonight, tomorrow, a specific date, this week, etc.
+
 **FORBIDDEN RESPONSES - NEVER SAY THESE:**
 - ❌ "Please specify the full date"
 - ❌ "What date are you interested in?"
