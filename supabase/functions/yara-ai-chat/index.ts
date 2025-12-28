@@ -1376,7 +1376,7 @@ IMPORTANT - NO DATABASE MATCHES:
           'tango': ['tango'],
           'jazz': ['jazz', 'blues'],
           'salsa': ['salsa', 'latin', 'cumbia', 'bachata', 'merengue'],
-          'techno': ['techno', 'electronic', 'house', 'edm', 'electrónica'],
+          'techno': ['techno', 'tech', 'electronic', 'house', 'edm', 'electrónica', 'electronica'],
           'rock': ['rock', 'indie rock', 'alternative'],
           'indie': ['indie'],
           'latin': ['latin', 'salsa', 'cumbia', 'reggaeton', 'bachata'],
