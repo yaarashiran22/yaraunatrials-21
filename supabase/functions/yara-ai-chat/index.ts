@@ -1242,6 +1242,31 @@ IMPORTANT - NO DATABASE MATCHES:
       message = data.choices?.[0]?.message?.content || "";
       console.log("AI response (conversational):", message);
       
+      // CRITICAL FIX: Detect when AI returns a raw JSON array of recommendations
+      // Pattern: message starts with "[" and contains recommendation objects
+      const trimmedMessage = message.trim();
+      if (trimmedMessage.startsWith('[') && trimmedMessage.endsWith(']')) {
+        try {
+          const parsedArray = JSON.parse(trimmedMessage);
+          if (Array.isArray(parsedArray) && parsedArray.length > 0 && parsedArray[0].type) {
+            console.log("DETECTED: AI returned raw JSON array. Wrapping in proper structure.");
+            
+            // Wrap the raw array in the expected structure
+            message = JSON.stringify({
+              intro_message: userLanguage === 'es' 
+                ? `¡Encontré ${parsedArray.length} opciones para vos! 🎉`
+                : `Found ${parsedArray.length} options for you! 🎉`,
+              recommendations: parsedArray,
+              followup_message: userLanguage === 'es' ? '¿Algo más que estés buscando?' : 'Anything else you\'re looking for?'
+            });
+            console.log("Wrapped raw array in proper structure");
+          }
+        } catch (e) {
+          // Not valid JSON, continue with normal processing
+          console.log("Message looks like JSON array but failed to parse:", e);
+        }
+      }
+      
       // CRITICAL FIX: Detect when AI outputs function call syntax as text instead of JSON
       // Pattern: "Calling `provide_recommendations` with `{...}`"
       const functionCallPattern = /calling\s*[`'"]*\s*(provide_recommendations|give_recommendations)[`'"]*\s*(with)?/i;
