@@ -1297,18 +1297,30 @@ IMPORTANT - NO DATABASE MATCHES:
         
         if (relevantEvents.length > 0) {
           // Build actual recommendations from the database
-          const recommendations = relevantEvents.map(e => ({
-            type: "event",
-            id: e.id,
-            title: e.title,
-            description: `📍 ${e.location || 'Buenos Aires'}${e.address ? ', ' + e.address : ''}. ${e.date ? formatDate(e.date) : ''} ${e.time || ''}. ${e.description?.substring(0, 150) || ''}`,
-            why_recommended: userLanguage === 'es' 
-              ? `Evento ${timeDescription} que te puede interesar`
-              : `Event ${timeDescription} you might enjoy`,
-            image_url: e.image_url,
-            external_link: e.external_link,
-            url: e.external_link
-          }));
+          // Note: We only include location/time info, not the full description to avoid language issues
+          const recommendations = relevantEvents.map(e => {
+            // Build a clean, language-appropriate description with just the key facts
+            const locationInfo = e.location || 'Buenos Aires';
+            const addressInfo = e.address ? `, ${e.address}` : '';
+            const dateInfo = e.date ? formatDate(e.date) : '';
+            const timeInfo = e.time || '';
+            const venueInfo = e.venue_name ? ` at ${e.venue_name}` : '';
+            const priceInfo = e.price ? (userLanguage === 'es' ? ` | Entrada: ${e.price}` : ` | Entry: ${e.price}`) : '';
+            const musicInfo = e.music_type ? (userLanguage === 'es' ? ` | Música: ${e.music_type}` : ` | Music: ${e.music_type}`) : '';
+            
+            return {
+              type: "event",
+              id: e.id,
+              title: e.title,
+              description: `📍 ${locationInfo}${addressInfo}${venueInfo}. 📅 ${dateInfo} ${timeInfo}${priceInfo}${musicInfo}`,
+              why_recommended: userLanguage === 'es' 
+                ? `Evento ${timeDescription} que te puede interesar`
+                : `Event ${timeDescription} you might enjoy`,
+              image_url: e.image_url,
+              external_link: e.external_link,
+              url: e.external_link
+            };
+          });
           
           message = JSON.stringify({
             intro_message: userLanguage === 'es' 
