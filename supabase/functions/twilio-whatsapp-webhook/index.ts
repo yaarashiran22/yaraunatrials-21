@@ -609,10 +609,18 @@ Deno.serve(async (req) => {
     }
 
     // Build conversation history for AI
-    const messages = conversationHistory.map((msg) => ({
-      role: msg.role as "user" | "assistant",
-      content: msg.content,
-    }));
+    // CRITICAL FIX: Filter out "[X recommendations sent]" placeholders that were stored
+    // to prevent the AI from seeing and repeating them
+    const messages = conversationHistory
+      .filter((msg) => {
+        // Filter out messages that are just placeholders
+        const content = msg.content || '';
+        return !content.includes('[') || !content.includes('recommendations sent]');
+      })
+      .map((msg) => ({
+        role: msg.role as "user" | "assistant",
+        content: msg.content,
+      }));
     messages.push({ role: "user", content: body });
 
     // Call Yara AI chat function with user profile context (ONE call only)
