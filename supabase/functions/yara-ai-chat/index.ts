@@ -1793,15 +1793,73 @@ ${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
             : ageFilteredEvents.slice(0, 5);
           
           if (relevantEvents.length > 0) {
-            // Build a JSON response with available events
-            const recommendations = relevantEvents.map(e => ({
-              type: "event",
-              id: e.id,
-              title: e.title,
-              description: `📍 ${e.location || 'Buenos Aires'}. ${e.date ? formatDate(e.date) : ''} ${e.time || ''}. ${e.description?.substring(0, 100) || ''}`,
-              why_recommended: "This event matches your search for events " + (isTodayQuery ? "tonight" : "happening soon"),
-              image_url: e.image_url
-            }));
+            // Translate descriptions if user language is not Spanish
+            let translatedDescriptions: Record<string, string> = {};
+            
+            if (userLanguage !== 'es') {
+              try {
+                const descriptionsToTranslate = relevantEvents
+                  .filter(e => e.description)
+                  .map(e => ({ id: e.id, text: e.description?.substring(0, 200) || '' }));
+                
+                if (descriptionsToTranslate.length > 0) {
+                  const expandedLanguageMap: Record<string, string> = {
+                    'en': 'English', 'es': 'Spanish', 'pt': 'Portuguese', 'he': 'Hebrew',
+                    'fr': 'French', 'de': 'German', 'it': 'Italian'
+                  };
+                  const targetLanguage = expandedLanguageMap[userLanguage] || 'English';
+                  const translationPrompt = `Translate the following event descriptions to ${targetLanguage}. Return ONLY a JSON object with event IDs as keys and translated descriptions as values. Keep venue names and proper nouns unchanged. Be concise.
+
+Event descriptions:
+${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
+
+                  console.log("Requesting translation to", targetLanguage, "for empty content fallback");
+                  
+                  const translationResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                      Authorization: `Bearer ${lovableApiKey}`,
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      model: "google/gemini-2.5-flash-lite",
+                      messages: [{ role: "user", content: translationPrompt }],
+                    }),
+                  });
+
+                  if (translationResponse.ok) {
+                    const translationData = await translationResponse.json();
+                    const translationText = translationData.choices?.[0]?.message?.content || '';
+                    try {
+                      const jsonMatch = translationText.match(/\{[\s\S]*\}/);
+                      if (jsonMatch) {
+                        translatedDescriptions = JSON.parse(jsonMatch[0]);
+                        console.log("Successfully translated", Object.keys(translatedDescriptions).length, "descriptions for empty content fallback");
+                      }
+                    } catch (parseError) {
+                      console.error("Failed to parse translation response:", parseError);
+                    }
+                  }
+                }
+              } catch (translationError) {
+                console.error("Translation error:", translationError);
+              }
+            }
+            
+            // Build a JSON response with available events and translated descriptions
+            const recommendations = relevantEvents.map(e => {
+              const eventDescription = translatedDescriptions[e.id] || e.description?.substring(0, 100) || '';
+              return {
+                type: "event",
+                id: e.id,
+                title: e.title,
+                description: `📍 ${e.location || 'Buenos Aires'}. ${e.date ? formatDate(e.date) : ''} ${e.time || ''}. ${eventDescription}`,
+                why_recommended: userLanguage === 'es' 
+                  ? "Este evento coincide con tu búsqueda de eventos " + (isTodayQuery ? "esta noche" : "próximos")
+                  : "This event matches your search for events " + (isTodayQuery ? "tonight" : "happening soon"),
+                image_url: e.image_url
+              };
+            });
             
             message = JSON.stringify({
               intro_message: userLanguage === 'es' 
@@ -1810,7 +1868,7 @@ ${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
               recommendations,
               followup_message: userLanguage === 'es' ? '¿Algo más que estés buscando?' : 'Anything else you\'re looking for?'
             });
-            console.log("Built fallback event recommendations:", message);
+            console.log("Built fallback event recommendations with translations:", message);
           } else {
             message = userLanguage === 'es'
               ? "No encontré eventos para esa fecha. ¿Querés que busque para otro día? 📅"
