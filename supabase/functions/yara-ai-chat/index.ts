@@ -1086,14 +1086,20 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 11. **CRITICAL: User interests are for CONTEXT ONLY, not for filtering** - DO NOT use interests to exclude events. Always show all age-appropriate events that match the requested type/date.
 12. **MUSIC GENRE synonyms - CRITICAL FOR SUBSTRING MATCHING**: 
     **IMPORTANT**: music_type field often contains COMPOUND genres like "Progressive House", "Afrohouse/Dam", "Indie Rock". You MUST do SUBSTRING/PARTIAL matching, not exact matching!
-    - When user asks for "house music" → Match ANY music_type CONTAINING "house" (e.g., "Progressive House", "Afrohouse", "Deep House", "Tech House")
-    - When user asks for "rock" → Match ANY music_type CONTAINING "rock" (e.g., "Indie Rock", "Punk/Rock", "Rock, Soul")
+    **CRITICAL: ALSO SEARCH THE DESCRIPTION FIELD!** Many events have music_type=null but mention the genre in their description. You MUST search BOTH:
+    - music_type field (if not null)
+    - description field (ALWAYS check this too!)
+    - title field (check for genre keywords)
+    
+    - When user asks for "house music" → Match ANY music_type OR description CONTAINING "house" (e.g., "Progressive House", "Afrohouse", "Deep House", "Tech House")
+    - When user asks for "rock" → Match ANY music_type OR description CONTAINING "rock" (e.g., "Indie Rock", "Punk/Rock", "Rock, Soul", "techno rock")
     - salsa = latin = cumbia = bachata = merengue (Latin dance music)
-      **IMPORTANT FOR SALSA**: When user asks for "salsa events", include ALL events where music_type contains "salsa" OR "latin". Also include recurring events like "every Thursday" events. If you find even 1 salsa event, present it confidently - don't say "I don't have many", say "Here's a great salsa event for you!"
-    - techno = electronic = house = EDM = electrónica (match ANY of these in music_type)
+      **IMPORTANT FOR SALSA**: When user asks for "salsa events", include ALL events where music_type OR description contains "salsa" OR "latin". Also include recurring events like "every Thursday" events. If you find even 1 salsa event, present it confidently - don't say "I don't have many", say "Here's a great salsa event for you!"
+    - techno = electronic = house = EDM = electrónica (match ANY of these in music_type OR description)
     - jazz = blues = soul (jazz-related)
     - rock = indie rock = alternative = punk
-    **EXAMPLE**: User asks for "house events" → You MUST find "Progressive House" and "Afrohouse/Dam" events because they CONTAIN "house"
+    **EXAMPLE**: User asks for "rock events" → You MUST find events where music_type contains "rock" OR description contains "rock" (like "techno rock" in the description)
+    **EXAMPLE**: "Año nuevo, varese y folgar" event has "techno rock" in description but music_type is null → This IS a rock event, include it!
 13. **CONFIDENCE IN RESPONSES**: When you find matching events, present them confidently! Don't say "I don't have many" or "I couldn't find much". If you found 1+ matching events, say "Here's what I found!" or "Check out this event!"
 
 RECOMMENDATION OUTPUT RULES:
