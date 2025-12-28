@@ -1519,9 +1519,12 @@ IMPORTANT - NO DATABASE MATCHES:
         let detectedPrice: string | null = null;
         let priceFilter: ((price: string | null) => boolean) | null = null;
         
-        // Detect genre
+        // Detect genre - FIXED: Check ALL keywords, not just the genre key name
         for (const [genre, keywords] of Object.entries(genrePatterns)) {
-          if (lastUserMsgLower.includes(genre)) {
+          // Check if user message contains the genre key OR any of the genre keywords
+          const matchesGenre = lastUserMsgLower.includes(genre) || 
+            keywords.some(kw => lastUserMsgLower.includes(kw));
+          if (matchesGenre) {
             detectedGenre = genre;
             genreKeywords = keywords;
             console.log(`Detected genre query: ${genre}, will filter by keywords: ${keywords.join(', ')}`);
