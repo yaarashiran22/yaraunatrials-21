@@ -995,6 +995,27 @@ REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
 RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 **CRITICAL: BE INCLUSIVE, NOT SELECTIVE** - Show ALL events that match the user's request, not just the ones that perfectly match their profile.
 
+🎵🎵🎵 **MUSIC GENRE FILTERING - HIGHEST PRIORITY** 🎵🎵🎵
+**When user asks for a SPECIFIC MUSIC GENRE, you MUST filter by the music_type field:**
+- User asks for "jazz events" → ONLY show events where music_type contains "jazz" OR title/description contains "jazz"
+- User asks for "salsa events" / "salsa parties" → ONLY show events where music_type contains "salsa" OR title/description contains "salsa"
+- User asks for "techno" → ONLY show events where music_type contains "techno" OR title/description contains "techno"
+- User asks for "latin music" → ONLY show events where music_type contains "latin" or "salsa" or "cumbia" or "reggaeton"
+- **NEVER substitute unrelated events** - if user asks for jazz and no jazz events exist, say "I don't have any jazz events right now" - DO NOT show random parties instead
+- **music_type field values include**: Jazz, Salsa, Techno, House, Electronic, Rock, Pop, Indie, Latin, Hip-Hop, Reggaeton, Cumbia, Tango, Folk, Classical, etc.
+
+🗓️🗓️🗓️ **RECURRING EVENTS - CRITICAL** 🗓️🗓️🗓️
+**Events with "originalDate" containing "every [day]" are RECURRING and happen EVERY WEEK on that day:**
+- Event with originalDate = "every thursday" happens EVERY Thursday (including this week and next week)
+- When user asks for "events this weekend" → Include recurring events that happen on Saturday or Sunday
+- When user asks for "events on thursday" or "thursday events" → Include ALL events with originalDate = "every thursday"
+- When user asks for "salsa this weekend" → Check if any recurring salsa events happen on Sat/Sun. Also check if "every thursday" events match the upcoming Thursday if within the weekend range.
+- **EXAMPLE**: "Latin Lovers Salsa" with originalDate = "every thursday" should be recommended when:
+  - User asks for "salsa events" (any time)
+  - User asks for "events on thursday"
+  - User asks for "latin events"
+  - The "date" field already shows the NEXT occurrence date, so use that for date filtering
+
 1. **CRITICAL: When user asks for "events today" or "events tonight"** - Show ALL events happening on that date, not just personalized picks. Include chill events, house music, art events, parties, etc. - SHOW EVERYTHING for that date.
 2. **CRITICAL: Search BOTH title AND description equally** - if user asks for "party", check if "party" appears in EITHER the title OR the description.
 3. **Description matching is just as important as title matching** - don't prioritize title over description, treat them equally
@@ -1013,6 +1034,11 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
     - bar = pub = cerveceria = cocktail bar
     - shows = concerts = performances = gigs = live music
 11. **CRITICAL: User interests are for CONTEXT ONLY, not for filtering** - DO NOT use interests to exclude events. Always show all age-appropriate events that match the requested type/date.
+12. **MUSIC GENRE synonyms**: Treat these as equivalent for filtering:
+    - salsa = latin = cumbia = bachata = merengue (Latin dance music)
+    - techno = electronic = house = EDM = electrónica
+    - jazz = blues = soul (jazz-related)
+    - rock = indie rock = alternative
 
 RECOMMENDATION OUTPUT RULES:
 🚨🚨🚨 **MANDATORY: SEND UP TO 10 EVENTS FOR DATE-BASED QUERIES** 🚨🚨🚨
