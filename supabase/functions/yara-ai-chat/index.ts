@@ -1268,6 +1268,63 @@ IMPORTANT - NO DATABASE MATCHES:
             : `I couldn't find events ${timeDescription}. Want me to search for another date? 📅`;
         }
       }
+      
+      // CRITICAL FIX: Detect when AI returns placeholder like "[X recommendations sent]" instead of actual content
+      // This happens when the model summarizes instead of formatting events properly
+      const placeholderPattern = /\[\d+\s*(recommendations?|events?|options?)\s*(sent|listed|shown|provided)\]/i;
+      if (message && placeholderPattern.test(message)) {
+        console.error("AI returned placeholder instead of actual recommendations! Message:", message);
+        console.log("Building fallback recommendations from database...");
+        
+        // Check if user was asking about events
+        const lastUserMsgLower = lastUserMessage.toLowerCase();
+        const isTodayQuery = lastUserMsgLower.includes("tonight") || lastUserMsgLower.includes("today") || 
+                            lastUserMsgLower.includes("esta noche") || lastUserMsgLower.includes("hoy");
+        const isTomorrowQuery = lastUserMsgLower.includes("tomorrow") || lastUserMsgLower.includes("mañana");
+        
+        let relevantEvents = ageFilteredEvents;
+        let timeDescription = "happening soon";
+        
+        if (isTodayQuery) {
+          relevantEvents = ageFilteredEvents.filter(e => e.date === today);
+          timeDescription = userLanguage === 'es' ? "para esta noche" : "for tonight";
+        } else if (isTomorrowQuery) {
+          relevantEvents = ageFilteredEvents.filter(e => e.date === tomorrowDate);
+          timeDescription = userLanguage === 'es' ? "para mañana" : "for tomorrow";
+        }
+        
+        relevantEvents = relevantEvents.slice(0, 6);
+        
+        if (relevantEvents.length > 0) {
+          // Build actual recommendations from the database
+          const recommendations = relevantEvents.map(e => ({
+            type: "event",
+            id: e.id,
+            title: e.title,
+            description: `📍 ${e.location || 'Buenos Aires'}${e.address ? ', ' + e.address : ''}. ${e.date ? formatDate(e.date) : ''} ${e.time || ''}. ${e.description?.substring(0, 150) || ''}`,
+            why_recommended: userLanguage === 'es' 
+              ? `Evento ${timeDescription} que te puede interesar`
+              : `Event ${timeDescription} you might enjoy`,
+            image_url: e.image_url,
+            external_link: e.external_link,
+            url: e.external_link
+          }));
+          
+          message = JSON.stringify({
+            intro_message: userLanguage === 'es' 
+              ? `¡Aquí tienes ${relevantEvents.length} eventos ${timeDescription}! 🎉`
+              : `Here are ${relevantEvents.length} events ${timeDescription}! 🎉`,
+            recommendations,
+            followup_message: userLanguage === 'es' ? '¿Algo más que estés buscando?' : 'Anything else you\'re looking for?'
+          });
+          console.log("Built fallback recommendations from database to replace placeholder");
+        } else {
+          message = userLanguage === 'es'
+            ? `No encontré eventos ${timeDescription}. ¿Querés que busque para otra fecha? 📅`
+            : `I couldn't find events ${timeDescription}. Want me to search for another date? 📅`;
+        }
+      }
+      
       // SAFETY CHECK: If AI returned empty content, check if user was asking about events and provide relevant fallback
       else if (!message || message.trim() === "") {
         console.error("AI returned empty content! Full response:", JSON.stringify(data, null, 2));
