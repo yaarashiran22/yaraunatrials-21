@@ -119,21 +119,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check for recent conversation (last 24 hours for better context retention)
-    // This ensures returning users get continuity even if they come back the next day
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    // Check for recent conversation (last 30 minutes for better context retention)
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const { data: recentHistory } = await supabase
       .from("whatsapp_conversations")
       .select("role, content, created_at")
       .eq("phone_number", from)
-      .gte("created_at", twentyFourHoursAgo)
+      .gte("created_at", thirtyMinutesAgo)
       .order("created_at", { ascending: true })
-      .limit(50); // Increased limit for longer context window
+      .limit(30);
 
     const conversationHistory = recentHistory || [];
     const isNewConversation = conversationHistory.length === 0;
     console.log(
-      `Found ${conversationHistory.length} messages in last 24 hours for ${from}. Is new conversation: ${isNewConversation}`,
+      `Found ${conversationHistory.length} messages in last 30 minutes for ${from}. Is new conversation: ${isNewConversation}`,
     );
 
     // Check if message is a greeting OR a conversation starter

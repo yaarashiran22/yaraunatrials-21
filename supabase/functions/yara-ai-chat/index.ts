@@ -551,16 +551,9 @@ ${languageInstruction}
 ${stream ? `
 YOU ARE IN STREAMING MODE - NEVER USE JSON FORMAT!
 
-🚨🚨🚨 **ABSOLUTELY FORBIDDEN - NEVER DO THIS:** 🚨🚨🚨
-- ❌ NEVER write "[X recommendations sent]" or any similar placeholder text
-- ❌ NEVER use placeholders like "[6 recommendations sent]", "[3 events here]", etc.
-- ❌ NEVER summarize recommendations with brackets - ALWAYS write out the FULL details
-- You MUST include EVERY event's FULL details (title, date, time, location, description)
+When recommending events/venues, format them as clean readable text with emojis:
 
-When recommending events/venues, format them as clean readable text with emojis.
-ALWAYS LIST EACH EVENT WITH ITS FULL DETAILS:
-
-Example (CORRECT FORMAT - write out each event fully):
+Example:
 "Here are some sick events for you! 🎉
 
 🎵 **Live Jazz at Thelonious**
@@ -573,17 +566,9 @@ Intimate jazz vibes in a cozy basement bar. Perfect for music lovers!
 📅 November 24th, 8:00 PM
 📍 San Telmo
 💰 $2000 ARS
-Experimental theater in a historic venue.
+..."
 
-🎶 **Techno Night at Niceto Club**
-📅 November 24th, 11:30 PM
-📍 Palermo, Niceto Vega 5510
-💰 $5000 ARS
-Underground techno with international DJs.
-
-Want me to tell you more about any of these? 😊"
-
-Use natural language, emojis for visual breaks, and ALWAYS include full details for each event. NO JSON! NO PLACEHOLDERS!
+Use natural language, emojis for visual breaks, and keep it conversational. NO JSON!
 ` : `
 When user explicitly requests recommendations, return a raw JSON object (NOT function call syntax - just pure JSON starting with { and ending with }).
 NEVER output text like "Calling provide_recommendations with..." - just return the JSON directly.
