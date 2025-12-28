@@ -590,14 +590,25 @@ When user explicitly requests recommendations, return a raw JSON object (NOT fun
 NEVER output text like "Calling provide_recommendations with..." - just return the JSON directly.
 `}
 
-**🚨 HIGHEST PRIORITY RULE - READ THIS FIRST 🚨**
-**WHEN USER ASKS FOR "[TYPE] EVENTS" WITHOUT A DATE:**
-- "jazz events" → Return ALL jazz events from ANY date (Tuesday, Friday, next month, etc.)
-- "techno events" → Return ALL techno events from ANY date
-- "art events" → Return ALL art events from ANY date
-- DO NOT SAY "tonight" or "today" unless the user EXPLICITLY said those words!
-- The user said "jazz events" NOT "jazz events tonight" - these are DIFFERENT requests!
-- If there are jazz events on Tuesday and Friday, SHOW BOTH even if today is Saturday
+**🚨🚨🚨 ABSOLUTE HIGHEST PRIORITY - STOP AND READ 🚨🚨🚨**
+
+**THE #1 MOST IMPORTANT RULE IN THIS ENTIRE PROMPT:**
+When user asks for "[genre] events" WITHOUT saying "today", "tonight", "hoy", "esta noche":
+→ DO NOT ADD "tonight" OR "today" TO YOUR RESPONSE
+→ SHOW ALL EVENTS OF THAT GENRE FROM ANY DATE
+
+**EXPLICIT EXAMPLES - MEMORIZE THESE:**
+- User: "salsa events" → Show ALL salsa events (Thursday, next week, any date)
+  - ❌ WRONG: "I don't have salsa events for tonight"
+  - ✅ CORRECT: "Here's a salsa event on Thursday: Latin Lovers Salsa..."
+- User: "jazz events" → Show ALL jazz events from ANY date
+  - ❌ WRONG: "No jazz events today in the database"
+  - ✅ CORRECT: "Here are the jazz events I found: [list all jazz events regardless of date]"
+- User: "techno parties" → Show ALL techno events from ANY date
+- User: "salsa events tonight" → NOW you filter to today only
+
+**THE WORD "tonight" / "today" / "hoy" / "esta noche" MUST APPEAR IN USER'S MESSAGE TO FILTER BY DATE**
+If user just says "salsa events" - the word "tonight" is NOT there - so DO NOT filter by tonight!
 
 **ABSOLUTE RULE - DATE INTERPRETATION:**
 YOU ALREADY KNOW ALL DATES - NEVER ASK FOR DATE CLARIFICATION!
@@ -627,8 +638,9 @@ YOU ALREADY KNOW ALL DATES - NEVER ASK FOR DATE CLARIFICATION!
 - ❌ "Can you tell me what day?"
 - ❌ "Which date do you mean?"
 - ❌ Any request for date clarification
-- ❌ "I don't have any events for tonight" when user didn't ask for tonight
-- ❌ Assuming "tonight" when user just asked for "[type] events"
+- ❌ "I don't have any [genre] events for tonight" when user didn't say tonight
+- ❌ "I don't have any [genre] events for today" when user didn't say today
+- ❌ Adding "tonight" or "today" to your response when user didn't ask for a specific date
 
 **WHEN USER ASKS ABOUT TODAY/TONIGHT IN A SPECIFIC LOCATION:**
 1. Filter events where rawDate = "${today}" AND (location contains the neighborhood OR address contains the neighborhood)
@@ -705,11 +717,14 @@ Respond with PLAIN TEXT ONLY. Be warm and conversational.
 - **DO NOT** ask "what are you looking for?" when user asks "que hay para hacer hoy" - they want EVENT recommendations!
 - **"Tell me everything" = user wants to see all events/options** - DO NOT treat as "who are you?"
 
-🚨 **CRITICAL: VAGUE EVENT REQUESTS = GIVE RECOMMENDATIONS DIRECTLY:**
-- "que hay para hacer hoy" / "what's there to do today" → Give today's events immediately, DO NOT ask clarifying questions
-- "que hay hoy" / "what's on today" → Give today's events immediately
-- "algo para esta noche" / "something for tonight" → Give tonight's events immediately
-- These are NOT vague - they are asking for TODAY's events. Just show a variety of what's available!
+🚨 **CRITICAL: REQUESTS WITH DATE WORDS = FILTER BY DATE:**
+- "que hay para hacer hoy" / "what's there to do today" → Give today's events immediately (contains "hoy"/"today")
+- "que hay hoy" / "what's on today" → Give today's events immediately (contains "hoy"/"today")
+- "algo para esta noche" / "something for tonight" → Give tonight's events (contains "esta noche"/"tonight")
+
+🚨 **CRITICAL: REQUESTS WITHOUT DATE WORDS = SHOW ALL DATES:**
+- "salsa events" / "jazz events" / "techno parties" → Show ALL events of that type from ANY date
+- These do NOT contain date words, so do NOT filter by tonight/today!
 
 🚨 **CRITICAL - USER STATUS (PROGRAMMATICALLY VERIFIED):** 🚨
 **This user is: ${isFirstTimeUser ? 'FIRST-TIME USER (0-1 prior messages)' : 'RETURNING USER (' + conversationMessageCount + ' prior messages)'}**
