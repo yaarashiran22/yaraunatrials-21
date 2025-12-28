@@ -1033,6 +1033,10 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
     - party = fiesta = celebration = gathering
     - bar = pub = cerveceria = cocktail bar
     - shows = concerts = performances = gigs = live music
+    - **ARTSY/CREATIVE EVENTS**: artsy = artistic = art = creative = cultural = gallery = exhibition = expo = feria = museum
+      - When user asks for "artsy events" → Filter by mood field containing "creative" OR title/description containing: art, gallery, exhibition, expo, feria, museo, museum, creative, artistic, cultural, workshop, taller
+      - Events with mood="creative" or mood="creative,chill" ARE artsy events
+      - Ferias, exhibitions, galleries, museums, art workshops are ALL artsy events
 11. **CRITICAL: User interests are for CONTEXT ONLY, not for filtering** - DO NOT use interests to exclude events. Always show all age-appropriate events that match the requested type/date.
 12. **MUSIC GENRE synonyms - CRITICAL FOR SUBSTRING MATCHING**: 
     **IMPORTANT**: music_type field often contains COMPOUND genres like "Progressive House", "Afrohouse/Dam", "Indie Rock". You MUST do SUBSTRING/PARTIAL matching, not exact matching!
