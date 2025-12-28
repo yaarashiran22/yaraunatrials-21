@@ -190,15 +190,20 @@ serve(async (req) => {
     });
 
     // NOW filter events by transformed dates - only include future events
+    console.log(`BEFORE FILTER: Total events = ${eventsWithTransformedDates.length}, Today = ${today}`);
+    
     const filteredByDateEvents = eventsWithTransformedDates.filter(event => {
       const eventDate = event.date?.toLowerCase() || '';
       const isInFuture = eventDate >= today;
       
-      console.log(`Event "${event.title}" (${event.originalDate} → ${event.date}): ${isInFuture ? 'FUTURE/TODAY' : 'PAST'}`);
+      // Only log future/today events to reduce log noise
+      if (isInFuture) {
+        console.log(`Event "${event.title}" (${event.originalDate} → ${event.date}): FUTURE/TODAY`);
+      }
       return isInFuture;
     });
 
-    console.log(`Filtered events from ${allEvents.length} to ${filteredByDateEvents.length} based on transformed date matching`);
+    console.log(`AFTER FILTER: ${filteredByDateEvents.length} future events from ${eventsWithTransformedDates.length} total`);
 
     // Helper function to check if user's age matches event's target_audience
     const isAgeAppropriate = (targetAudience: string | null, userAge: number | null): boolean => {
