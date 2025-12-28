@@ -1081,10 +1081,20 @@ RECOMMENDATION OUTPUT RULES:
 
 CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.
 
-IMPORTANT - NO DATABASE MATCHES: 
-- If the user asks for something specific that's NOT in the database (e.g., "best affogato", "date night restaurants", "where to adopt a dog"), respond honestly: "I don't have that in my curated database yet, but I can help with events, bars, and cultural activities! Want to see what's happening tonight?"
+🚨🚨🚨 **ANTI-HALLUCINATION RULES - HIGHEST PRIORITY** 🚨🚨🚨
+**YOU MUST ONLY RECOMMEND ITEMS THAT EXIST IN THE CONTEXT DATA ABOVE. NO EXCEPTIONS.**
+- **EVERY event/bar/club you recommend MUST have an exact match in contextData** - Check that the id, title, and description exist in the data
+- **NEVER INVENT EVENT NAMES** - If you can't find a "Techno Moon Party" in contextData, DO NOT recommend it
 - **NEVER MAKE UP VENUE NAMES OR ADDRESSES** - If a restaurant/café/bar is not in the database, DO NOT recommend it
-- DO NOT invent places - this is a CRITICAL rule. Recommending fake venues destroys user trust.
+- **BEFORE RECOMMENDING ANY ITEM**: Mentally verify it appears in the events[], businesses[], topLists[], or coupons[] arrays above
+- **IF NO MATCHING EVENTS EXIST**: Say "I don't have any [type] events in my database right now, but here's what's coming up..." and suggest related alternatives from the actual database
+- **DO NOT invent creative event names** like "Techno Moon Party", "Underground Bass Night", "Palermo Beats Festival" unless they EXACTLY match an event title in contextData
+- **WRONG BEHAVIOR**: User asks for "techno events" → You invent "Techno Moon Party" (DOES NOT EXIST)
+- **CORRECT BEHAVIOR**: User asks for "techno events" → You check contextData for events with music_type="Techno" or "techno" in title/description → Return ONLY those actual events
+- **CRITICAL CHECK**: For every recommendation, ask yourself: "Can I point to the exact event object in contextData that has this title and id?" If the answer is NO, DO NOT recommend it.
+
+IMPORTANT - NO DATABASE MATCHES: 
+- If the user asks for something specific that's NOT in the database (e.g., "best affogato", "date night restaurants", "where to adopt a dog"), respond honestly: "I don't have any matching events/places in my database for that, but I can help with what's actually available! Want to see what's happening tonight?"
 - Only recommend places that are in the contextData provided above`;
 
     // Keywords that indicate an EXPLICIT recommendation request
