@@ -1296,10 +1296,65 @@ IMPORTANT - NO DATABASE MATCHES:
         relevantEvents = relevantEvents.slice(0, 6);
         
         if (relevantEvents.length > 0) {
-          // Build actual recommendations from the database
-          // Note: We only include location/time info, not the full description to avoid language issues
+          // Translate descriptions if user language is not Spanish
+          let translatedDescriptions: Record<string, string> = {};
+          
+          if (userLanguage !== 'es') {
+            try {
+              // Build a batch translation request for all event descriptions
+              const descriptionsToTranslate = relevantEvents
+                .filter(e => e.description)
+                .map(e => ({ id: e.id, text: e.description?.substring(0, 200) || '' }));
+              
+              if (descriptionsToTranslate.length > 0) {
+                const targetLanguage = expandedLanguageMap[userLanguage] || 'English';
+                const translationPrompt = `Translate the following event descriptions to ${targetLanguage}. Return ONLY a JSON object with event IDs as keys and translated descriptions as values. Keep venue names and proper nouns unchanged. Be concise.
+
+Event descriptions:
+${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
+
+                console.log("Requesting translation to", targetLanguage);
+                
+                const translationResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${lovableApiKey}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    model: "google/gemini-2.5-flash-lite",
+                    messages: [
+                      { role: "user", content: translationPrompt }
+                    ],
+                  }),
+                });
+
+                if (translationResponse.ok) {
+                  const translationData = await translationResponse.json();
+                  const translationText = translationData.choices?.[0]?.message?.content || '';
+                  
+                  // Extract JSON from response
+                  try {
+                    const jsonMatch = translationText.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                      translatedDescriptions = JSON.parse(jsonMatch[0]);
+                      console.log("Successfully translated", Object.keys(translatedDescriptions).length, "descriptions");
+                    }
+                  } catch (parseError) {
+                    console.error("Failed to parse translation response:", parseError);
+                  }
+                } else {
+                  console.error("Translation request failed:", translationResponse.status);
+                }
+              }
+            } catch (translationError) {
+              console.error("Translation error:", translationError);
+              // Continue without translations - will use original descriptions
+            }
+          }
+
+          // Build actual recommendations from the database with translated descriptions
           const recommendations = relevantEvents.map(e => {
-            // Build a clean, language-appropriate description with just the key facts
             const locationInfo = e.location || 'Buenos Aires';
             const addressInfo = e.address ? `, ${e.address}` : '';
             const dateInfo = e.date ? formatDate(e.date) : '';
@@ -1308,11 +1363,14 @@ IMPORTANT - NO DATABASE MATCHES:
             const priceInfo = e.price ? (userLanguage === 'es' ? ` | Entrada: ${e.price}` : ` | Entry: ${e.price}`) : '';
             const musicInfo = e.music_type ? (userLanguage === 'es' ? ` | Música: ${e.music_type}` : ` | Music: ${e.music_type}`) : '';
             
+            // Use translated description if available, otherwise use original
+            const eventDescription = translatedDescriptions[e.id] || e.description?.substring(0, 150) || '';
+            
             return {
               type: "event",
               id: e.id,
               title: e.title,
-              description: `📍 ${locationInfo}${addressInfo}${venueInfo}. 📅 ${dateInfo} ${timeInfo}${priceInfo}${musicInfo}`,
+              description: `📍 ${locationInfo}${addressInfo}${venueInfo}. 📅 ${dateInfo} ${timeInfo}${priceInfo}${musicInfo}${eventDescription ? '. ' + eventDescription : ''}`,
               why_recommended: userLanguage === 'es' 
                 ? `Evento ${timeDescription} que te puede interesar`
                 : `Event ${timeDescription} you might enjoy`,
@@ -1329,7 +1387,7 @@ IMPORTANT - NO DATABASE MATCHES:
             recommendations,
             followup_message: userLanguage === 'es' ? '¿Algo más que estés buscando?' : 'Anything else you\'re looking for?'
           });
-          console.log("Built fallback recommendations from database to replace placeholder");
+          console.log("Built fallback recommendations with translated descriptions");
         } else {
           message = userLanguage === 'es'
             ? `No encontré eventos ${timeDescription}. ¿Querés que busque para otra fecha? 📅`
