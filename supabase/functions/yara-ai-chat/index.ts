@@ -1994,9 +1994,26 @@ ${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
       
       // Re-check if message was rebuilt above
       const updatedMessageLower = message.toLowerCase();
+      
+      // ENHANCED: Detect generic "I can help you find events" responses that don't actually help the user
+      // These are responses where Yara doesn't have data but gives a vague non-answer instead of triggering fallback
+      const isGenericNonHelpfulResponse = (
+        // Pattern: "I don't have specific recommendations for that" + "but I can help you find events"
+        (updatedMessageLower.includes("don't have specific") && updatedMessageLower.includes("can help you find")) ||
+        // Pattern: "It seems like you're looking for" + no actual recommendations
+        (updatedMessageLower.includes("it seems like you're looking for") && !message.includes('"recommendations"')) ||
+        // Pattern: "I can help you find events, parties, and nightlife" (generic offer without actual help)
+        (updatedMessageLower.includes("can help you find events") && !message.includes('"recommendations"') && updatedMessageLower.length < 500) ||
+        // Pattern: Response mentions exploring neighborhoods without specific recommendations
+        (updatedMessageLower.includes("you can explore areas like") && !message.includes('"recommendations"')) ||
+        // Pattern: "Buenos Aires offers various" without specific recommendations
+        (updatedMessageLower.includes("buenos aires offers") && !message.includes('"recommendations"'))
+      );
+      
       const shouldFallbackToLovableAI = 
         !toolCall && !message.includes('"recommendations"') && (
           message.startsWith("NO_DATABASE_MATCH:") || 
+          isGenericNonHelpfulResponse ||
           // Standard "no results" patterns
           updatedMessageLower.includes("no encontré eventos") || 
           updatedMessageLower.includes("couldn't find any events") ||
@@ -2020,6 +2037,10 @@ ${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
           (updatedMessageLower.includes("restaurantes") && updatedMessageLower.includes("no tengo")) ||
           (updatedMessageLower.includes("restaurants") && updatedMessageLower.includes("don't have"))
         );
+      
+      if (isGenericNonHelpfulResponse) {
+        console.log(`Detected generic non-helpful response for: "${lastUserMessage}". Triggering ChatGPT fallback.`);
+      }
       
       if (shouldFallbackToLovableAI) {
         const userQuery = lastUserMessage;
