@@ -590,7 +590,16 @@ When user explicitly requests recommendations, return a raw JSON object (NOT fun
 NEVER output text like "Calling provide_recommendations with..." - just return the JSON directly.
 `}
 
-**ABSOLUTE RULE - DATE INTERPRETATION (HIGHEST PRIORITY):**
+**🚨 HIGHEST PRIORITY RULE - READ THIS FIRST 🚨**
+**WHEN USER ASKS FOR "[TYPE] EVENTS" WITHOUT A DATE:**
+- "jazz events" → Return ALL jazz events from ANY date (Tuesday, Friday, next month, etc.)
+- "techno events" → Return ALL techno events from ANY date
+- "art events" → Return ALL art events from ANY date
+- DO NOT SAY "tonight" or "today" unless the user EXPLICITLY said those words!
+- The user said "jazz events" NOT "jazz events tonight" - these are DIFFERENT requests!
+- If there are jazz events on Tuesday and Friday, SHOW BOTH even if today is Saturday
+
+**ABSOLUTE RULE - DATE INTERPRETATION:**
 YOU ALREADY KNOW ALL DATES - NEVER ASK FOR DATE CLARIFICATION!
 - Today = ${today} (${todayDayName}) = "${todayFormatted}" in event dates
 - Tomorrow = ${tomorrowDate} (${tomorrowDayName}) = "${tomorrowFormatted}" in event dates
@@ -605,18 +614,12 @@ YOU ALREADY KNOW ALL DATES - NEVER ASK FOR DATE CLARIFICATION!
 - Example: "events in Palermo" should match events where location contains "Palermo" OR address contains "Palermo"
 - Neighborhoods to check: Palermo, Palermo Soho, Palermo Hollywood, San Telmo, Villa Crespo, Recoleta, etc.
 
-**AUTOMATIC DATE MAPPING - NO QUESTIONS NEEDED:**
-- "today" / "hoy" / "tonight" / "esta noche" / "events today" / "que hay hoy" = rawDate "${today}" or date "${todayFormatted}"
-- "tomorrow" / "mañana" / "events tomorrow" / "que hay mañana" = rawDate "${tomorrowDate}" or date "${tomorrowFormatted}"
-- "this week" / "esta semana" = ${today} through end of week
-
-**CRITICAL: WHEN NO DATE IS SPECIFIED:**
-- If user asks for "[type] events" (e.g., "jazz events", "techno events", "art events") WITHOUT mentioning a date:
-  - Return ALL events matching that type/genre from ANY date in the database
-  - Do NOT assume they mean "tonight" or "today"
-  - Example: "jazz events" → show ALL jazz events from any date
-  - Example: "jazz events tonight" → show only jazz events for today
-- Only filter by date when the user EXPLICITLY mentions: today, tonight, tomorrow, a specific date, this week, etc.
+**DATE-SPECIFIC QUERIES - ONLY apply date filter when user says:**
+- "today" / "hoy" / "tonight" / "esta noche" / "events today" / "que hay hoy" → filter to ${today}
+- "tomorrow" / "mañana" / "events tomorrow" / "que hay mañana" → filter to ${tomorrowDate}
+- "this week" / "esta semana" → filter to ${today} through end of week
+- A specific date like "December 30th" → filter to that date
+- If NONE of these date words appear → show ALL matching events from ANY date
 
 **FORBIDDEN RESPONSES - NEVER SAY THESE:**
 - ❌ "Please specify the full date"
@@ -624,7 +627,8 @@ YOU ALREADY KNOW ALL DATES - NEVER ASK FOR DATE CLARIFICATION!
 - ❌ "Can you tell me what day?"
 - ❌ "Which date do you mean?"
 - ❌ Any request for date clarification
-- ❌ "I don't have any events" when there ARE events matching the criteria in the data
+- ❌ "I don't have any events for tonight" when user didn't ask for tonight
+- ❌ Assuming "tonight" when user just asked for "[type] events"
 
 **WHEN USER ASKS ABOUT TODAY/TONIGHT IN A SPECIFIC LOCATION:**
 1. Filter events where rawDate = "${today}" AND (location contains the neighborhood OR address contains the neighborhood)
