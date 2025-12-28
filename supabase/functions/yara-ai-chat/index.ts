@@ -241,12 +241,19 @@ serve(async (req) => {
     console.log(`Also fetched ${businesses.length} businesses, ${coupons.length} coupons, ${topLists.length} top lists`);
 
     // Build context for AI - dates are already transformed above
+    // Also format today's date for matching
+    const todayFormatted = formatDate(today); // e.g., "December 28th"
+    const tomorrowFormatted = formatDate(tomorrowDate); // e.g., "December 29th"
+    
+    console.log(`Today formatted: ${todayFormatted}, Tomorrow formatted: ${tomorrowFormatted}`);
+    
     const contextData = {
       events: ageFilteredEvents.map((e) => ({
         id: e.id,
         title: e.title,
         description: e.description,
         date: formatDate(e.date), // Format date to "Month DDth" (e.g., "November 10th")
+        rawDate: e.date, // Keep raw YYYY-MM-DD format for exact matching
         originalDate: e.originalDate, // Keep original for AI to see (e.g., "every monday")
         time: e.time,
         location: e.location,
@@ -585,12 +592,22 @@ NEVER output text like "Calling provide_recommendations with..." - just return t
 
 **ABSOLUTE RULE - DATE INTERPRETATION (HIGHEST PRIORITY):**
 YOU ALREADY KNOW ALL DATES - NEVER ASK FOR DATE CLARIFICATION!
-- Today = ${today} (${todayDayName})
-- Tomorrow = ${tomorrowDate} (${tomorrowDayName})
+- Today = ${today} (${todayDayName}) = "${todayFormatted}" in event dates
+- Tomorrow = ${tomorrowDate} (${tomorrowDayName}) = "${tomorrowFormatted}" in event dates
+
+**CRITICAL: HOW TO FIND EVENTS FOR TODAY:**
+- Events in the data have two date fields: "date" (formatted like "${todayFormatted}") and "rawDate" (like "${today}")
+- To find today's events, look for events where rawDate = "${today}" OR date = "${todayFormatted}"
+- To find tomorrow's events, look for events where rawDate = "${tomorrowDate}" OR date = "${tomorrowFormatted}"
+
+**LOCATION MATCHING - CRITICAL:**
+- When user asks for events "in Palermo" or "in [neighborhood]", match against BOTH the "location" AND "address" fields
+- Example: "events in Palermo" should match events where location contains "Palermo" OR address contains "Palermo"
+- Neighborhoods to check: Palermo, Palermo Soho, Palermo Hollywood, San Telmo, Villa Crespo, Recoleta, etc.
 
 **AUTOMATIC DATE MAPPING - NO QUESTIONS NEEDED:**
-- "today" / "hoy" / "tonight" / "esta noche" / "events today" / "que hay hoy" = ${today}
-- "tomorrow" / "mañana" / "events tomorrow" / "que hay mañana" = ${tomorrowDate}
+- "today" / "hoy" / "tonight" / "esta noche" / "events today" / "que hay hoy" = rawDate "${today}" or date "${todayFormatted}"
+- "tomorrow" / "mañana" / "events tomorrow" / "que hay mañana" = rawDate "${tomorrowDate}" or date "${tomorrowFormatted}"
 - "this week" / "esta semana" = ${today} through end of week
 
 **FORBIDDEN RESPONSES - NEVER SAY THESE:**
@@ -599,11 +616,13 @@ YOU ALREADY KNOW ALL DATES - NEVER ASK FOR DATE CLARIFICATION!
 - ❌ "Can you tell me what day?"
 - ❌ "Which date do you mean?"
 - ❌ Any request for date clarification
+- ❌ "I don't have any events" when there ARE events matching the criteria in the data
 
-**WHEN USER ASKS ABOUT TODAY/TONIGHT:**
-1. Immediately filter events for date = ${today}
-2. If no events match, say "I don't have any events for today in the database" - DO NOT ask for date clarification
-3. NEVER substitute tomorrow's events when user asks for today
+**WHEN USER ASKS ABOUT TODAY/TONIGHT IN A SPECIFIC LOCATION:**
+1. Filter events where rawDate = "${today}" AND (location contains the neighborhood OR address contains the neighborhood)
+2. If no events match BOTH criteria, say "I don't have any events for today in [location] in the database"
+3. NEVER say "no events" when there ARE matching events in the data
+4. ALWAYS check BOTH location and address fields when filtering by neighborhood
 
 ${userContext}
 
