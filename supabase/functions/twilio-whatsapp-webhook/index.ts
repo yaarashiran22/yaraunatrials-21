@@ -119,20 +119,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check for recent conversation (last 30 minutes for better context retention)
-    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    // Check for recent conversation (last 6 hours for context retention)
+    // This balances continuity with relevance - messages older than 6 hours may be outdated
+    const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
     const { data: recentHistory } = await supabase
       .from("whatsapp_conversations")
       .select("role, content, created_at")
       .eq("phone_number", from)
-      .gte("created_at", thirtyMinutesAgo)
+      .gte("created_at", sixHoursAgo)
       .order("created_at", { ascending: true })
-      .limit(30);
+      .limit(50); // Increased limit for longer context window
 
     const conversationHistory = recentHistory || [];
     const isNewConversation = conversationHistory.length === 0;
     console.log(
-      `Found ${conversationHistory.length} messages in last 30 minutes for ${from}. Is new conversation: ${isNewConversation}`,
+      `Found ${conversationHistory.length} messages in last 6 hours for ${from}. Is new conversation: ${isNewConversation}`,
     );
 
     // Check if message is a greeting OR a conversation starter
@@ -609,18 +610,10 @@ Deno.serve(async (req) => {
     }
 
     // Build conversation history for AI
-    // CRITICAL FIX: Filter out "[X recommendations sent]" placeholders that were stored
-    // to prevent the AI from seeing and repeating them
-    const messages = conversationHistory
-      .filter((msg) => {
-        // Filter out messages that are just placeholders
-        const content = msg.content || '';
-        return !content.includes('[') || !content.includes('recommendations sent]');
-      })
-      .map((msg) => ({
-        role: msg.role as "user" | "assistant",
-        content: msg.content,
-      }));
+    const messages = conversationHistory.map((msg) => ({
+      role: msg.role as "user" | "assistant",
+      content: msg.content,
+    }));
     messages.push({ role: "user", content: body });
 
     // Call Yara AI chat function with user profile context (ONE call only)
@@ -720,6 +713,27 @@ Deno.serve(async (req) => {
     // Try to parse as JSON - extract JSON from text if needed
     let cleanedMessage = assistantMessage.trim();
     let prefixText = ""; // Text before JSON, if any
+
+    // CRITICAL FIX: Handle double-stringified JSON (AI sometimes wraps JSON in quotes with escaped quotes)
+    // Pattern: "{ \"key\": \"value\" }" - the entire JSON is wrapped in a string
+    if (cleanedMessage.startsWith('"') && cleanedMessage.includes('\\"')) {
+      console.log("Detected double-stringified JSON (wrapped in quotes with escaped quotes)");
+      try {
+        // Try to parse the outer string first
+        const unescapedMessage = JSON.parse(cleanedMessage);
+        if (typeof unescapedMessage === 'string') {
+          cleanedMessage = unescapedMessage.trim();
+          console.log("Successfully unescaped double-stringified JSON:", cleanedMessage.substring(0, 200) + "...");
+        }
+      } catch (e) {
+        console.log("Failed to unescape double-stringified JSON, trying manual unescape");
+        // Manual fallback: remove outer quotes and unescape inner quotes
+        if (cleanedMessage.startsWith('"') && cleanedMessage.endsWith('"')) {
+          cleanedMessage = cleanedMessage.slice(1, -1).replace(/\\"/g, '"').replace(/\\n/g, '\n').trim();
+          console.log("Manually unescaped JSON:", cleanedMessage.substring(0, 200) + "...");
+        }
+      }
+    }
 
     // CRITICAL FIX: Strip markdown code block wrappers (```json ... ```) before parsing
     // This prevents raw JSON from being sent to users when AI wraps response in code blocks
