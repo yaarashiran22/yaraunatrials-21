@@ -1176,9 +1176,9 @@ IMPORTANT - NO DATABASE MATCHES:
     // NOTE: GPT-5-mini uses reasoning tokens from max_completion_tokens, so we need higher limit
     // to leave room for actual output after reasoning (4000 wasn't enough - all went to reasoning)
     const requestBody: any = {
-      model: "google/gemini-2.5-flash",
+      model: "openai/gpt-5-nano",
       messages: [{ role: "system", content: systemPrompt }, ...enrichedMessages],
-      max_completion_tokens: 8000,
+      max_completion_tokens: 4000,
     };
     if (isLikelyRecommendation && !stream) {
       // Use structured output with tool calling to guarantee all fields including image_url
