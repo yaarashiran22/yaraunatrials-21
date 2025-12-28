@@ -30,78 +30,51 @@ serve(async (req) => {
       throw new Error('Missing Twilio credentials');
     }
 
-    // Get current time
+    // Get current time in Buenos Aires (UTC-3)
     const now = new Date();
+    const buenosAiresOffset = -3 * 60; // UTC-3 in minutes
+    const buenosAiresTime = new Date(now.getTime() + (buenosAiresOffset + now.getTimezoneOffset()) * 60 * 1000);
     
-    // Calculate 24 hours ago (WhatsApp messaging window limit)
-    const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+    console.log(`Current Buenos Aires time: ${buenosAiresTime.toISOString()}`);
     
-    console.log(`Looking for first-time users who messaged within the last 24 hours (after ${twentyFourHoursAgo.toISOString()})`);
+    // Calculate "yesterday" in Buenos Aires time
+    // We want users who first messaged BEFORE today (Buenos Aires time) and haven't received follow-up
+    const todayStartBA = new Date(buenosAiresTime);
+    todayStartBA.setHours(0, 0, 0, 0);
+    
+    // Convert back to UTC for database query
+    const todayStartUTC = new Date(todayStartBA.getTime() - (buenosAiresOffset + now.getTimezoneOffset()) * 60 * 1000);
+    
+    console.log(`Looking for users who first messaged before ${todayStartUTC.toISOString()} (midnight BA time)`);
 
-    // Step 1: Find users who:
-    // 1. Were created within the last 24 hours (WhatsApp messaging window)
+    // Find users who:
+    // 1. Were created before today (Buenos Aires time) - meaning they messaged yesterday or earlier
     // 2. Haven't received follow-up yet
-    const { data: recentUsers, error: fetchError } = await supabase
+    // 3. Were created within the last 7 days (don't send to very old users who never got follow-up)
+    const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+
+    const { data: usersNeedingFollowup, error: fetchError } = await supabase
       .from('whatsapp_users')
       .select('id, phone_number, preferred_language, name, created_at')
-      .gte('created_at', twentyFourHoursAgo.toISOString())
+      .lt('created_at', todayStartUTC.toISOString())
+      .gte('created_at', sevenDaysAgo.toISOString())
       .is('first_day_followup_sent_at', null)
-      .limit(100);
+      .limit(50); // Process in batches
 
     if (fetchError) {
       console.error("Error fetching users:", fetchError);
       throw fetchError;
     }
 
-    if (!recentUsers || recentUsers.length === 0) {
-      console.log("No recent users found within 24-hour window");
+    if (!usersNeedingFollowup || usersNeedingFollowup.length === 0) {
+      console.log("No users need follow-up at this time");
       return new Response(
         JSON.stringify({ success: true, message: "No users need follow-up", count: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Found ${recentUsers.length} users within 24-hour window, checking if they're first-time users...`);
-
-    // Step 2: Filter to only TRUE first-time users (only messaged on 1 day)
-    const usersNeedingFollowup = [];
-    
-    for (const user of recentUsers) {
-      // Check how many distinct days this user has messaged
-      const { data: dayCount, error: dayError } = await supabase
-        .from('whatsapp_conversations')
-        .select('created_at')
-        .eq('phone_number', user.phone_number)
-        .eq('role', 'user');
-      
-      if (dayError) {
-        console.error(`Error checking days for ${user.phone_number}:`, dayError);
-        continue;
-      }
-
-      // Count distinct days
-      const uniqueDays = new Set(
-        dayCount?.map(msg => new Date(msg.created_at).toISOString().split('T')[0]) || []
-      );
-
-      if (uniqueDays.size === 1) {
-        // True first-time user - only messaged on 1 day
-        usersNeedingFollowup.push(user);
-        console.log(`✓ ${user.phone_number} is a first-time user (1 day)`);
-      } else {
-        console.log(`✗ ${user.phone_number} already returned (${uniqueDays.size} days) - skipping`);
-      }
-    }
-
-    if (usersNeedingFollowup.length === 0) {
-      console.log("No first-time users need follow-up at this time");
-      return new Response(
-        JSON.stringify({ success: true, message: "No first-time users need follow-up", count: 0 }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log(`Found ${usersNeedingFollowup.length} first-time users needing follow-up`);
+    console.log(`Found ${usersNeedingFollowup.length} users needing 5 PM follow-up`);
 
     const results = [];
     

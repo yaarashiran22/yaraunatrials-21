@@ -41,6 +41,3 @@ verify_jwt = false
 
 [functions.send-24h-followup]
 verify_jwt = false
-
-[functions.send-manual-whatsapp]
-verify_jwt = false

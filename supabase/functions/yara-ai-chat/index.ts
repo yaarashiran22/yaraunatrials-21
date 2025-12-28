@@ -27,9 +27,6 @@ serve(async (req) => {
 
     // Fetch user's interaction history for behavioral learning
     let interactionHistory: any[] = [];
-    let isFirstTimeUser = true; // Default to first-time user
-    let conversationMessageCount = 0;
-    
     if (phoneNumber) {
       const { data: interactions } = await supabase
         .from("whatsapp_user_interactions")
@@ -39,21 +36,6 @@ serve(async (req) => {
         .limit(50);
 
       interactionHistory = interactions || [];
-      
-      // CRITICAL: Check conversation history to determine if returning user
-      // This is a PROGRAMMATIC check - don't rely on AI to figure this out
-      const { count: messageCount } = await supabase
-        .from("whatsapp_conversations")
-        .select("id", { count: 'exact', head: true })
-        .eq("phone_number", phoneNumber)
-        .eq("role", "user");
-      
-      conversationMessageCount = messageCount || 0;
-      // User is NOT first-time if they have more than 1 message in history
-      // (the current message they're sending counts as their first if truly new)
-      isFirstTimeUser = conversationMessageCount <= 1;
-      
-      console.log(`User ${phoneNumber}: ${conversationMessageCount} prior messages, isFirstTimeUser: ${isFirstTimeUser}`);
     }
 
     // Get current date and day of week for filtering - USE BUENOS AIRES TIMEZONE
@@ -117,17 +99,15 @@ serve(async (req) => {
       }
     };
 
-    // Fetch events with database-level date filtering for performance
-    // Only fetch events where date >= today OR date contains 'every' (recurring)
+    // Fetch ALL events first, then filter in code
     const [eventsResult, itemsResult, couponsResult, topListsResult] = await Promise.all([
       supabase
         .from("events")
         .select(
           "id, title, description, date, time, location, address, venue_name, price, mood, music_type, venue_size, external_link, ticket_link, image_url, target_audience",
         )
-        .or(`date.gte.${today},date.ilike.%every%`)
         .order("date", { ascending: true })
-        .limit(100),
+        .limit(200), // Fetch more to ensure we get recurring events
       supabase
         .from("items")
         .select("id, title, description, category, location, price, image_url")
@@ -212,10 +192,13 @@ serve(async (req) => {
     // NOW filter events by transformed dates - only include future events
     const filteredByDateEvents = eventsWithTransformedDates.filter(event => {
       const eventDate = event.date?.toLowerCase() || '';
-      return eventDate >= today;
+      const isInFuture = eventDate >= today;
+      
+      console.log(`Event "${event.title}" (${event.originalDate} → ${event.date}): ${isInFuture ? 'FUTURE/TODAY' : 'PAST'}`);
+      return isInFuture;
     });
 
-    console.log(`Filtered ${allEvents.length} events to ${filteredByDateEvents.length} future events`);
+    console.log(`Filtered events from ${allEvents.length} to ${filteredByDateEvents.length} based on transformed date matching`);
 
     // Helper function to check if user's age matches event's target_audience
     const isAgeAppropriate = (targetAudience: string | null, userAge: number | null): boolean => {
@@ -241,19 +224,12 @@ serve(async (req) => {
     console.log(`Also fetched ${businesses.length} businesses, ${coupons.length} coupons, ${topLists.length} top lists`);
 
     // Build context for AI - dates are already transformed above
-    // Also format today's date for matching
-    const todayFormatted = formatDate(today); // e.g., "December 28th"
-    const tomorrowFormatted = formatDate(tomorrowDate); // e.g., "December 29th"
-    
-    console.log(`Today formatted: ${todayFormatted}, Tomorrow formatted: ${tomorrowFormatted}`);
-    
     const contextData = {
       events: ageFilteredEvents.map((e) => ({
         id: e.id,
         title: e.title,
         description: e.description,
         date: formatDate(e.date), // Format date to "Month DDth" (e.g., "November 10th")
-        rawDate: e.date, // Keep raw YYYY-MM-DD format for exact matching
         originalDate: e.originalDate, // Keep original for AI to see (e.g., "every monday")
         time: e.time,
         location: e.location,
@@ -558,17 +534,9 @@ ${languageInstruction}
 ${stream ? `
 YOU ARE IN STREAMING MODE - NEVER USE JSON FORMAT!
 
-🚨🚨🚨 ABSOLUTELY FORBIDDEN - NEVER DO THIS 🚨🚨🚨
-- NEVER write placeholders like "[X recommendations sent]" or "[10 events listed]"
-- NEVER summarize with "[recommendations here]" or similar
-- NEVER say "I'm sending you X events" without actually listing them
-- You MUST write out the ACTUAL event details - not a placeholder or summary
-- If you don't list the actual events with names, dates, and details, you have FAILED
+When recommending events/venues, format them as clean readable text with emojis:
 
-When recommending events/venues, format them as clean readable text with emojis.
-YOU MUST INCLUDE THE ACTUAL EVENT NAMES, DATES, LOCATIONS AND DETAILS:
-
-Example (you MUST follow this format with real event data):
+Example:
 "Here are some sick events for you! 🎉
 
 🎵 **Live Jazz at Thelonious**
@@ -584,53 +552,20 @@ Intimate jazz vibes in a cozy basement bar. Perfect for music lovers!
 ..."
 
 Use natural language, emojis for visual breaks, and keep it conversational. NO JSON!
-EVERY recommendation MUST have: name, date, time, location, and a brief description.
 ` : `
 When user explicitly requests recommendations, return a raw JSON object (NOT function call syntax - just pure JSON starting with { and ending with }).
 NEVER output text like "Calling provide_recommendations with..." - just return the JSON directly.
 `}
 
-**🚨🚨🚨 ABSOLUTE HIGHEST PRIORITY - STOP AND READ 🚨🚨🚨**
-
-**THE #1 MOST IMPORTANT RULE IN THIS ENTIRE PROMPT:**
-When user asks for "[genre] events" WITHOUT saying "today", "tonight", "hoy", "esta noche":
-→ DO NOT ADD "tonight" OR "today" TO YOUR RESPONSE
-→ SHOW ALL EVENTS OF THAT GENRE FROM ANY DATE
-
-**EXPLICIT EXAMPLES - MEMORIZE THESE:**
-- User: "salsa events" → Show ALL salsa events (Thursday, next week, any date)
-  - ❌ WRONG: "I don't have salsa events for tonight"
-  - ✅ CORRECT: "Here's a salsa event on Thursday: Latin Lovers Salsa..."
-- User: "jazz events" → Show ALL jazz events from ANY date
-  - ❌ WRONG: "No jazz events today in the database"
-  - ✅ CORRECT: "Here are the jazz events I found: [list all jazz events regardless of date]"
-- User: "techno parties" → Show ALL techno events from ANY date
-- User: "salsa events tonight" → NOW you filter to today only
-
-**THE WORD "tonight" / "today" / "hoy" / "esta noche" MUST APPEAR IN USER'S MESSAGE TO FILTER BY DATE**
-If user just says "salsa events" - the word "tonight" is NOT there - so DO NOT filter by tonight!
-
-**ABSOLUTE RULE - DATE INTERPRETATION:**
+**ABSOLUTE RULE - DATE INTERPRETATION (HIGHEST PRIORITY):**
 YOU ALREADY KNOW ALL DATES - NEVER ASK FOR DATE CLARIFICATION!
-- Today = ${today} (${todayDayName}) = "${todayFormatted}" in event dates
-- Tomorrow = ${tomorrowDate} (${tomorrowDayName}) = "${tomorrowFormatted}" in event dates
+- Today = ${today} (${todayDayName})
+- Tomorrow = ${tomorrowDate} (${tomorrowDayName})
 
-**CRITICAL: HOW TO FIND EVENTS FOR TODAY:**
-- Events in the data have two date fields: "date" (formatted like "${todayFormatted}") and "rawDate" (like "${today}")
-- To find today's events, look for events where rawDate = "${today}" OR date = "${todayFormatted}"
-- To find tomorrow's events, look for events where rawDate = "${tomorrowDate}" OR date = "${tomorrowFormatted}"
-
-**LOCATION MATCHING - CRITICAL:**
-- When user asks for events "in Palermo" or "in [neighborhood]", match against BOTH the "location" AND "address" fields
-- Example: "events in Palermo" should match events where location contains "Palermo" OR address contains "Palermo"
-- Neighborhoods to check: Palermo, Palermo Soho, Palermo Hollywood, San Telmo, Villa Crespo, Recoleta, etc.
-
-**DATE-SPECIFIC QUERIES - ONLY apply date filter when user says:**
-- "today" / "hoy" / "tonight" / "esta noche" / "events today" / "que hay hoy" → filter to ${today}
-- "tomorrow" / "mañana" / "events tomorrow" / "que hay mañana" → filter to ${tomorrowDate}
-- "this week" / "esta semana" → filter to ${today} through end of week
-- A specific date like "December 30th" → filter to that date
-- If NONE of these date words appear → show ALL matching events from ANY date
+**AUTOMATIC DATE MAPPING - NO QUESTIONS NEEDED:**
+- "today" / "hoy" / "tonight" / "esta noche" / "events today" / "que hay hoy" = ${today}
+- "tomorrow" / "mañana" / "events tomorrow" / "que hay mañana" = ${tomorrowDate}
+- "this week" / "esta semana" = ${today} through end of week
 
 **FORBIDDEN RESPONSES - NEVER SAY THESE:**
 - ❌ "Please specify the full date"
@@ -638,15 +573,11 @@ YOU ALREADY KNOW ALL DATES - NEVER ASK FOR DATE CLARIFICATION!
 - ❌ "Can you tell me what day?"
 - ❌ "Which date do you mean?"
 - ❌ Any request for date clarification
-- ❌ "I don't have any [genre] events for tonight" when user didn't say tonight
-- ❌ "I don't have any [genre] events for today" when user didn't say today
-- ❌ Adding "tonight" or "today" to your response when user didn't ask for a specific date
 
-**WHEN USER ASKS ABOUT TODAY/TONIGHT IN A SPECIFIC LOCATION:**
-1. Filter events where rawDate = "${today}" AND (location contains the neighborhood OR address contains the neighborhood)
-2. If no events match BOTH criteria, say "I don't have any events for today in [location] in the database"
-3. NEVER say "no events" when there ARE matching events in the data
-4. ALWAYS check BOTH location and address fields when filtering by neighborhood
+**WHEN USER ASKS ABOUT TODAY/TONIGHT:**
+1. Immediately filter events for date = ${today}
+2. If no events match, say "I don't have any events for today in the database" - DO NOT ask for date clarification
+3. NEVER substitute tomorrow's events when user asks for today
 
 ${userContext}
 
@@ -710,37 +641,21 @@ Respond with PLAIN TEXT ONLY. Be warm and conversational.
 - "tonight", "hoy", "today", "mañana", "tomorrow", "esta noche"
 - "what's happening", "que hay", "qué hay", "what's going on", "que hacer", "qué hacer", "para hacer"
 - "que hay para hacer", "qué hay para hacer", "what to do", "what's there to do"
-- "tell me everything", "show me everything", "everything", "contame todo", "todo"
-- "what do you have", "que tenes", "qué tenés", "show me", "muéstrame"
 - Even if these are the ONLY word in the message (e.g., user just says "Fiestas"), treat it as an event request and provide recommendations
 - **DO NOT** respond with a greeting when user asks for events, even if message is very short
 - **DO NOT** ask "what are you looking for?" when user asks "que hay para hacer hoy" - they want EVENT recommendations!
-- **"Tell me everything" = user wants to see all events/options** - DO NOT treat as "who are you?"
 
-🚨 **CRITICAL: REQUESTS WITH DATE WORDS = FILTER BY DATE:**
-- "que hay para hacer hoy" / "what's there to do today" → Give today's events immediately (contains "hoy"/"today")
-- "que hay hoy" / "what's on today" → Give today's events immediately (contains "hoy"/"today")
-- "algo para esta noche" / "something for tonight" → Give tonight's events (contains "esta noche"/"tonight")
+🚨 **CRITICAL: VAGUE EVENT REQUESTS = GIVE RECOMMENDATIONS DIRECTLY:**
+- "que hay para hacer hoy" / "what's there to do today" → Give today's events immediately, DO NOT ask clarifying questions
+- "que hay hoy" / "what's on today" → Give today's events immediately
+- "algo para esta noche" / "something for tonight" → Give tonight's events immediately
+- These are NOT vague - they are asking for TODAY's events. Just show a variety of what's available!
 
-🚨 **CRITICAL: REQUESTS WITHOUT DATE WORDS = SHOW ALL DATES:**
-- "salsa events" / "jazz events" / "techno parties" → Show ALL events of that type from ANY date
-- These do NOT contain date words, so do NOT filter by tonight/today!
-
-🚨 **CRITICAL - USER STATUS (PROGRAMMATICALLY VERIFIED):** 🚨
-**This user is: ${isFirstTimeUser ? 'FIRST-TIME USER (0-1 prior messages)' : 'RETURNING USER (' + conversationMessageCount + ' prior messages)'}**
-
-- **IF FIRST-TIME USER** AND message is a pure greeting ("hi", "hey", "hola", etc.) with NO event keywords:
+- **FOR FIRST-TIME GREETINGS** ("hi", "hey", "what's up", "hola", "holap", etc.) when user has NO prior messages AND message does NOT contain event keywords above: Use this welcome message:
   - English: "Hey there! I'm Yara, the AI assistant for finding the top events in Buenos Aires. Tell me- what are you looking for? :)"
   - Spanish: "¡Hola! Soy Yara, tu asistente de IA para encontrar los mejores eventos en Buenos Aires. Contame, ¿qué estás buscando? :)"
   - DO NOT provide recommendations, tourism info, or event suggestions unless they ask.
-
-- **IF RETURNING USER** AND message is a greeting:
-  - Give a SHORT, casual greeting - they already know who you are!
-  - English: "Hey! 👋 What are you looking for today?"
-  - Spanish: "¡Hola! 👋 ¿Qué estás buscando hoy?"
-  - DO NOT give the full introduction again - they've already received it before
-  - **NEVER** send the welcome message to returning users
-
+  - Bad: "Hey! Buenos Aires has amazing places like La Boca..." (DON'T DO THIS)
 - **FOR "WHO IS THIS?" / "WHAT IS THIS?" QUESTIONS** ("who is this", "what is this", "who are you", "qué es esto", "quién sos", etc.): 
   - These users are CONFUSED about who texted them - give a FULLER explanation:
   - English: "I'm Yara! 👋 I'm an AI assistant that helps people discover the best events, parties, bars, and things to do in Buenos Aires. You can ask me things like 'what's happening tonight?' or 'recommend me bars in Palermo'. How can I help you?"
@@ -755,28 +670,13 @@ Respond with PLAIN TEXT ONLY. Be warm and conversational.
 
 **DO NOT ASK FOR AGE OR NAME** - Just give recommendations directly without collecting personal info. If a user voluntarily shares their age or name, you can use it, but NEVER ask for it.
 
-FALLBACK WHEN DATABASE HAS NO MATCHES:
-🚨🚨🚨 **CRITICAL: NO HALLUCINATIONS ALLOWED** 🚨🚨🚨
-- **NEVER make up venue names, addresses, or places that you're not 100% certain exist**
-- **NEVER invent restaurants, cafés, bars, or venues** - this creates a terrible user experience when they search for places that don't exist
-- **PRIORITY RULE**: ALWAYS prefer database results. Only use fallback when database is truly empty for the request
-
-**WHEN DATABASE HAS NO MATCHES, DO THIS:**
-1. **Be honest**: Tell the user you don't have that specific information in your curated database
-2. **Offer alternatives**: Suggest related categories you DO have data for
-3. **Only mention ICONIC, WELL-KNOWN places** that you are 100% certain exist (major landmarks, famous venues that have been around for decades)
-4. **When uncertain, DON'T recommend** - it's better to say "I don't have that info" than to make something up
-
-**SAFE FALLBACK RESPONSES:**
-- "I don't have specific [type] recommendations in my curated database right now. Would you like me to show you some events or bars I do have?"
-- "My database doesn't have [specific request], but I can help with events, parties, and nightlife. Want to see what's happening tonight?"
-- For general Buenos Aires knowledge (tourist attractions), you CAN mention ICONIC places like: La Boca, San Telmo market, Recoleta Cemetery, Teatro Colón, Obelisco, Puerto Madero - these are major landmarks that definitely exist
-
-**NEVER DO THIS:**
-- ❌ Don't invent restaurant names like "Ninina" or "Vico" unless they're in the database
-- ❌ Don't make up addresses like "Costa Rica 4563"
-- ❌ Don't recommend cafés or restaurants you're not certain about
-- ❌ Don't say "Check out [made-up place] in Palermo" - if it's not in the database, don't recommend it
+FALLBACK TO AI RECOMMENDATIONS:
+- **WHEN DATABASE HAS NO SUITABLE OPTIONS**: If NO events/businesses/coupons match the user's request, you CAN provide general AI-generated recommendations based on your knowledge of Buenos Aires
+- **PRIORITY RULE**: ALWAYS prefer database results when available. Only generate AI recommendations when database is truly empty or unsuitable
+- **CLEAR LABELING**: When providing AI-generated recommendations, clearly indicate they are general suggestions (e.g., "While I don't have specific events in our database, here are some great options typically available in Buenos Aires:")
+- **BE SPECIFIC**: Provide actual venue names, neighborhoods, and types of experiences available in Buenos Aires based on your knowledge
+- **FORMAT**: AI-generated recommendations should still be conversational text (NOT JSON format) since they don't have database IDs
+- Example: "I couldn't find workshops in our current database, but Buenos Aires has amazing options! Check out El Club de la Milanesa in Palermo for cooking workshops, or Paseo La Plaza for theater classes. Want me to keep an eye out for when specific events get added to our database?"
 
 PROGRESSIVE PROFILING (Build profile gradually):
 - **Check if the user's message includes profile info in parentheses** - if it does, you already know that information
@@ -946,7 +846,7 @@ When user asks for MORE options after receiving recommendations, this IS a recom
 - If there are no more matching events, respond conversationally: "Those were all the [type] I found for [timeframe]! Want me to search for something different?"
 - This SHOULD trigger JSON response with NEW recommendations (not the same ones)
 
-
+**IMPORTANT**: ONLY return JSON if age is already collected. If age is missing, respond with conversational text asking for age first.
 ` : ''}
 
 
@@ -1041,27 +941,6 @@ REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
 RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
 **CRITICAL: BE INCLUSIVE, NOT SELECTIVE** - Show ALL events that match the user's request, not just the ones that perfectly match their profile.
 
-🎵🎵🎵 **MUSIC GENRE FILTERING - HIGHEST PRIORITY** 🎵🎵🎵
-**When user asks for a SPECIFIC MUSIC GENRE, you MUST filter by the music_type field:**
-- User asks for "jazz events" → ONLY show events where music_type contains "jazz" OR title/description contains "jazz"
-- User asks for "salsa events" / "salsa parties" → ONLY show events where music_type contains "salsa" OR title/description contains "salsa"
-- User asks for "techno" → ONLY show events where music_type contains "techno" OR title/description contains "techno"
-- User asks for "latin music" → ONLY show events where music_type contains "latin" or "salsa" or "cumbia" or "reggaeton"
-- **NEVER substitute unrelated events** - if user asks for jazz and no jazz events exist, say "I don't have any jazz events right now" - DO NOT show random parties instead
-- **music_type field values include**: Jazz, Salsa, Techno, House, Electronic, Rock, Pop, Indie, Latin, Hip-Hop, Reggaeton, Cumbia, Tango, Folk, Classical, etc.
-
-🗓️🗓️🗓️ **RECURRING EVENTS - CRITICAL** 🗓️🗓️🗓️
-**Events with "originalDate" containing "every [day]" are RECURRING and happen EVERY WEEK on that day:**
-- Event with originalDate = "every thursday" happens EVERY Thursday (including this week and next week)
-- When user asks for "events this weekend" → Include recurring events that happen on Saturday or Sunday
-- When user asks for "events on thursday" or "thursday events" → Include ALL events with originalDate = "every thursday"
-- When user asks for "salsa this weekend" → Check if any recurring salsa events happen on Sat/Sun. Also check if "every thursday" events match the upcoming Thursday if within the weekend range.
-- **EXAMPLE**: "Latin Lovers Salsa" with originalDate = "every thursday" should be recommended when:
-  - User asks for "salsa events" (any time)
-  - User asks for "events on thursday"
-  - User asks for "latin events"
-  - The "date" field already shows the NEXT occurrence date, so use that for date filtering
-
 1. **CRITICAL: When user asks for "events today" or "events tonight"** - Show ALL events happening on that date, not just personalized picks. Include chill events, house music, art events, parties, etc. - SHOW EVERYTHING for that date.
 2. **CRITICAL: Search BOTH title AND description equally** - if user asks for "party", check if "party" appears in EITHER the title OR the description.
 3. **Description matching is just as important as title matching** - don't prioritize title over description, treat them equally
@@ -1079,28 +958,7 @@ RECOMMENDATION MATCHING RULES - FOLLOW STRICTLY:
     - party = fiesta = celebration = gathering
     - bar = pub = cerveceria = cocktail bar
     - shows = concerts = performances = gigs = live music
-    - **ARTSY/CREATIVE EVENTS**: artsy = artistic = art = creative = cultural = gallery = exhibition = expo = feria = museum
-      - When user asks for "artsy events" → Filter by mood field containing "creative" OR title/description containing: art, gallery, exhibition, expo, feria, museo, museum, creative, artistic, cultural, workshop, taller
-      - Events with mood="creative" or mood="creative,chill" ARE artsy events
-      - Ferias, exhibitions, galleries, museums, art workshops are ALL artsy events
 11. **CRITICAL: User interests are for CONTEXT ONLY, not for filtering** - DO NOT use interests to exclude events. Always show all age-appropriate events that match the requested type/date.
-12. **MUSIC GENRE synonyms - CRITICAL FOR SUBSTRING MATCHING**: 
-    **IMPORTANT**: music_type field often contains COMPOUND genres like "Progressive House", "Afrohouse/Dam", "Indie Rock". You MUST do SUBSTRING/PARTIAL matching, not exact matching!
-    **CRITICAL: ALSO SEARCH THE DESCRIPTION FIELD!** Many events have music_type=null but mention the genre in their description. You MUST search BOTH:
-    - music_type field (if not null)
-    - description field (ALWAYS check this too!)
-    - title field (check for genre keywords)
-    
-    - When user asks for "house music" → Match ANY music_type OR description CONTAINING "house" (e.g., "Progressive House", "Afrohouse", "Deep House", "Tech House")
-    - When user asks for "rock" → Match ANY music_type OR description CONTAINING "rock" (e.g., "Indie Rock", "Punk/Rock", "Rock, Soul", "techno rock")
-    - salsa = latin = cumbia = bachata = merengue (Latin dance music)
-      **IMPORTANT FOR SALSA**: When user asks for "salsa events", include ALL events where music_type OR description contains "salsa" OR "latin". Also include recurring events like "every Thursday" events. If you find even 1 salsa event, present it confidently - don't say "I don't have many", say "Here's a great salsa event for you!"
-    - techno = electronic = house = EDM = electrónica (match ANY of these in music_type OR description)
-    - jazz = blues = soul (jazz-related)
-    - rock = indie rock = alternative = punk
-    **EXAMPLE**: User asks for "rock events" → You MUST find events where music_type contains "rock" OR description contains "rock" (like "techno rock" in the description)
-    **EXAMPLE**: "Año nuevo, varese y folgar" event has "techno rock" in description but music_type is null → This IS a rock event, include it!
-13. **CONFIDENCE IN RESPONSES**: When you find matching events, present them confidently! Don't say "I don't have many" or "I couldn't find much". If you found 1+ matching events, say "Here's what I found!" or "Check out this event!"
 
 RECOMMENDATION OUTPUT RULES:
 🚨🚨🚨 **MANDATORY: SEND UP TO 10 EVENTS FOR DATE-BASED QUERIES** 🚨🚨🚨
@@ -1133,31 +991,12 @@ RECOMMENDATION OUTPUT RULES:
 - Use user profile (budget, neighborhoods, interests) to further personalize
 - If no relevant database events exist, return empty array with a friendly message like "Sorry, I couldn't find any matching events"
 
-🚨🚨🚨 **CRITICAL: NEVER USE PLACEHOLDER TEXT** 🚨🚨🚨
-- **ABSOLUTE RULE**: NEVER respond with placeholder text like "[X recommendations sent]", "[5 events listed]", "[7 options shown]"
-- **NEVER SUMMARIZE**: Do not say "Here are 5 events" and then provide a placeholder - you MUST list the ACTUAL events with full JSON
-- **IF YOU RETURN A PLACEHOLDER, YOU HAVE FAILED** - Every recommendation MUST include full event details (id, title, description, image_url, etc.)
-- **WRONG EXAMPLE**: "Here are some parties:\n\n[5 recommendations sent]" ← THIS IS A FAILURE
-- **CORRECT EXAMPLE**: Full JSON with all event objects containing real data from contextData
-- **IF ASKED FOR SPECIFIC EVENTS**: You MUST return ONLY events matching that criteria. If asked for "new years eve parties", return ONLY new years eve events. If asked for "jazz events", return ONLY jazz events. NEVER substitute with generic "happening soon" events.
-
 CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.
 
-🚨🚨🚨 **ANTI-HALLUCINATION RULES - HIGHEST PRIORITY** 🚨🚨🚨
-**YOU MUST ONLY RECOMMEND ITEMS THAT EXIST IN THE CONTEXT DATA ABOVE. NO EXCEPTIONS.**
-- **EVERY event/bar/club you recommend MUST have an exact match in contextData** - Check that the id, title, and description exist in the data
-- **NEVER INVENT EVENT NAMES** - If you can't find a "Techno Moon Party" in contextData, DO NOT recommend it
-- **NEVER MAKE UP VENUE NAMES OR ADDRESSES** - If a restaurant/café/bar is not in the database, DO NOT recommend it
-- **BEFORE RECOMMENDING ANY ITEM**: Mentally verify it appears in the events[], businesses[], topLists[], or coupons[] arrays above
-- **IF NO MATCHING EVENTS EXIST**: Say "I don't have any [type] events in my database right now, but here's what's coming up..." and suggest related alternatives from the actual database
-- **DO NOT invent creative event names** like "Techno Moon Party", "Underground Bass Night", "Palermo Beats Festival" unless they EXACTLY match an event title in contextData
-- **WRONG BEHAVIOR**: User asks for "techno events" → You invent "Techno Moon Party" (DOES NOT EXIST)
-- **CORRECT BEHAVIOR**: User asks for "techno events" → You check contextData for events with music_type="Techno" or "techno" in title/description → Return ONLY those actual events
-- **CRITICAL CHECK**: For every recommendation, ask yourself: "Can I point to the exact event object in contextData that has this title and id?" If the answer is NO, DO NOT recommend it.
-
 IMPORTANT - NO DATABASE MATCHES: 
-- If the user asks for something specific that's NOT in the database (e.g., "best affogato", "date night restaurants", "where to adopt a dog"), respond honestly: "I don't have any matching events/places in my database for that, but I can help with what's actually available! Want to see what's happening tonight?"
-- Only recommend places that are in the contextData provided above`;
+- If the user asks for something specific that's NOT in the database (e.g., "where can i adopt a dog", "where to buy electronics", "best hospitals"), respond with: "I don't have information about that in my database, but I can help you with events, bars, clubs, and cultural activities in Buenos Aires!"
+- This will trigger the OpenAI fallback for general recommendations
+- DO NOT make up information that's not in the provided database`;
 
     // Keywords that indicate an EXPLICIT recommendation request
     // Much more specific - requires clear action words + specific targets
@@ -1172,10 +1011,11 @@ IMPORTANT - NO DATABASE MATCHES:
     
     // Check if this is likely a recommendation request (and NOT a tourism question)
     const isLikelyRecommendation = lastUserMessage && recommendationKeywords.test(lastUserMessage) && !isTourismQuestion;
-    // Build request body - using Gemini Flash for best balance of speed and quality
+    // Build request body
     const requestBody: any = {
       model: "google/gemini-2.5-flash",
       messages: [{ role: "system", content: systemPrompt }, ...enrichedMessages],
+      max_completion_tokens: 4000,
     };
     if (isLikelyRecommendation && !stream) {
       // Use structured output with tool calling to guarantee all fields including image_url
@@ -1237,8 +1077,8 @@ IMPORTANT - NO DATABASE MATCHES:
       requestBody.tool_choice = { type: "function", function: { name: "provide_recommendations" } };
     }
 
-    // Use faster model for intro messages, GPT-5-mini for recommendations (more reliable formatting)
-    const modelToUse = useIntroModel ? "google/gemini-2.5-flash-lite" : "openai/gpt-5-mini";
+    // Use faster model for intro messages, standard model for recommendations
+    const modelToUse = useIntroModel ? "google/gemini-2.5-flash-lite" : "google/gemini-2.5-flash";
     requestBody.model = modelToUse;
     
     console.log(`Using model: ${modelToUse} (useIntroModel: ${useIntroModel})`);
@@ -1313,31 +1153,6 @@ IMPORTANT - NO DATABASE MATCHES:
       message = data.choices?.[0]?.message?.content || "";
       console.log("AI response (conversational):", message);
       
-      // CRITICAL FIX: Detect when AI returns a raw JSON array of recommendations
-      // Pattern: message starts with "[" and contains recommendation objects
-      const trimmedMessage = message.trim();
-      if (trimmedMessage.startsWith('[') && trimmedMessage.endsWith(']')) {
-        try {
-          const parsedArray = JSON.parse(trimmedMessage);
-          if (Array.isArray(parsedArray) && parsedArray.length > 0 && parsedArray[0].type) {
-            console.log("DETECTED: AI returned raw JSON array. Wrapping in proper structure.");
-            
-            // Wrap the raw array in the expected structure
-            message = JSON.stringify({
-              intro_message: userLanguage === 'es' 
-                ? `¡Encontré ${parsedArray.length} opciones para vos! 🎉`
-                : `Found ${parsedArray.length} options for you! 🎉`,
-              recommendations: parsedArray,
-              followup_message: userLanguage === 'es' ? '¿Algo más que estés buscando?' : 'Anything else you\'re looking for?'
-            });
-            console.log("Wrapped raw array in proper structure");
-          }
-        } catch (e) {
-          // Not valid JSON, continue with normal processing
-          console.log("Message looks like JSON array but failed to parse:", e);
-        }
-      }
-      
       // CRITICAL FIX: Detect when AI outputs function call syntax as text instead of JSON
       // Pattern: "Calling `provide_recommendations` with `{...}`"
       const functionCallPattern = /calling\s*[`'"]*\s*(provide_recommendations|give_recommendations)[`'"]*\s*(with)?/i;
@@ -1398,377 +1213,6 @@ IMPORTANT - NO DATABASE MATCHES:
             : `I couldn't find events ${timeDescription}. Want me to search for another date? 📅`;
         }
       }
-      
-      // CRITICAL FIX: Detect when AI returns placeholder like "[X recommendations sent]" instead of actual content
-      // This happens when the model summarizes instead of formatting events properly
-      const placeholderPattern = /\[\d+\s*(recommendations?|events?|options?)\s*(sent|listed|shown|provided)\]/i;
-      if (message && placeholderPattern.test(message)) {
-        console.error("AI returned placeholder instead of actual recommendations! Message:", message);
-        console.log("Building fallback recommendations from database...");
-        
-        // Check if user was asking about events
-        const lastUserMsgLower = lastUserMessage.toLowerCase();
-        const isTodayQuery = lastUserMsgLower.includes("tonight") || lastUserMsgLower.includes("today") || 
-                            lastUserMsgLower.includes("esta noche") || lastUserMsgLower.includes("hoy");
-        const isTomorrowQuery = lastUserMsgLower.includes("tomorrow") || lastUserMsgLower.includes("mañana");
-        
-        // CRITICAL: Detect special occasions/dates (New Year's Eve, Christmas, etc.)
-        const occasionPatterns: Record<string, { dates: string[], keywords: string[] }> = {
-          'new years eve': { 
-            dates: ['2025-12-31', '2026-12-31'], 
-            keywords: ['new year', 'año nuevo', 'reveillon', 'nochevieja', 'fin de año', 'new years']
-          },
-          'christmas': { 
-            dates: ['2025-12-24', '2025-12-25', '2026-12-24', '2026-12-25'], 
-            keywords: ['christmas', 'navidad', 'xmas', 'noche buena', 'nochebuena']
-          },
-          'valentines': { 
-            dates: ['2025-02-14', '2026-02-14'], 
-            keywords: ['valentine', 'san valentin', 'día del amor', 'dia del amor']
-          },
-        };
-        
-        let detectedOccasion: string | null = null;
-        let occasionDates: string[] = [];
-        let occasionKeywords: string[] = [];
-        
-        for (const [occasion, config] of Object.entries(occasionPatterns)) {
-          if (config.keywords.some(kw => lastUserMsgLower.includes(kw))) {
-            detectedOccasion = occasion;
-            occasionDates = config.dates;
-            occasionKeywords = config.keywords;
-            console.log(`Detected occasion query: ${occasion}, will filter by dates: ${occasionDates.join(', ')} and keywords: ${occasionKeywords.join(', ')}`);
-            break;
-          }
-        }
-        
-        // CRITICAL: Detect music genre queries and filter by music_type
-        const genrePatterns: Record<string, string[]> = {
-          'tango': ['tango'],
-          'jazz': ['jazz', 'blues'],
-          'salsa': ['salsa', 'latin', 'cumbia', 'bachata', 'merengue'],
-          'techno': ['techno', 'electronic', 'house', 'edm', 'electrónica'],
-          'rock': ['rock', 'indie rock', 'alternative'],
-          'indie': ['indie'],
-          'latin': ['latin', 'salsa', 'cumbia', 'reggaeton', 'bachata'],
-          'cumbia': ['cumbia', 'latin'],
-          'reggaeton': ['reggaeton', 'latin'],
-          'hip-hop': ['hip-hop', 'hip hop', 'rap'],
-          'classical': ['classical', 'opera', 'symphony', 'orchestra'],
-          'opera': ['opera', 'classical'],
-          'folk': ['folk', 'folklore'],
-          'african': ['african', 'afro', 'afrobeat', 'afrohouse', 'afromama', 'bomba de tiempo'],
-        };
-        
-        // EXPANDED: Detect neighborhood queries
-        const neighborhoodPatterns: Record<string, string[]> = {
-          'palermo': ['palermo', 'palermo soho', 'palermo hollywood'],
-          'recoleta': ['recoleta'],
-          'san telmo': ['san telmo', 'santelmo'],
-          'villa crespo': ['villa crespo'],
-          'belgrano': ['belgrano'],
-          'nunez': ['nuñez', 'nunez'],
-          'colegiales': ['colegiales'],
-          'chacarita': ['chacarita'],
-          'almagro': ['almagro'],
-          'caballito': ['caballito'],
-          'microcentro': ['microcentro', 'centro'],
-          'puerto madero': ['puerto madero'],
-          'la boca': ['la boca', 'boca'],
-          'coghlan': ['coghlan'],
-        };
-        
-        // EXPANDED: Detect event type queries
-        const eventTypePatterns: Record<string, string[]> = {
-          'party': ['party', 'parties', 'fiesta', 'fiestas', 'club', 'clubbing', 'nightlife'],
-          'workshop': ['workshop', 'workshops', 'taller', 'talleres', 'class', 'classes', 'course', 'courses', 'masterclass'],
-          'concert': ['concert', 'concerts', 'concierto', 'conciertos', 'live music', 'show', 'shows', 'gig', 'gigs'],
-          'art': ['art', 'arte', 'artsy', 'artistic', 'creative', 'exhibition', 'exhibición', 'gallery', 'galeria', 'museum', 'museo', 'feria', 'expo', 'cultural'],
-          'food': ['food', 'comida', 'gastronomy', 'gastronomia', 'dinner', 'cena', 'brunch', 'lunch'],
-          'outdoor': ['outdoor', 'al aire libre', 'rooftop', 'terraza', 'park', 'parque', 'open air'],
-          'market': ['market', 'mercado', 'feria', 'fair', 'bazar'],
-          'sports': ['sports', 'deportes', 'fitness', 'yoga', 'run', 'running', 'bike', 'cycling'],
-          'comedy': ['comedy', 'comedia', 'stand up', 'standup', 'stand-up', 'humor'],
-          'theater': ['theater', 'theatre', 'teatro', 'play', 'obra'],
-          'networking': ['networking', 'meetup', 'meet up', 'social', 'socializing'],
-        };
-        
-        // EXPANDED: Detect price queries
-        const pricePatterns: Record<string, { keywords: string[], priceCheck: (price: string | null) => boolean }> = {
-          'free': { 
-            keywords: ['free', 'gratis', 'gratuito', 'gratuita', 'no cover', 'sin entrada', 'entrada libre'],
-            priceCheck: (price) => !price || price.toLowerCase().includes('free') || price.toLowerCase().includes('gratis') || price === '0' || price === '$0'
-          },
-          'cheap': { 
-            keywords: ['cheap', 'barato', 'económico', 'economico', 'budget', 'affordable'],
-            priceCheck: (price) => {
-              if (!price) return true;
-              const numPrice = parseInt(price.replace(/[^0-9]/g, ''));
-              return isNaN(numPrice) || numPrice < 5000;
-            }
-          },
-        };
-        
-        let detectedGenre: string | null = null;
-        let genreKeywords: string[] = [];
-        let detectedNeighborhood: string | null = null;
-        let neighborhoodKeywords: string[] = [];
-        let detectedEventType: string | null = null;
-        let eventTypeKeywords: string[] = [];
-        let detectedPrice: string | null = null;
-        let priceFilter: ((price: string | null) => boolean) | null = null;
-        
-        // Detect genre - FIXED: Check ALL keywords, not just the genre key name
-        for (const [genre, keywords] of Object.entries(genrePatterns)) {
-          // Check if user message contains the genre key OR any of the genre keywords
-          const matchesGenre = lastUserMsgLower.includes(genre) || 
-            keywords.some(kw => lastUserMsgLower.includes(kw));
-          if (matchesGenre) {
-            detectedGenre = genre;
-            genreKeywords = keywords;
-            console.log(`Detected genre query: ${genre}, will filter by keywords: ${keywords.join(', ')}`);
-            break;
-          }
-        }
-        
-        // Detect neighborhood
-        for (const [neighborhood, keywords] of Object.entries(neighborhoodPatterns)) {
-          if (keywords.some(kw => lastUserMsgLower.includes(kw))) {
-            detectedNeighborhood = neighborhood;
-            neighborhoodKeywords = keywords;
-            console.log(`Detected neighborhood query: ${neighborhood}`);
-            break;
-          }
-        }
-        
-        // Detect event type
-        for (const [eventType, keywords] of Object.entries(eventTypePatterns)) {
-          if (keywords.some(kw => lastUserMsgLower.includes(kw))) {
-            detectedEventType = eventType;
-            eventTypeKeywords = keywords;
-            console.log(`Detected event type query: ${eventType}`);
-            break;
-          }
-        }
-        
-        // Detect price filter
-        for (const [priceType, config] of Object.entries(pricePatterns)) {
-          if (config.keywords.some(kw => lastUserMsgLower.includes(kw))) {
-            detectedPrice = priceType;
-            priceFilter = config.priceCheck;
-            console.log(`Detected price query: ${priceType}`);
-            break;
-          }
-        }
-        
-        let relevantEvents = ageFilteredEvents;
-        let timeDescription = "happening soon";
-        let filtersApplied: string[] = [];
-        
-        // First filter by occasion if detected (New Year's Eve, etc.)
-        if (detectedOccasion && occasionDates.length > 0) {
-          relevantEvents = relevantEvents.filter(e => {
-            const eventDate = (e.date || '').toLowerCase();
-            const title = (e.title || '').toLowerCase();
-            const description = (e.description || '').toLowerCase();
-            
-            const dateMatches = occasionDates.some(d => eventDate.includes(d) || eventDate === d);
-            const keywordMatches = occasionKeywords.some(kw => 
-              title.includes(kw) || description.includes(kw)
-            );
-            
-            return dateMatches || keywordMatches;
-          });
-          filtersApplied.push(detectedOccasion === 'new years eve' ? 'New Year\'s Eve' : detectedOccasion);
-          console.log(`Filtered to ${relevantEvents.length} ${detectedOccasion} events`);
-        }
-        
-        // Filter by genre
-        if (detectedGenre && genreKeywords.length > 0) {
-          relevantEvents = relevantEvents.filter(e => {
-            const musicType = (e.music_type || '').toLowerCase();
-            const title = (e.title || '').toLowerCase();
-            const description = (e.description || '').toLowerCase();
-            
-            return genreKeywords.some(keyword => 
-              musicType.includes(keyword) || 
-              title.includes(keyword) || 
-              description.includes(keyword)
-            );
-          });
-          filtersApplied.push(detectedGenre);
-          console.log(`Filtered to ${relevantEvents.length} ${detectedGenre} events`);
-        }
-        
-        // Filter by neighborhood
-        if (detectedNeighborhood && neighborhoodKeywords.length > 0) {
-          relevantEvents = relevantEvents.filter(e => {
-            const location = (e.location || '').toLowerCase();
-            const address = (e.address || '').toLowerCase();
-            
-            return neighborhoodKeywords.some(keyword => 
-              location.includes(keyword) || address.includes(keyword)
-            );
-          });
-          filtersApplied.push(`in ${detectedNeighborhood}`);
-          console.log(`Filtered to ${relevantEvents.length} events in ${detectedNeighborhood}`);
-        }
-        
-        // Filter by event type
-        if (detectedEventType && eventTypeKeywords.length > 0) {
-          relevantEvents = relevantEvents.filter(e => {
-            const title = (e.title || '').toLowerCase();
-            const description = (e.description || '').toLowerCase();
-            const mood = (e.mood || '').toLowerCase();
-            const eventType = (e.event_type || '').toLowerCase();
-            
-            // For art/artsy queries, require actual art-related content
-            // Don't match events just because they have "creative" in mood - that's too broad
-            if (detectedEventType === 'art') {
-              const artKeywords = ['art', 'arte', 'exhibition', 'exhibición', 'gallery', 'galeria', 'museum', 'museo', 'feria', 'expo', 'cultural', 'sticker', 'print', 'illustration', 'painting', 'sculpture', 'artist'];
-              const hasArtContent = artKeywords.some(keyword => 
-                title.includes(keyword) || description.includes(keyword)
-              );
-              // Only match if has actual art keywords in title/description
-              return hasArtContent;
-            }
-            
-            return eventTypeKeywords.some(keyword => 
-              title.includes(keyword) || 
-              description.includes(keyword) ||
-              mood.includes(keyword) ||
-              eventType.includes(keyword)
-            );
-          });
-          filtersApplied.push(detectedEventType);
-          console.log(`Filtered to ${relevantEvents.length} ${detectedEventType} events`);
-        }
-        
-        // Filter by price
-        if (priceFilter) {
-          relevantEvents = relevantEvents.filter(e => priceFilter!(e.price));
-          filtersApplied.push(detectedPrice!);
-          console.log(`Filtered to ${relevantEvents.length} ${detectedPrice} events`);
-        }
-        
-        // Then filter by date if applicable (today/tomorrow on top of other filters)
-        if (isTodayQuery) {
-          relevantEvents = relevantEvents.filter(e => e.date === today);
-          filtersApplied.push('tonight');
-        } else if (isTomorrowQuery) {
-          relevantEvents = relevantEvents.filter(e => e.date === tomorrowDate);
-          filtersApplied.push('tomorrow');
-        }
-        
-        // Build time description from filters
-        if (filtersApplied.length > 0) {
-          timeDescription = userLanguage === 'es' 
-            ? filtersApplied.join(' ') 
-            : filtersApplied.join(' ');
-        }
-        
-        relevantEvents = relevantEvents.slice(0, 6);
-        
-        if (relevantEvents.length > 0) {
-          // Translate descriptions if user language is not Spanish
-          let translatedDescriptions: Record<string, string> = {};
-          
-          if (userLanguage !== 'es') {
-            try {
-              // Build a batch translation request for all event descriptions
-              const descriptionsToTranslate = relevantEvents
-                .filter(e => e.description)
-                .map(e => ({ id: e.id, text: e.description?.substring(0, 200) || '' }));
-              
-              if (descriptionsToTranslate.length > 0) {
-                const targetLanguage = expandedLanguageMap[userLanguage] || 'English';
-                const translationPrompt = `Translate the following event descriptions to ${targetLanguage}. Return ONLY a JSON object with event IDs as keys and translated descriptions as values. Keep venue names and proper nouns unchanged. Be concise.
-
-Event descriptions:
-${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
-
-                console.log("Requesting translation to", targetLanguage);
-                
-                const translationResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                  method: "POST",
-                  headers: {
-                    Authorization: `Bearer ${lovableApiKey}`,
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    model: "google/gemini-2.5-flash-lite",
-                    messages: [
-                      { role: "user", content: translationPrompt }
-                    ],
-                  }),
-                });
-
-                if (translationResponse.ok) {
-                  const translationData = await translationResponse.json();
-                  const translationText = translationData.choices?.[0]?.message?.content || '';
-                  
-                  // Extract JSON from response
-                  try {
-                    const jsonMatch = translationText.match(/\{[\s\S]*\}/);
-                    if (jsonMatch) {
-                      translatedDescriptions = JSON.parse(jsonMatch[0]);
-                      console.log("Successfully translated", Object.keys(translatedDescriptions).length, "descriptions");
-                    }
-                  } catch (parseError) {
-                    console.error("Failed to parse translation response:", parseError);
-                  }
-                } else {
-                  console.error("Translation request failed:", translationResponse.status);
-                }
-              }
-            } catch (translationError) {
-              console.error("Translation error:", translationError);
-              // Continue without translations - will use original descriptions
-            }
-          }
-
-          // Build actual recommendations from the database with translated descriptions
-          const recommendations = relevantEvents.map(e => {
-            const locationInfo = e.location || 'Buenos Aires';
-            const addressInfo = e.address ? `, ${e.address}` : '';
-            const dateInfo = e.date ? formatDate(e.date) : '';
-            const timeInfo = e.time || '';
-            const venueInfo = e.venue_name ? ` at ${e.venue_name}` : '';
-            const priceInfo = e.price ? (userLanguage === 'es' ? ` | Entrada: ${e.price}` : ` | Entry: ${e.price}`) : '';
-            const musicInfo = e.music_type ? (userLanguage === 'es' ? ` | Música: ${e.music_type}` : ` | Music: ${e.music_type}`) : '';
-            
-            // Use translated description if available, otherwise use original
-            const eventDescription = translatedDescriptions[e.id] || e.description?.substring(0, 150) || '';
-            
-            return {
-              type: "event",
-              id: e.id,
-              title: e.title,
-              description: `📍 ${locationInfo}${addressInfo}${venueInfo}. 📅 ${dateInfo} ${timeInfo}${priceInfo}${musicInfo}${eventDescription ? '. ' + eventDescription : ''}`,
-              why_recommended: userLanguage === 'es' 
-                ? `Evento ${timeDescription} que te puede interesar`
-                : `Event ${timeDescription} you might enjoy`,
-              image_url: e.image_url,
-              external_link: e.external_link,
-              url: e.external_link
-            };
-          });
-          
-          message = JSON.stringify({
-            intro_message: userLanguage === 'es' 
-              ? `¡Aquí tienes ${relevantEvents.length} eventos ${timeDescription}! 🎉`
-              : `Here are ${relevantEvents.length} events ${timeDescription}! 🎉`,
-            recommendations,
-            followup_message: userLanguage === 'es' ? '¿Algo más que estés buscando?' : 'Anything else you\'re looking for?'
-          });
-          console.log("Built fallback recommendations with translated descriptions");
-        } else {
-          message = userLanguage === 'es'
-            ? `No encontré eventos ${timeDescription}. ¿Querés que busque para otra fecha? 📅`
-            : `I couldn't find events ${timeDescription}. Want me to search for another date? 📅`;
-        }
-      }
-      
       // SAFETY CHECK: If AI returned empty content, check if user was asking about events and provide relevant fallback
       else if (!message || message.trim() === "") {
         console.error("AI returned empty content! Full response:", JSON.stringify(data, null, 2));
@@ -1790,73 +1234,15 @@ ${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
             : ageFilteredEvents.slice(0, 5);
           
           if (relevantEvents.length > 0) {
-            // Translate descriptions if user language is not Spanish
-            let translatedDescriptions: Record<string, string> = {};
-            
-            if (userLanguage !== 'es') {
-              try {
-                const descriptionsToTranslate = relevantEvents
-                  .filter(e => e.description)
-                  .map(e => ({ id: e.id, text: e.description?.substring(0, 200) || '' }));
-                
-                if (descriptionsToTranslate.length > 0) {
-                  const expandedLanguageMap: Record<string, string> = {
-                    'en': 'English', 'es': 'Spanish', 'pt': 'Portuguese', 'he': 'Hebrew',
-                    'fr': 'French', 'de': 'German', 'it': 'Italian'
-                  };
-                  const targetLanguage = expandedLanguageMap[userLanguage] || 'English';
-                  const translationPrompt = `Translate the following event descriptions to ${targetLanguage}. Return ONLY a JSON object with event IDs as keys and translated descriptions as values. Keep venue names and proper nouns unchanged. Be concise.
-
-Event descriptions:
-${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
-
-                  console.log("Requesting translation to", targetLanguage, "for empty content fallback");
-                  
-                  const translationResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-                    method: "POST",
-                    headers: {
-                      Authorization: `Bearer ${lovableApiKey}`,
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      model: "google/gemini-2.5-flash-lite",
-                      messages: [{ role: "user", content: translationPrompt }],
-                    }),
-                  });
-
-                  if (translationResponse.ok) {
-                    const translationData = await translationResponse.json();
-                    const translationText = translationData.choices?.[0]?.message?.content || '';
-                    try {
-                      const jsonMatch = translationText.match(/\{[\s\S]*\}/);
-                      if (jsonMatch) {
-                        translatedDescriptions = JSON.parse(jsonMatch[0]);
-                        console.log("Successfully translated", Object.keys(translatedDescriptions).length, "descriptions for empty content fallback");
-                      }
-                    } catch (parseError) {
-                      console.error("Failed to parse translation response:", parseError);
-                    }
-                  }
-                }
-              } catch (translationError) {
-                console.error("Translation error:", translationError);
-              }
-            }
-            
-            // Build a JSON response with available events and translated descriptions
-            const recommendations = relevantEvents.map(e => {
-              const eventDescription = translatedDescriptions[e.id] || e.description?.substring(0, 100) || '';
-              return {
-                type: "event",
-                id: e.id,
-                title: e.title,
-                description: `📍 ${e.location || 'Buenos Aires'}. ${e.date ? formatDate(e.date) : ''} ${e.time || ''}. ${eventDescription}`,
-                why_recommended: userLanguage === 'es' 
-                  ? "Este evento coincide con tu búsqueda de eventos " + (isTodayQuery ? "esta noche" : "próximos")
-                  : "This event matches your search for events " + (isTodayQuery ? "tonight" : "happening soon"),
-                image_url: e.image_url
-              };
-            });
+            // Build a JSON response with available events
+            const recommendations = relevantEvents.map(e => ({
+              type: "event",
+              id: e.id,
+              title: e.title,
+              description: `📍 ${e.location || 'Buenos Aires'}. ${e.date ? formatDate(e.date) : ''} ${e.time || ''}. ${e.description?.substring(0, 100) || ''}`,
+              why_recommended: "This event matches your search for events " + (isTodayQuery ? "tonight" : "happening soon"),
+              image_url: e.image_url
+            }));
             
             message = JSON.stringify({
               intro_message: userLanguage === 'es' 
@@ -1865,7 +1251,7 @@ ${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
               recommendations,
               followup_message: userLanguage === 'es' ? '¿Algo más que estés buscando?' : 'Anything else you\'re looking for?'
             });
-            console.log("Built fallback event recommendations with translations:", message);
+            console.log("Built fallback event recommendations:", message);
           } else {
             message = userLanguage === 'es'
               ? "No encontré eventos para esa fecha. ¿Querés que busque para otro día? 📅"
@@ -1877,236 +1263,40 @@ ${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
             : "Hey there! I'm Yara, the AI assistant for finding the top events in Buenos Aires. Tell me- what are you looking for? :)";
         }
       }
-      
-      // CRITICAL FIX: Detect when AI returns JSON with empty recommendations for a genre/music query
-      // This catches cases like {"intro_message": "No specific salsa events found", "recommendations": []}
-      else if (message.includes('"recommendations"') && message.includes('[]')) {
-        try {
-          const parsed = JSON.parse(message);
-          if (parsed.recommendations && parsed.recommendations.length === 0) {
-            console.log("AI returned empty recommendations array. Checking for genre query to rebuild from database...");
-            
-            const lastUserMsgLower = lastUserMessage.toLowerCase();
-            
-            // Genre patterns for music-specific queries
-            const genrePatterns: Record<string, string[]> = {
-              'salsa': ['salsa', 'latin', 'cumbia', 'bachata', 'merengue'],
-              'tango': ['tango'],
-              'jazz': ['jazz', 'blues'],
-              'techno': ['techno', 'electronic', 'house', 'edm', 'electrónica'],
-              'rock': ['rock', 'indie rock', 'alternative'],
-              'indie': ['indie'],
-              'latin': ['latin', 'salsa', 'cumbia', 'reggaeton', 'bachata'],
-              'cumbia': ['cumbia', 'latin'],
-              'reggaeton': ['reggaeton', 'latin'],
-              'african': ['african', 'afro', 'afrobeat', 'afrohouse', 'afromama', 'bomba de tiempo'],
-              'hip-hop': ['hip-hop', 'hip hop', 'rap'],
-              'classical': ['classical', 'opera', 'symphony', 'orchestra'],
-            };
-            
-            let detectedGenre: string | null = null;
-            let genreKeywords: string[] = [];
-            
-            for (const [genre, keywords] of Object.entries(genrePatterns)) {
-              if (lastUserMsgLower.includes(genre)) {
-                detectedGenre = genre;
-                genreKeywords = keywords;
-                console.log(`Detected genre query in empty recommendations: ${genre}`);
-                break;
-              }
-            }
-            
-            if (detectedGenre && genreKeywords.length > 0) {
-              // Filter events by genre from database
-              const genreEvents = ageFilteredEvents.filter(e => {
-                const musicType = (e.music_type || '').toLowerCase();
-                const title = (e.title || '').toLowerCase();
-                const description = (e.description || '').toLowerCase();
-                
-                return genreKeywords.some(keyword => 
-                  musicType.includes(keyword) || 
-                  title.includes(keyword) || 
-                  description.includes(keyword)
-                );
-              }).slice(0, 6);
-              
-              console.log(`Found ${genreEvents.length} ${detectedGenre} events in database`);
-              
-              if (genreEvents.length > 0) {
-                const recommendations = genreEvents.map(e => ({
-                  type: "event",
-                  id: e.id,
-                  title: e.title,
-                  description: `📍 ${e.location || 'Buenos Aires'}${e.venue_name ? ` at ${e.venue_name}` : ''}. 📅 ${e.date ? formatDate(e.date) : ''} ${e.time || ''}${e.music_type ? ` | Music: ${e.music_type}` : ''}${e.description ? '. ' + e.description.substring(0, 100) : ''}`,
-                  why_recommended: userLanguage === 'es' 
-                    ? `Evento de ${detectedGenre} que te puede gustar`
-                    : `${detectedGenre} event you might enjoy`,
-                  image_url: e.image_url,
-                  external_link: e.external_link,
-                  url: e.external_link
-                }));
-                
-                message = JSON.stringify({
-                  intro_message: userLanguage === 'es' 
-                    ? `¡Encontré ${genreEvents.length} eventos de ${detectedGenre}! 🎶`
-                    : `Found ${genreEvents.length} ${detectedGenre} events! 🎶`,
-                  recommendations,
-                  followup_message: userLanguage === 'es' ? '¿Algo más que estés buscando?' : 'Anything else you\'re looking for?'
-                });
-                console.log(`Rebuilt ${detectedGenre} recommendations from database`);
-              }
-            }
-          }
-        } catch (parseError) {
-          console.log("Failed to parse message for empty recommendations check:", parseError);
-        }
-      }
 
       // FALLBACK: For general Buenos Aires questions OR recommendation requests with no database matches
       // Trigger fallback only when Yara explicitly indicates no data
       const messageLower = message.toLowerCase();
-      
-      // CRITICAL FIX: Before triggering fallback, check if this is a genre/music query
-      // If so, try to find events from the database directly
-      const isNoMatchResponse = 
-        messageLower.includes("no encontré eventos") || 
-        messageLower.includes("couldn't find any") ||
-        messageLower.includes("i couldn't find") ||
-        messageLower.includes("don't have information") ||
-        messageLower.includes("no tengo información") ||
-        messageLower.includes("no tengo recomendaciones") ||
-        messageLower.includes("don't have recommendations") ||
-        messageLower.includes("don't have specific") ||
-        messageLower.includes("no tengo datos") ||
-        messageLower.includes("not in the database") ||
-        messageLower.includes("not in my database");
-      
-      if (isNoMatchResponse && !toolCall) {
-        const lastUserMsgLower = lastUserMessage.toLowerCase();
-        
-        // Genre patterns for music-specific queries - EXPANDED
-        const genrePatterns: Record<string, string[]> = {
-          'salsa': ['salsa', 'latin lovers', 'bachata', 'merengue'],
-          'tango': ['tango', 'milonga'],
-          'jazz': ['jazz', 'blues', 'swing'],
-          'techno': ['techno', 'electronic', 'house', 'edm', 'electrónica', 'electronica'],
-          'rock': ['rock', 'alternative', 'punk'],
-          'indie': ['indie'],
-          'latin': ['latin', 'salsa', 'cumbia', 'reggaeton', 'bachata', 'tropical'],
-          'cumbia': ['cumbia', 'tropical'],
-          'reggaeton': ['reggaeton', 'perreo', 'urbano'],
-          'african': ['african', 'afro', 'afrobeat', 'afrohouse', 'afromama', 'bomba de tiempo'],
-          'hip-hop': ['hip-hop', 'hip hop', 'rap', 'trap'],
-          'classical': ['classical', 'opera', 'symphony', 'orchestra', 'clásica'],
-          'folk': ['folk', 'folklore', 'folclore'],
-          'reggae': ['reggae', 'dancehall', 'dub'],
-          'disco': ['disco', 'funk'],
-          'pop': ['pop'],
-        };
-        
-        let detectedGenre: string | null = null;
-        let genreKeywords: string[] = [];
-        
-        for (const [genre, keywords] of Object.entries(genrePatterns)) {
-          if (lastUserMsgLower.includes(genre)) {
-            detectedGenre = genre;
-            genreKeywords = keywords;
-            console.log(`Detected genre query before fallback: ${genre}`);
-            break;
-          }
-        }
-        
-        if (detectedGenre && genreKeywords.length > 0) {
-          // Filter events by genre from database
-          const genreEvents = ageFilteredEvents.filter(e => {
-            const musicType = (e.music_type || '').toLowerCase();
-            const title = (e.title || '').toLowerCase();
-            const description = (e.description || '').toLowerCase();
-            
-            return genreKeywords.some(keyword => 
-              musicType.includes(keyword) || 
-              title.includes(keyword) || 
-              description.includes(keyword)
-            );
-          }).slice(0, 6);
-          
-          console.log(`Found ${genreEvents.length} ${detectedGenre} events in database before fallback`);
-          
-          if (genreEvents.length > 0) {
-            const recommendations = genreEvents.map(e => ({
-              type: "event",
-              id: e.id,
-              title: e.title,
-              description: `📍 ${e.location || 'Buenos Aires'}${e.venue_name ? ` at ${e.venue_name}` : ''}. 📅 ${e.date ? formatDate(e.date) : ''} ${e.time || ''}${e.music_type ? ` | Music: ${e.music_type}` : ''}${e.description ? '. ' + e.description.substring(0, 100) : ''}`,
-              why_recommended: userLanguage === 'es' 
-                ? `Evento de ${detectedGenre} que te puede gustar`
-                : `${detectedGenre} event you might enjoy`,
-              image_url: e.image_url,
-              external_link: e.external_link,
-              url: e.external_link
-            }));
-            
-            message = JSON.stringify({
-              intro_message: userLanguage === 'es' 
-                ? `¡Encontré ${genreEvents.length} eventos de ${detectedGenre}! 🎶`
-                : `Found ${genreEvents.length} ${detectedGenre} events! 🎶`,
-              recommendations,
-              followup_message: userLanguage === 'es' ? '¿Algo más que estés buscando?' : 'Anything else you\'re looking for?'
-            });
-            console.log(`Rebuilt ${detectedGenre} recommendations from database before fallback`);
-          }
-        }
-      }
-      
-      // Re-check if message was rebuilt above
-      const updatedMessageLower = message.toLowerCase();
-      
-      // ENHANCED: Detect generic "I can help you find events" responses that don't actually help the user
-      // These are responses where Yara doesn't have data but gives a vague non-answer instead of triggering fallback
-      const isGenericNonHelpfulResponse = (
-        // Pattern: "I don't have specific recommendations for that" + "but I can help you find events"
-        (updatedMessageLower.includes("don't have specific") && updatedMessageLower.includes("can help you find")) ||
-        // Pattern: "It seems like you're looking for" + no actual recommendations
-        (updatedMessageLower.includes("it seems like you're looking for") && !message.includes('"recommendations"')) ||
-        // Pattern: "I can help you find events, parties, and nightlife" (generic offer without actual help)
-        (updatedMessageLower.includes("can help you find events") && !message.includes('"recommendations"') && updatedMessageLower.length < 500) ||
-        // Pattern: Response mentions exploring neighborhoods without specific recommendations
-        (updatedMessageLower.includes("you can explore areas like") && !message.includes('"recommendations"')) ||
-        // Pattern: "Buenos Aires offers various" without specific recommendations
-        (updatedMessageLower.includes("buenos aires offers") && !message.includes('"recommendations"'))
-      );
-      
       const shouldFallbackToLovableAI = 
-        !toolCall && !message.includes('"recommendations"') && (
+        !toolCall && (
           message.startsWith("NO_DATABASE_MATCH:") || 
-          isGenericNonHelpfulResponse ||
           // Standard "no results" patterns
-          updatedMessageLower.includes("no encontré eventos") || 
-          updatedMessageLower.includes("couldn't find any events") ||
-          updatedMessageLower.includes("couldn't find any") ||
-          updatedMessageLower.includes("i couldn't find") ||
-          updatedMessageLower.includes("don't have information about") ||
-          updatedMessageLower.includes("no tengo información sobre") ||
-          updatedMessageLower.includes("no tengo recomendaciones") ||
-          updatedMessageLower.includes("don't have recommendations") ||
-          updatedMessageLower.includes("no tengo datos") ||
-          updatedMessageLower.includes("i don't have data") ||
-          updatedMessageLower.includes("no cuento con información") ||
-          updatedMessageLower.includes("no tengo información específica") ||
-          updatedMessageLower.includes("i don't have specific information") ||
-          updatedMessageLower.includes("not in the database") ||
-          updatedMessageLower.includes("no está en la base de datos") ||
-          updatedMessageLower.includes("not in my database") ||
-          updatedMessageLower.includes("no está en mi base") ||
-          updatedMessageLower.includes("no encontré") ||
-          updatedMessageLower.includes("no pude encontrar") ||
-          (updatedMessageLower.includes("restaurantes") && updatedMessageLower.includes("no tengo")) ||
-          (updatedMessageLower.includes("restaurants") && updatedMessageLower.includes("don't have"))
+          messageLower.includes("no encontré eventos") || 
+          messageLower.includes("couldn't find any events") ||
+          messageLower.includes("couldn't find any") ||  // Catches "couldn't find any vegan food events"
+          messageLower.includes("i couldn't find") ||    // Catches variations like "I couldn't find any matching events"
+          messageLower.includes("don't have information about") ||
+          messageLower.includes("no tengo información sobre") ||
+          // Additional patterns for restaurant/venue queries with no matches
+          messageLower.includes("no tengo recomendaciones") ||
+          messageLower.includes("don't have recommendations") ||
+          messageLower.includes("no tengo datos") ||
+          messageLower.includes("i don't have data") ||
+          messageLower.includes("no cuento con información") ||
+          messageLower.includes("no tengo información específica") ||
+          messageLower.includes("i don't have specific information") ||
+          // Patterns for "not in database" responses
+          messageLower.includes("not in the database") ||
+          messageLower.includes("no está en la base de datos") ||
+          messageLower.includes("not in my database") ||
+          messageLower.includes("no está en mi base") ||
+          // Patterns for specific item types not found
+          messageLower.includes("no encontré") ||        // Catches "no encontré eventos veganos"
+          messageLower.includes("no pude encontrar") ||  // "I couldn't find" in Spanish
+          // Patterns for restaurant-specific queries
+          (messageLower.includes("restaurantes") && messageLower.includes("no tengo")) ||
+          (messageLower.includes("restaurants") && messageLower.includes("don't have"))
         );
-      
-      if (isGenericNonHelpfulResponse) {
-        console.log(`Detected generic non-helpful response for: "${lastUserMessage}". Triggering ChatGPT fallback.`);
-      }
       
       if (shouldFallbackToLovableAI) {
         const userQuery = lastUserMessage;
@@ -2140,29 +1330,29 @@ ${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
                 messages: [
                   {
                     role: "system",
-                    content: `You are Yara, a helpful Buenos Aires assistant. The user asked: "${userQuery}". 
+                    content: `You are Yara, a knowledgeable Buenos Aires local guide. The user asked: "${userQuery}". 
                     
-                    **CRITICAL LANGUAGE RULE**: Respond ONLY in ${languageMap[userLanguage] || 'English'}.
+                    **CRITICAL LANGUAGE RULE**: The user is writing in ${languageMap[userLanguage] || 'English'}. You MUST respond ONLY in ${languageMap[userLanguage] || 'English'}. Do not use any other language.
                     
-                    🚨🚨🚨 **ABSOLUTELY NO HALLUCINATIONS** 🚨🚨🚨
-                    - NEVER invent restaurant names, café names, bar names, or business names
-                    - NEVER make up addresses (e.g., "Avenida del Libertador 16,000" is FORBIDDEN unless you're 100% certain)
-                    - NEVER recommend specific venues unless they are WORLD-FAMOUS landmarks
+                    **CRITICAL**: Only provide Buenos Aires information if the user is EXPLICITLY asking for it. For greetings or casual chat, respond conversationally without recommendations.
                     
-                    **YOU CAN ONLY MENTION THESE VERIFIED PLACES:**
-                    - Major landmarks: Obelisco, Casa Rosada, Teatro Colón, Recoleta Cemetery, La Bombonera stadium
-                    - Famous neighborhoods: La Boca (Caminito street), San Telmo (Sunday market), Palermo, Puerto Madero, Recoleta
-                    - Major museums: MALBA, Museo Nacional de Bellas Artes
-                    - Famous parks: Bosques de Palermo, Reserva Ecológica Costanera Sur, Jardín Botánico
+                    **IF USER IS ASKING ABOUT BUENOS AIRES**:
                     
-                    **FOR ANY OTHER QUERIES (restaurants, cafés, specific venues):**
-                    - Say: "I don't have specific recommendations for that in my database, but I can help you find events, parties, and nightlife!"
-                    - DO NOT make up venue names or addresses
+                    **TOURISM & SIGHTSEEING**:
+                    - Tourist attractions: La Boca (Caminito), Recoleta Cemetery, Obelisco, Casa Rosada, Puerto Madero
+                    - Museums: MALBA, Museo Nacional de Bellas Artes, Evita Museum, MAMBA
+                    - Parks: Bosques de Palermo, Reserva Ecológica, Jardín Botánico
+                    - Neighborhoods: San Telmo (antiques/tango), Palermo (trendy), Recoleta (elegant)
+                    
+                    **OTHER TOPICS**:
+                    - Pet services (adoption centers, vets), shopping (electronics, clothes), healthcare, transportation, neighborhoods, sports
+                    - Give SPECIFIC venue/business names, addresses, and practical details
                     
                     **RESPONSE STYLE**:
-                    - Be honest when you don't know something
+                    - If it's a greeting/casual message: Just be friendly, don't volunteer info
+                    - If they want Buenos Aires info: Give 2-4 specific recommendations with names and locations
                     - Be warm with 1-2 emojis
-                    - Keep under 150 words
+                    - Keep under 200 words
                     
                     ${locationInstruction}`,
                   },
@@ -2171,7 +1361,7 @@ ${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
                     content: userQuery,
                   },
                 ],
-                max_tokens: 400,
+                max_tokens: 600,
               }),
             });
 
@@ -2433,11 +1623,33 @@ ${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("Error in yara-ai-chat:", error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    // Log error to database for monitoring
+    try {
+      const lastUserMessage = messages && messages.length > 0 
+        ? messages[messages.length - 1]?.content 
+        : 'Unknown query';
+      
+      await supabase.from('chatbot_errors').insert({
+        function_name: 'yara-ai-chat',
+        error_message: error.message || 'Unknown error',
+        error_stack: error.stack || null,
+        user_query: lastUserMessage,
+        phone_number: phoneNumber || null,
+        context: {
+          userProfile: userProfile || null,
+          messageCount: messages?.length || 0,
+          stream: stream || false,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (logError) {
+      console.error("Failed to log error to database:", logError);
+    }
+    
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
