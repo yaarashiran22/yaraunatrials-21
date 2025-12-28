@@ -1853,35 +1853,126 @@ ${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
       // FALLBACK: For general Buenos Aires questions OR recommendation requests with no database matches
       // Trigger fallback only when Yara explicitly indicates no data
       const messageLower = message.toLowerCase();
+      
+      // CRITICAL FIX: Before triggering fallback, check if this is a genre/music query
+      // If so, try to find events from the database directly
+      const isNoMatchResponse = 
+        messageLower.includes("no encontré eventos") || 
+        messageLower.includes("couldn't find any") ||
+        messageLower.includes("i couldn't find") ||
+        messageLower.includes("don't have information") ||
+        messageLower.includes("no tengo información") ||
+        messageLower.includes("no tengo recomendaciones") ||
+        messageLower.includes("don't have recommendations") ||
+        messageLower.includes("don't have specific") ||
+        messageLower.includes("no tengo datos") ||
+        messageLower.includes("not in the database") ||
+        messageLower.includes("not in my database");
+      
+      if (isNoMatchResponse && !toolCall) {
+        const lastUserMsgLower = lastUserMessage.toLowerCase();
+        
+        // Genre patterns for music-specific queries - EXPANDED
+        const genrePatterns: Record<string, string[]> = {
+          'salsa': ['salsa', 'latin lovers', 'bachata', 'merengue'],
+          'tango': ['tango', 'milonga'],
+          'jazz': ['jazz', 'blues', 'swing'],
+          'techno': ['techno', 'electronic', 'house', 'edm', 'electrónica', 'electronica'],
+          'rock': ['rock', 'alternative', 'punk'],
+          'indie': ['indie'],
+          'latin': ['latin', 'salsa', 'cumbia', 'reggaeton', 'bachata', 'tropical'],
+          'cumbia': ['cumbia', 'tropical'],
+          'reggaeton': ['reggaeton', 'perreo', 'urbano'],
+          'african': ['african', 'afro', 'afrobeat', 'afrohouse', 'afromama', 'bomba de tiempo'],
+          'hip-hop': ['hip-hop', 'hip hop', 'rap', 'trap'],
+          'classical': ['classical', 'opera', 'symphony', 'orchestra', 'clásica'],
+          'folk': ['folk', 'folklore', 'folclore'],
+          'reggae': ['reggae', 'dancehall', 'dub'],
+          'disco': ['disco', 'funk'],
+          'pop': ['pop'],
+        };
+        
+        let detectedGenre: string | null = null;
+        let genreKeywords: string[] = [];
+        
+        for (const [genre, keywords] of Object.entries(genrePatterns)) {
+          if (lastUserMsgLower.includes(genre)) {
+            detectedGenre = genre;
+            genreKeywords = keywords;
+            console.log(`Detected genre query before fallback: ${genre}`);
+            break;
+          }
+        }
+        
+        if (detectedGenre && genreKeywords.length > 0) {
+          // Filter events by genre from database
+          const genreEvents = ageFilteredEvents.filter(e => {
+            const musicType = (e.music_type || '').toLowerCase();
+            const title = (e.title || '').toLowerCase();
+            const description = (e.description || '').toLowerCase();
+            
+            return genreKeywords.some(keyword => 
+              musicType.includes(keyword) || 
+              title.includes(keyword) || 
+              description.includes(keyword)
+            );
+          }).slice(0, 6);
+          
+          console.log(`Found ${genreEvents.length} ${detectedGenre} events in database before fallback`);
+          
+          if (genreEvents.length > 0) {
+            const recommendations = genreEvents.map(e => ({
+              type: "event",
+              id: e.id,
+              title: e.title,
+              description: `📍 ${e.location || 'Buenos Aires'}${e.venue_name ? ` at ${e.venue_name}` : ''}. 📅 ${e.date ? formatDate(e.date) : ''} ${e.time || ''}${e.music_type ? ` | Music: ${e.music_type}` : ''}${e.description ? '. ' + e.description.substring(0, 100) : ''}`,
+              why_recommended: userLanguage === 'es' 
+                ? `Evento de ${detectedGenre} que te puede gustar`
+                : `${detectedGenre} event you might enjoy`,
+              image_url: e.image_url,
+              external_link: e.external_link,
+              url: e.external_link
+            }));
+            
+            message = JSON.stringify({
+              intro_message: userLanguage === 'es' 
+                ? `¡Encontré ${genreEvents.length} eventos de ${detectedGenre}! 🎶`
+                : `Found ${genreEvents.length} ${detectedGenre} events! 🎶`,
+              recommendations,
+              followup_message: userLanguage === 'es' ? '¿Algo más que estés buscando?' : 'Anything else you\'re looking for?'
+            });
+            console.log(`Rebuilt ${detectedGenre} recommendations from database before fallback`);
+          }
+        }
+      }
+      
+      // Re-check if message was rebuilt above
+      const updatedMessageLower = message.toLowerCase();
       const shouldFallbackToLovableAI = 
-        !toolCall && (
+        !toolCall && !message.includes('"recommendations"') && (
           message.startsWith("NO_DATABASE_MATCH:") || 
           // Standard "no results" patterns
-          messageLower.includes("no encontré eventos") || 
-          messageLower.includes("couldn't find any events") ||
-          messageLower.includes("couldn't find any") ||  // Catches "couldn't find any vegan food events"
-          messageLower.includes("i couldn't find") ||    // Catches variations like "I couldn't find any matching events"
-          messageLower.includes("don't have information about") ||
-          messageLower.includes("no tengo información sobre") ||
-          // Additional patterns for restaurant/venue queries with no matches
-          messageLower.includes("no tengo recomendaciones") ||
-          messageLower.includes("don't have recommendations") ||
-          messageLower.includes("no tengo datos") ||
-          messageLower.includes("i don't have data") ||
-          messageLower.includes("no cuento con información") ||
-          messageLower.includes("no tengo información específica") ||
-          messageLower.includes("i don't have specific information") ||
-          // Patterns for "not in database" responses
-          messageLower.includes("not in the database") ||
-          messageLower.includes("no está en la base de datos") ||
-          messageLower.includes("not in my database") ||
-          messageLower.includes("no está en mi base") ||
-          // Patterns for specific item types not found
-          messageLower.includes("no encontré") ||        // Catches "no encontré eventos veganos"
-          messageLower.includes("no pude encontrar") ||  // "I couldn't find" in Spanish
-          // Patterns for restaurant-specific queries
-          (messageLower.includes("restaurantes") && messageLower.includes("no tengo")) ||
-          (messageLower.includes("restaurants") && messageLower.includes("don't have"))
+          updatedMessageLower.includes("no encontré eventos") || 
+          updatedMessageLower.includes("couldn't find any events") ||
+          updatedMessageLower.includes("couldn't find any") ||
+          updatedMessageLower.includes("i couldn't find") ||
+          updatedMessageLower.includes("don't have information about") ||
+          updatedMessageLower.includes("no tengo información sobre") ||
+          updatedMessageLower.includes("no tengo recomendaciones") ||
+          updatedMessageLower.includes("don't have recommendations") ||
+          updatedMessageLower.includes("no tengo datos") ||
+          updatedMessageLower.includes("i don't have data") ||
+          updatedMessageLower.includes("no cuento con información") ||
+          updatedMessageLower.includes("no tengo información específica") ||
+          updatedMessageLower.includes("i don't have specific information") ||
+          updatedMessageLower.includes("not in the database") ||
+          updatedMessageLower.includes("no está en la base de datos") ||
+          updatedMessageLower.includes("not in my database") ||
+          updatedMessageLower.includes("no está en mi base") ||
+          updatedMessageLower.includes("no encontré") ||
+          updatedMessageLower.includes("no pude encontrar") ||
+          (updatedMessageLower.includes("restaurantes") && updatedMessageLower.includes("no tengo")) ||
+          (updatedMessageLower.includes("restaurants") && updatedMessageLower.includes("don't have"))
         );
       
       if (shouldFallbackToLovableAI) {
