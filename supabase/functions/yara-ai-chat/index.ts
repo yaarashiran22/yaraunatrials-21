@@ -1238,8 +1238,8 @@ IMPORTANT - NO DATABASE MATCHES:
       requestBody.tool_choice = { type: "function", function: { name: "provide_recommendations" } };
     }
 
-    // Use faster model for intro messages, standard model for recommendations
-    const modelToUse = useIntroModel ? "google/gemini-2.5-flash-lite" : "google/gemini-2.5-flash";
+    // Use faster model for intro messages, GPT-5-mini for recommendations (more reliable formatting)
+    const modelToUse = useIntroModel ? "google/gemini-2.5-flash-lite" : "openai/gpt-5-mini";
     requestBody.model = modelToUse;
     
     console.log(`Using model: ${modelToUse} (useIntroModel: ${useIntroModel})`);
