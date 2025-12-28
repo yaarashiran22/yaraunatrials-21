@@ -62,43 +62,19 @@ serve(async (req) => {
     const buenosAiresOffset = -3 * 60; // UTC-3 in minutes
     const nowBuenosAires = new Date(nowUTC.getTime() + (buenosAiresOffset * 60 * 1000) + (nowUTC.getTimezoneOffset() * 60 * 1000));
     
-    const currentHour = nowBuenosAires.getHours();
     const today = nowBuenosAires.toISOString().split("T")[0];
     const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const todayDayName = daysOfWeek[nowBuenosAires.getDay()]; // e.g., "saturday"
     
-    // Calculate yesterday's date - for late night queries (after midnight but before 6am)
-    // we want to include yesterday's events since "tonight" at 1am still means the same night
-    const yesterday = new Date(nowBuenosAires);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayDate = yesterday.toISOString().split("T")[0];
-    const yesterdayDayName = daysOfWeek[yesterday.getDay()];
-    
-    // LATE NIGHT MODE: Between midnight and 6am, include yesterday's events
-    // This allows users asking "what's happening tonight" at 1am to see the same night's events
-    const isLateNight = currentHour >= 0 && currentHour < 6;
-    const effectiveMinDate = isLateNight ? yesterdayDate : today;
-    
-    // CRITICAL: In late night mode, shift the user's perspective:
-    // - "today/tonight" = yesterday (already handled via effectiveMinDate)
-    // - "tomorrow" = today's calendar date (since "today" is shifted back)
-    // Example: At 2am on Dec 28th, "tomorrow" means Dec 28 daytime, not Dec 29
-    const effectiveToday = isLateNight ? yesterdayDate : today;
-    const effectiveTodayDayName = isLateNight ? yesterdayDayName : todayDayName;
-    
-    // Calculate tomorrow relative to the effective "today"
-    const effectiveTomorrow = new Date(isLateNight ? yesterday : nowBuenosAires);
-    effectiveTomorrow.setDate(effectiveTomorrow.getDate() + 1);
-    const tomorrowDate = effectiveTomorrow.toISOString().split("T")[0];
-    const tomorrowDayName = daysOfWeek[effectiveTomorrow.getDay()];
+    // Calculate tomorrow's date and day
+    const tomorrow = new Date(nowBuenosAires);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowDate = tomorrow.toISOString().split("T")[0];
+    const tomorrowDayName = daysOfWeek[tomorrow.getDay()];
 
-    console.log(`Buenos Aires time: ${nowBuenosAires.toISOString()}, Hour: ${currentHour}`);
-    console.log(`Calendar today: ${today}, Day: ${todayDayName}`);
-    console.log(`Yesterday's date: ${yesterdayDate}, Day: ${yesterdayDayName}`);
-    console.log(`Late night mode: ${isLateNight}`);
-    console.log(`Effective today (user perspective): ${effectiveToday}, Day: ${effectiveTodayDayName}`);
-    console.log(`Tomorrow (user perspective): ${tomorrowDate}, Day: ${tomorrowDayName}`);
-    console.log(`Effective min date for events: ${effectiveMinDate}`);
+    console.log(`Buenos Aires time: ${nowBuenosAires.toISOString()}`);
+    console.log(`Today's date: ${today}, Day: ${todayDayName}`);
+    console.log(`Tomorrow's date: ${tomorrowDate}, Day: ${tomorrowDayName}`);
 
     // Helper function to format date from YYYY-MM-DD to "Month DDth"
     const formatDate = (dateStr: string): string => {
@@ -142,15 +118,14 @@ serve(async (req) => {
     };
 
     // Fetch events with database-level date filtering for performance
-    // Only fetch events where date >= effectiveMinDate OR date contains 'every' (recurring)
-    // effectiveMinDate is yesterday if it's late night (midnight-6am), otherwise today
+    // Only fetch events where date >= today OR date contains 'every' (recurring)
     const [eventsResult, itemsResult, couponsResult, topListsResult] = await Promise.all([
       supabase
         .from("events")
         .select(
           "id, title, description, date, time, location, address, venue_name, price, mood, music_type, venue_size, external_link, ticket_link, image_url, target_audience",
         )
-        .or(`date.gte.${effectiveMinDate},date.ilike.%every%`)
+        .or(`date.gte.${today},date.ilike.%every%`)
         .order("date", { ascending: true })
         .limit(100),
       supabase
@@ -234,11 +209,10 @@ serve(async (req) => {
       };
     });
 
-    // NOW filter events by transformed dates - include events from effectiveMinDate onwards
-    // This allows late night users (after midnight) to still see "tonight's" events from yesterday
+    // NOW filter events by transformed dates - only include future events
     const filteredByDateEvents = eventsWithTransformedDates.filter(event => {
       const eventDate = event.date?.toLowerCase() || '';
-      return eventDate >= effectiveMinDate;
+      return eventDate >= today;
     });
 
     console.log(`Filtered ${allEvents.length} events to ${filteredByDateEvents.length} future events`);
@@ -602,28 +576,13 @@ NEVER output text like "Calling provide_recommendations with..." - just return t
 
 **ABSOLUTE RULE - DATE INTERPRETATION (HIGHEST PRIORITY):**
 YOU ALREADY KNOW ALL DATES - NEVER ASK FOR DATE CLARIFICATION!
-${isLateNight ? `
-🌙 **LATE NIGHT MODE ACTIVE** (It's between midnight and 6am):
-- The user's perspective is shifted: they're still experiencing "yesterday's night"
-- When they say "today" or "tonight", they mean ${yesterdayDate} (the night that started yesterday)
-- When they say "tomorrow", they mean ${tomorrowDate} (which is today's calendar date: ${today})
-- Example: At 2am on Dec 28, "tonight" = Dec 27 evening, "tomorrow" = Dec 28 daytime
-
-**USER PERSPECTIVE DATES (use these for filtering):**
-- "Today" / "tonight" = ${yesterdayDate} (${yesterdayDayName}) - the ongoing night
-- "Tomorrow" = ${tomorrowDate} (${tomorrowDayName}) - the upcoming daytime
-- Calendar today (FYI): ${today}
-` : `
 - Today = ${today} (${todayDayName})
 - Tomorrow = ${tomorrowDate} (${tomorrowDayName})
-- Yesterday = ${yesterdayDate} (${yesterdayDayName})
-`}
 
 **AUTOMATIC DATE MAPPING - NO QUESTIONS NEEDED:**
-- "today" / "hoy" / "tonight" / "esta noche" / "events today" / "que hay hoy" = ${isLateNight ? yesterdayDate : today}
+- "today" / "hoy" / "tonight" / "esta noche" / "events today" / "que hay hoy" = ${today}
 - "tomorrow" / "mañana" / "events tomorrow" / "que hay mañana" = ${tomorrowDate}
-- "this week" / "esta semana" = ${effectiveToday} through end of week
-${isLateNight ? `- Note: In late night mode, "tomorrow" (${tomorrowDate}) is the same as calendar today (${today})` : ''}
+- "this week" / "esta semana" = ${today} through end of week
 
 **FORBIDDEN RESPONSES - NEVER SAY THESE:**
 - ❌ "Please specify the full date"
@@ -631,10 +590,9 @@ ${isLateNight ? `- Note: In late night mode, "tomorrow" (${tomorrowDate}) is the
 - ❌ "Can you tell me what day?"
 - ❌ "Which date do you mean?"
 - ❌ Any request for date clarification
-${isLateNight ? `- ❌ "I don't have historical event data" (YOU DO have yesterday's events in late night mode!)` : ''}
 
 **WHEN USER ASKS ABOUT TODAY/TONIGHT:**
-1. ${isLateNight ? `Check for events on BOTH ${yesterdayDate} (same night) AND ${today}` : `Filter events for date = ${today}`}
+1. Immediately filter events for date = ${today}
 2. If no events match, say "I don't have any events for today in the database" - DO NOT ask for date clarification
 3. NEVER substitute tomorrow's events when user asks for today
 

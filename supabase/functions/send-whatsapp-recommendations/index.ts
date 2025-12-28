@@ -5,74 +5,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Initialize Supabase client for image URL lookups
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-// Helper function to lookup correct image URL from database
-async function lookupCorrectImageUrl(
-  supabase: any,
-  type: string,
-  id: string,
-  providedUrl: string | null
-): Promise<string | null> {
-  if (!id) return providedUrl;
-  
-  try {
-    let tableName: string;
-    let imageColumn = 'image_url';
-    
-    switch (type) {
-      case 'event':
-        tableName = 'events';
-        break;
-      case 'business':
-        tableName = 'items';
-        break;
-      case 'coupon':
-        tableName = 'user_coupons';
-        break;
-      case 'topListItem':
-        tableName = 'top_list_items';
-        break;
-      default:
-        console.log(`Unknown type ${type}, using provided URL`);
-        return providedUrl;
-    }
-    
-    const { data, error } = await supabase
-      .from(tableName)
-      .select(imageColumn)
-      .eq('id', id)
-      .single();
-    
-    if (error) {
-      console.log(`Failed to lookup image for ${type}/${id}: ${error.message}`);
-      return providedUrl;
-    }
-    
-    const dbImageUrl = data?.[imageColumn];
-    
-    if (dbImageUrl && dbImageUrl !== providedUrl) {
-      console.log(`🔧 Corrected image URL for ${type}/${id}:`);
-      console.log(`   AI provided: ${providedUrl}`);
-      console.log(`   DB actual:   ${dbImageUrl}`);
-    }
-    
-    return dbImageUrl || providedUrl;
-  } catch (err) {
-    console.error(`Error looking up image for ${type}/${id}:`, err);
-    return providedUrl;
-  }
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseKey);
     const body = await req.json();
     
     // Support both parameter naming conventions
@@ -272,21 +210,12 @@ Deno.serve(async (req) => {
           Body: messageBody
         };
         
-        // CRITICAL: Look up the correct image URL from the database
-        // This prevents issues where AI corrupts/hallucinates URLs
-        const correctImageUrl = await lookupCorrectImageUrl(
-          supabase,
-          rec.type,
-          rec.id,
-          rec.image_url
-        );
-        
         // Validate image URL before including it
         let useImage = false;
-        if (correctImageUrl) {
+        if (rec.image_url) {
           try {
             // Quick HEAD request to check if image is accessible
-            const imageCheck = await fetch(correctImageUrl, { 
+            const imageCheck = await fetch(rec.image_url, { 
               method: 'HEAD',
               signal: AbortSignal.timeout(3000) // 3 second timeout
             });
@@ -298,20 +227,20 @@ Deno.serve(async (req) => {
               // Check if it's an image and under 5MB (Twilio limit)
               if (contentType.startsWith('image/') && contentLength < 5 * 1024 * 1024) {
                 useImage = true;
-                console.log(`✅ Image validated: ${correctImageUrl} (${contentType}, ${contentLength} bytes)`);
+                console.log(`✅ Image validated: ${rec.image_url} (${contentType}, ${contentLength} bytes)`);
               } else {
                 console.log(`⚠️ Skipping image - invalid type or too large: ${contentType}, ${contentLength} bytes`);
               }
             } else {
-              console.log(`⚠️ Image not accessible (${imageCheck.status}): ${correctImageUrl}`);
+              console.log(`⚠️ Image not accessible (${imageCheck.status}): ${rec.image_url}`);
             }
           } catch (imgError) {
             console.log(`⚠️ Image check failed, sending without media: ${imgError.message}`);
           }
         }
         
-        if (useImage && correctImageUrl) {
-          requestBody.MediaUrl = correctImageUrl;
+        if (useImage) {
+          requestBody.MediaUrl = rec.image_url;
         }
         
         const twilioResponse = await fetch(
