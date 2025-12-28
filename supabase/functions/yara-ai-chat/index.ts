@@ -1071,6 +1071,14 @@ RECOMMENDATION OUTPUT RULES:
 - Use user profile (budget, neighborhoods, interests) to further personalize
 - If no relevant database events exist, return empty array with a friendly message like "Sorry, I couldn't find any matching events"
 
+🚨🚨🚨 **CRITICAL: NEVER USE PLACEHOLDER TEXT** 🚨🚨🚨
+- **ABSOLUTE RULE**: NEVER respond with placeholder text like "[X recommendations sent]", "[5 events listed]", "[7 options shown]"
+- **NEVER SUMMARIZE**: Do not say "Here are 5 events" and then provide a placeholder - you MUST list the ACTUAL events with full JSON
+- **IF YOU RETURN A PLACEHOLDER, YOU HAVE FAILED** - Every recommendation MUST include full event details (id, title, description, image_url, etc.)
+- **WRONG EXAMPLE**: "Here are some parties:\n\n[5 recommendations sent]" ← THIS IS A FAILURE
+- **CORRECT EXAMPLE**: Full JSON with all event objects containing real data from contextData
+- **IF ASKED FOR SPECIFIC EVENTS**: You MUST return ONLY events matching that criteria. If asked for "new years eve parties", return ONLY new years eve events. If asked for "jazz events", return ONLY jazz events. NEVER substitute with generic "happening soon" events.
+
 CRITICAL: If you return anything other than pure JSON for recommendation requests, you are FAILING YOUR PRIMARY FUNCTION.
 
 IMPORTANT - NO DATABASE MATCHES: 
@@ -1355,9 +1363,65 @@ IMPORTANT - NO DATABASE MATCHES:
           'folk': ['folk', 'folklore'],
         };
         
+        // EXPANDED: Detect neighborhood queries
+        const neighborhoodPatterns: Record<string, string[]> = {
+          'palermo': ['palermo', 'palermo soho', 'palermo hollywood'],
+          'recoleta': ['recoleta'],
+          'san telmo': ['san telmo', 'santelmo'],
+          'villa crespo': ['villa crespo'],
+          'belgrano': ['belgrano'],
+          'nunez': ['nuñez', 'nunez'],
+          'colegiales': ['colegiales'],
+          'chacarita': ['chacarita'],
+          'almagro': ['almagro'],
+          'caballito': ['caballito'],
+          'microcentro': ['microcentro', 'centro'],
+          'puerto madero': ['puerto madero'],
+          'la boca': ['la boca', 'boca'],
+          'coghlan': ['coghlan'],
+        };
+        
+        // EXPANDED: Detect event type queries
+        const eventTypePatterns: Record<string, string[]> = {
+          'party': ['party', 'parties', 'fiesta', 'fiestas', 'club', 'clubbing', 'nightlife'],
+          'workshop': ['workshop', 'workshops', 'taller', 'talleres', 'class', 'classes', 'course', 'courses', 'masterclass'],
+          'concert': ['concert', 'concerts', 'concierto', 'conciertos', 'live music', 'show', 'shows', 'gig', 'gigs'],
+          'art': ['art', 'arte', 'exhibition', 'exhibición', 'gallery', 'galeria', 'museum', 'museo'],
+          'food': ['food', 'comida', 'gastronomy', 'gastronomia', 'dinner', 'cena', 'brunch', 'lunch'],
+          'outdoor': ['outdoor', 'al aire libre', 'rooftop', 'terraza', 'park', 'parque', 'open air'],
+          'market': ['market', 'mercado', 'feria', 'fair', 'bazar'],
+          'sports': ['sports', 'deportes', 'fitness', 'yoga', 'run', 'running', 'bike', 'cycling'],
+          'comedy': ['comedy', 'comedia', 'stand up', 'standup', 'stand-up', 'humor'],
+          'theater': ['theater', 'theatre', 'teatro', 'play', 'obra'],
+          'networking': ['networking', 'meetup', 'meet up', 'social', 'socializing'],
+        };
+        
+        // EXPANDED: Detect price queries
+        const pricePatterns: Record<string, { keywords: string[], priceCheck: (price: string | null) => boolean }> = {
+          'free': { 
+            keywords: ['free', 'gratis', 'gratuito', 'gratuita', 'no cover', 'sin entrada', 'entrada libre'],
+            priceCheck: (price) => !price || price.toLowerCase().includes('free') || price.toLowerCase().includes('gratis') || price === '0' || price === '$0'
+          },
+          'cheap': { 
+            keywords: ['cheap', 'barato', 'económico', 'economico', 'budget', 'affordable'],
+            priceCheck: (price) => {
+              if (!price) return true;
+              const numPrice = parseInt(price.replace(/[^0-9]/g, ''));
+              return isNaN(numPrice) || numPrice < 5000;
+            }
+          },
+        };
+        
         let detectedGenre: string | null = null;
         let genreKeywords: string[] = [];
+        let detectedNeighborhood: string | null = null;
+        let neighborhoodKeywords: string[] = [];
+        let detectedEventType: string | null = null;
+        let eventTypeKeywords: string[] = [];
+        let detectedPrice: string | null = null;
+        let priceFilter: ((price: string | null) => boolean) | null = null;
         
+        // Detect genre
         for (const [genre, keywords] of Object.entries(genrePatterns)) {
           if (lastUserMsgLower.includes(genre)) {
             detectedGenre = genre;
@@ -1367,33 +1431,61 @@ IMPORTANT - NO DATABASE MATCHES:
           }
         }
         
+        // Detect neighborhood
+        for (const [neighborhood, keywords] of Object.entries(neighborhoodPatterns)) {
+          if (keywords.some(kw => lastUserMsgLower.includes(kw))) {
+            detectedNeighborhood = neighborhood;
+            neighborhoodKeywords = keywords;
+            console.log(`Detected neighborhood query: ${neighborhood}`);
+            break;
+          }
+        }
+        
+        // Detect event type
+        for (const [eventType, keywords] of Object.entries(eventTypePatterns)) {
+          if (keywords.some(kw => lastUserMsgLower.includes(kw))) {
+            detectedEventType = eventType;
+            eventTypeKeywords = keywords;
+            console.log(`Detected event type query: ${eventType}`);
+            break;
+          }
+        }
+        
+        // Detect price filter
+        for (const [priceType, config] of Object.entries(pricePatterns)) {
+          if (config.keywords.some(kw => lastUserMsgLower.includes(kw))) {
+            detectedPrice = priceType;
+            priceFilter = config.priceCheck;
+            console.log(`Detected price query: ${priceType}`);
+            break;
+          }
+        }
+        
         let relevantEvents = ageFilteredEvents;
         let timeDescription = "happening soon";
+        let filtersApplied: string[] = [];
         
         // First filter by occasion if detected (New Year's Eve, etc.)
         if (detectedOccasion && occasionDates.length > 0) {
-          relevantEvents = ageFilteredEvents.filter(e => {
+          relevantEvents = relevantEvents.filter(e => {
             const eventDate = (e.date || '').toLowerCase();
             const title = (e.title || '').toLowerCase();
             const description = (e.description || '').toLowerCase();
             
-            // Check if event date matches occasion dates
             const dateMatches = occasionDates.some(d => eventDate.includes(d) || eventDate === d);
-            // Also check keywords in title/description
             const keywordMatches = occasionKeywords.some(kw => 
               title.includes(kw) || description.includes(kw)
             );
             
             return dateMatches || keywordMatches;
           });
-          timeDescription = userLanguage === 'es' 
-            ? (detectedOccasion === 'new years eve' ? 'para Año Nuevo' : `para ${detectedOccasion}`)
-            : `for ${detectedOccasion}`;
+          filtersApplied.push(detectedOccasion === 'new years eve' ? 'New Year\'s Eve' : detectedOccasion);
           console.log(`Filtered to ${relevantEvents.length} ${detectedOccasion} events`);
         }
-        // Then filter by genre if detected (and no occasion filter)
-        else if (detectedGenre && genreKeywords.length > 0) {
-          relevantEvents = ageFilteredEvents.filter(e => {
+        
+        // Filter by genre
+        if (detectedGenre && genreKeywords.length > 0) {
+          relevantEvents = relevantEvents.filter(e => {
             const musicType = (e.music_type || '').toLowerCase();
             const title = (e.title || '').toLowerCase();
             const description = (e.description || '').toLowerCase();
@@ -1404,21 +1496,64 @@ IMPORTANT - NO DATABASE MATCHES:
               description.includes(keyword)
             );
           });
-          timeDescription = detectedGenre;
+          filtersApplied.push(detectedGenre);
           console.log(`Filtered to ${relevantEvents.length} ${detectedGenre} events`);
+        }
+        
+        // Filter by neighborhood
+        if (detectedNeighborhood && neighborhoodKeywords.length > 0) {
+          relevantEvents = relevantEvents.filter(e => {
+            const location = (e.location || '').toLowerCase();
+            const address = (e.address || '').toLowerCase();
+            
+            return neighborhoodKeywords.some(keyword => 
+              location.includes(keyword) || address.includes(keyword)
+            );
+          });
+          filtersApplied.push(`in ${detectedNeighborhood}`);
+          console.log(`Filtered to ${relevantEvents.length} events in ${detectedNeighborhood}`);
+        }
+        
+        // Filter by event type
+        if (detectedEventType && eventTypeKeywords.length > 0) {
+          relevantEvents = relevantEvents.filter(e => {
+            const title = (e.title || '').toLowerCase();
+            const description = (e.description || '').toLowerCase();
+            const mood = (e.mood || '').toLowerCase();
+            const eventType = (e.event_type || '').toLowerCase();
+            
+            return eventTypeKeywords.some(keyword => 
+              title.includes(keyword) || 
+              description.includes(keyword) ||
+              mood.includes(keyword) ||
+              eventType.includes(keyword)
+            );
+          });
+          filtersApplied.push(detectedEventType);
+          console.log(`Filtered to ${relevantEvents.length} ${detectedEventType} events`);
+        }
+        
+        // Filter by price
+        if (priceFilter) {
+          relevantEvents = relevantEvents.filter(e => priceFilter!(e.price));
+          filtersApplied.push(detectedPrice!);
+          console.log(`Filtered to ${relevantEvents.length} ${detectedPrice} events`);
         }
         
         // Then filter by date if applicable (today/tomorrow on top of other filters)
         if (isTodayQuery) {
           relevantEvents = relevantEvents.filter(e => e.date === today);
-          const filterType = detectedOccasion || detectedGenre || '';
-          timeDescription = userLanguage === 'es' ? `de ${filterType} para esta noche`.trim() : `${filterType} for tonight`.trim();
+          filtersApplied.push('tonight');
         } else if (isTomorrowQuery) {
           relevantEvents = relevantEvents.filter(e => e.date === tomorrowDate);
-          const filterType = detectedOccasion || detectedGenre || '';
-          timeDescription = userLanguage === 'es' ? `de ${filterType} para mañana`.trim() : `${filterType} for tomorrow`.trim();
-        } else if (detectedGenre && !detectedOccasion) {
-          timeDescription = userLanguage === 'es' ? `de ${detectedGenre}` : detectedGenre;
+          filtersApplied.push('tomorrow');
+        }
+        
+        // Build time description from filters
+        if (filtersApplied.length > 0) {
+          timeDescription = userLanguage === 'es' 
+            ? filtersApplied.join(' ') 
+            : filtersApplied.join(' ');
         }
         
         relevantEvents = relevantEvents.slice(0, 6);
