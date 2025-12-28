@@ -1429,7 +1429,7 @@ IMPORTANT - NO DATABASE MATCHES:
           'party': ['party', 'parties', 'fiesta', 'fiestas', 'club', 'clubbing', 'nightlife'],
           'workshop': ['workshop', 'workshops', 'taller', 'talleres', 'class', 'classes', 'course', 'courses', 'masterclass'],
           'concert': ['concert', 'concerts', 'concierto', 'conciertos', 'live music', 'show', 'shows', 'gig', 'gigs'],
-          'art': ['art', 'arte', 'exhibition', 'exhibición', 'gallery', 'galeria', 'museum', 'museo'],
+          'art': ['art', 'arte', 'artsy', 'artistic', 'creative', 'exhibition', 'exhibición', 'gallery', 'galeria', 'museum', 'museo', 'feria', 'expo', 'cultural'],
           'food': ['food', 'comida', 'gastronomy', 'gastronomia', 'dinner', 'cena', 'brunch', 'lunch'],
           'outdoor': ['outdoor', 'al aire libre', 'rooftop', 'terraza', 'park', 'parque', 'open air'],
           'market': ['market', 'mercado', 'feria', 'fair', 'bazar'],
@@ -1564,6 +1564,13 @@ IMPORTANT - NO DATABASE MATCHES:
             const description = (e.description || '').toLowerCase();
             const mood = (e.mood || '').toLowerCase();
             const eventType = (e.event_type || '').toLowerCase();
+            
+            // Special handling for art/artsy - also match mood="creative"
+            if (detectedEventType === 'art') {
+              if (mood.includes('creative')) {
+                return true;
+              }
+            }
             
             return eventTypeKeywords.some(keyword => 
               title.includes(keyword) || 
