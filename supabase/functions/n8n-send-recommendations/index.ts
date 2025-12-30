@@ -63,7 +63,42 @@ Deno.serve(async (req) => {
     // Send intro text first if provided
     if (introText) {
       try {
-        console.log('Sending intro text:', introText);
+        // CRITICAL FIX: Detect and handle raw JSON being passed as introText
+        // This catches cases where n8n passes the entire response instead of just intro_message
+        let cleanIntroText = introText;
+        
+        if (typeof introText === 'string' && introText.trim().startsWith('{')) {
+          try {
+            const parsedIntro = JSON.parse(introText);
+            if (parsedIntro.intro_message) {
+              cleanIntroText = parsedIntro.intro_message;
+              console.log('Extracted intro_message from raw JSON:', cleanIntroText);
+            }
+          } catch (e) {
+            // Not valid JSON, use as-is
+            console.log('introText looks like JSON but failed to parse, using as-is');
+          }
+        } else if (typeof introText === 'object' && introText.intro_message) {
+          // Handle case where introText is already an object
+          cleanIntroText = introText.intro_message;
+          console.log('Extracted intro_message from object:', cleanIntroText);
+        }
+        
+        // Additional safety: strip any remaining JSON-like content
+        if (typeof cleanIntroText === 'string' && 
+            (cleanIntroText.includes('"recommendations"') || cleanIntroText.includes('"intro_message"'))) {
+          console.log('WARNING: introText still contains JSON-like content, extracting clean text');
+          // Try to extract just the message before any JSON
+          const jsonStart = cleanIntroText.search(/[{[]/);
+          if (jsonStart > 0) {
+            cleanIntroText = cleanIntroText.substring(0, jsonStart).trim();
+          } else {
+            // Fallback to generic intro
+            cleanIntroText = "Here are some recommendations for you! 🎯";
+          }
+        }
+        
+        console.log('Sending intro text:', cleanIntroText);
         
         const introResponse = await fetch(
           `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
@@ -76,7 +111,7 @@ Deno.serve(async (req) => {
             body: new URLSearchParams({
               From: cleanFrom,
               To: cleanTo,
-              Body: introText
+              Body: cleanIntroText
             }).toString()
           }
         );
