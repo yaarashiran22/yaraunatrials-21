@@ -1386,7 +1386,9 @@ IMPORTANT - NO DATABASE MATCHES:
       
       // Pattern 2: Conversational text followed by JSON array (e.g., "Here are some coupons:\n[{...}]")
       // This catches when AI returns "Here are some coupons you might like:\n\n[...]" format
-      else if (message.includes('[') && message.includes('"type"')) {
+      // CRITICAL: Only apply this if message does NOT start with '{' (proper JSON object)
+      // because proper JSON objects with recommendations arrays should NOT be transformed
+      else if (!trimmedMessage.startsWith('{') && message.includes('[') && message.includes('"type"')) {
         const jsonArrayMatch = message.match(/\[[\s\S]*\]/);
         if (jsonArrayMatch) {
           try {
