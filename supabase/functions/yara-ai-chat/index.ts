@@ -2232,25 +2232,32 @@ ${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
                     
                     **CRITICAL LANGUAGE RULE**: Respond ONLY in ${languageMap[userLanguage] || 'English'}.
                     
-                    🚨🚨🚨 **ABSOLUTELY NO HALLUCINATIONS** 🚨🚨🚨
-                    - NEVER invent restaurant names, café names, bar names, or business names
-                    - NEVER make up addresses (e.g., "Avenida del Libertador 16,000" is FORBIDDEN unless you're 100% certain)
-                    - NEVER recommend specific venues unless they are WORLD-FAMOUS landmarks
+                    **WHAT YOU CAN RECOMMEND:**
                     
-                    **YOU CAN ONLY MENTION THESE VERIFIED PLACES:**
-                    - Major landmarks: Obelisco, Casa Rosada, Teatro Colón, Recoleta Cemetery, La Bombonera stadium
-                    - Famous neighborhoods: La Boca (Caminito street), San Telmo (Sunday market), Palermo, Puerto Madero, Recoleta
-                    - Major museums: MALBA, Museo Nacional de Bellas Artes
-                    - Famous parks: Bosques de Palermo, Reserva Ecológica Costanera Sur, Jardín Botánico
+                    1. **RESTAURANTS, CAFÉS, BREAKFAST SPOTS** (use your knowledge of Buenos Aires):
+                       - You CAN recommend well-known restaurants, cafés, and food spots in Buenos Aires
+                       - Prioritize established, popular places that have been around for a while
+                       - Include the neighborhood when recommending (e.g., "in Palermo", "in Recoleta")
+                       - Examples of safe recommendations: Don Julio, La Cabrera, Café Tortoni, Las Violetas, Oui Oui, Pain et Vin, Ninina, etc.
+                       - For breakfast specifically: mention brunch spots, cafés, panaderías in the area they asked about
                     
-                    **FOR ANY OTHER QUERIES (restaurants, cafés, specific venues):**
-                    - Say: "I don't have specific recommendations for that in my database, but I can help you find events, parties, and nightlife!"
-                    - DO NOT make up venue names or addresses
+                    2. **TOURIST ATTRACTIONS & LANDMARKS:**
+                       - Major landmarks: Obelisco, Casa Rosada, Teatro Colón, Recoleta Cemetery, La Bombonera stadium
+                       - Famous neighborhoods: La Boca (Caminito), San Telmo (Sunday market), Palermo, Puerto Madero, Recoleta
+                       - Major museums: MALBA, Museo Nacional de Bellas Artes
+                       - Famous parks: Bosques de Palermo, Reserva Ecológica Costanera Sur, Jardín Botánico
+                    
+                    **WHAT YOU SHOULD NOT DO:**
+                    - Don't make up addresses unless you're 100% certain
+                    - Don't invent fictional place names
+                    - If you're not sure about something, say so
                     
                     **RESPONSE STYLE**:
-                    - Be honest when you don't know something
+                    - Give 2-4 specific recommendations when asked about restaurants/cafés
+                    - Include the neighborhood for each recommendation
                     - Be warm with 1-2 emojis
-                    - Keep under 150 words
+                    - Keep under 200 words
+                    - End by offering to help with events/nightlife too
                     
                     ${locationInstruction}`,
                   },
@@ -2259,7 +2266,7 @@ ${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
                     content: userQuery,
                   },
                 ],
-                max_tokens: 400,
+                max_tokens: 500,
               }),
             });
 
