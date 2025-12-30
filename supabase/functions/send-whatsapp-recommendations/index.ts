@@ -17,7 +17,37 @@ Deno.serve(async (req) => {
     const recommendations = body.recommendations || [];
     const toNumber = body.toNumber || body.phoneNumber;
     const fromNumber = body.fromNumber || Deno.env.get('TWILIO_WHATSAPP_NUMBER');
-    const introText = body.introText || body.introMessage;
+    let introText = body.introText || body.introMessage;
+    
+    // CRITICAL FIX: Detect and extract intro_message from raw JSON
+    // This catches cases where n8n passes the entire AI response instead of just the intro_message
+    if (introText) {
+      if (typeof introText === 'string' && introText.trim().startsWith('{')) {
+        try {
+          const parsedIntro = JSON.parse(introText);
+          if (parsedIntro.intro_message) {
+            introText = parsedIntro.intro_message;
+            console.log('Extracted intro_message from raw JSON:', introText);
+          }
+        } catch (e) {
+          // Not valid JSON, check if it contains JSON-like content
+          if (introText.includes('"intro_message"') || introText.includes('"recommendations"')) {
+            console.log('WARNING: introText contains JSON-like content but failed to parse');
+            // Try to extract text before JSON starts
+            const jsonStart = introText.search(/[{[]/);
+            if (jsonStart > 0) {
+              introText = introText.substring(0, jsonStart).trim();
+            } else {
+              // Complete fallback
+              introText = "Here are some recommendations for you! 🎉";
+            }
+          }
+        }
+      } else if (typeof introText === 'object' && introText.intro_message) {
+        introText = introText.intro_message;
+        console.log('Extracted intro_message from object:', introText);
+      }
+    }
     
     // Handle text-only messages (no recommendations)
     if (!recommendations || recommendations.length === 0) {
