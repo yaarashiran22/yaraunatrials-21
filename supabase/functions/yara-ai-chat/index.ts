@@ -117,53 +117,82 @@ serve(async (req) => {
       }
     };
 
+    // OPTIMIZATION: Detect user intent to conditionally load data
+    // This reduces token count significantly for queries that don't need all data
+    const lastUserMessageRaw = messages[messages.length - 1]?.content || "";
+    const lastUserMessageLower = lastUserMessageRaw.toLowerCase();
+    
+    // Intent detection for conditional data loading
+    const wantsCoupons = /\b(coupon|discount|deal|offer|descuento|oferta|cupón|cupon|promo|promotion|%\s*off|off\s*%)\b/i.test(lastUserMessageLower);
+    const wantsBarsClubs = /\b(bar|bars|club|clubs|nightlife|drinks|cocktail|pub|bares|boliche|boliches|café|cafe|cafes|coffee)\b/i.test(lastUserMessageLower);
+    const wantsTopLists = wantsBarsClubs || /\b(best|top|recommend|favorite|favourites|mejores|recomend)\b/i.test(lastUserMessageLower);
+    
+    console.log(`Intent detection: wantsCoupons=${wantsCoupons}, wantsBarsClubs=${wantsBarsClubs}, wantsTopLists=${wantsTopLists}`);
+
     // Fetch events with database-level date filtering for performance
     // Only fetch events where date >= today OR date contains 'every' (recurring)
-    const [eventsResult, itemsResult, couponsResult, topListsResult] = await Promise.all([
-      supabase
-        .from("events")
-        .select(
-          "id, title, description, date, time, location, address, venue_name, price, mood, music_type, venue_size, external_link, ticket_link, image_url, target_audience",
-        )
-        .or(`date.gte.${today},date.ilike.%every%`)
-        .order("date", { ascending: true })
-        .limit(100),
-      supabase
-        .from("items")
-        .select("id, title, description, category, location, price, image_url")
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
-        .limit(50),
-      supabase
-        .from("user_coupons")
-        .select("id, title, description, business_name, discount_amount, neighborhood, valid_until, image_url")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .limit(50),
-      supabase
-        .from("top_lists")
-        .select(`
-          id,
-          title,
-          category,
-          description,
-          top_list_items (
+    // OPTIMIZATION: Only fetch coupons and topLists when user asks for them
+    const eventsPromise = supabase
+      .from("events")
+      .select(
+        "id, title, description, date, time, location, address, venue_name, price, mood, music_type, venue_size, external_link, ticket_link, image_url, target_audience",
+      )
+      .or(`date.gte.${today},date.ilike.%every%`)
+      .order("date", { ascending: true })
+      .limit(100);
+    
+    const itemsPromise = supabase
+      .from("items")
+      .select("id, title, description, category, location, price, image_url")
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    
+    // Only fetch coupons if user asks about discounts/deals
+    const couponsPromise = wantsCoupons 
+      ? supabase
+          .from("user_coupons")
+          .select("id, title, description, business_name, discount_amount, neighborhood, valid_until, image_url")
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(50)
+      : Promise.resolve({ data: [], error: null });
+    
+    // Only fetch top lists if user asks about bars/clubs/recommendations
+    const topListsPromise = wantsTopLists
+      ? supabase
+          .from("top_lists")
+          .select(`
             id,
-            name,
+            title,
+            category,
             description,
-            location,
-            url,
-            display_order
-          )
-        `)
-        .order("created_at", { ascending: false })
-        .limit(100),
+            top_list_items (
+              id,
+              name,
+              description,
+              location,
+              url,
+              display_order
+            )
+          `)
+          .order("created_at", { ascending: false })
+          .limit(100)
+      : Promise.resolve({ data: [], error: null });
+
+    const [eventsResult, itemsResult, couponsResult, topListsResult] = await Promise.all([
+      eventsPromise,
+      itemsPromise,
+      couponsPromise,
+      topListsPromise,
     ]);
 
     let allEvents = eventsResult.data || [];
     const businesses = itemsResult.data || [];
     const coupons = couponsResult.data || [];
     const topLists = topListsResult.data || [];
+    
+    console.log(`Loaded: ${allEvents.length} events, ${businesses.length} businesses, ${coupons.length} coupons, ${topLists.length} top lists`);
 
     // Helper function to calculate next occurrence of recurring event - uses Buenos Aires time
     const getNextOccurrence = (dayName: string): string => {
@@ -238,7 +267,6 @@ serve(async (req) => {
     const ageFilteredEvents = filteredByDateEvents.filter(event => isAgeAppropriate(event.target_audience, userAge));
     
     console.log(`Filtered ${filteredByDateEvents.length} date-matched events to ${ageFilteredEvents.length} age-appropriate events for age ${userAge}`);
-    console.log(`Also fetched ${businesses.length} businesses, ${coupons.length} coupons, ${topLists.length} top lists`);
 
     // Build context for AI - dates are already transformed above
     // Also format today's date for matching
@@ -398,8 +426,17 @@ serve(async (req) => {
       }
     }
 
+    // OPTIMIZATION: Limit conversation history to last 10 messages to reduce token count
+    // This keeps ~5 back-and-forth exchanges which is enough context for most conversations
+    const MAX_CONVERSATION_HISTORY = 10;
+    const limitedMessages = messages.length > MAX_CONVERSATION_HISTORY 
+      ? messages.slice(-MAX_CONVERSATION_HISTORY)
+      : messages;
+    
+    console.log(`Conversation history: ${messages.length} total messages, using last ${limitedMessages.length}`);
+    
     // Inject user profile into the first user message to ensure AI sees it
-    const enrichedMessages = [...messages];
+    const enrichedMessages = [...limitedMessages];
 
     // If this is the first user message and we have profile info, prepend it
     if (userProfileInfo.length > 0 && enrichedMessages.length > 0) {
@@ -466,8 +503,8 @@ serve(async (req) => {
       return { language: 'en', confident: false }; // Default to English, but NOT confident
     };
 
-    // Get the last user message to understand their query
-    const lastUserMessage = messages[messages.length - 1]?.content || "";
+    // Get the last user message to understand their query (reusing from earlier)
+    const lastUserMessage = lastUserMessageRaw;
     
     // Check for EXPLICIT language switch requests FIRST (highest priority)
     const explicitSpanishRequest = /\b(háblame en español|habla en español|en español|responde en español|spanish please|in spanish)\b/i.test(lastUserMessage);
@@ -2321,8 +2358,7 @@ ${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
         }
 
         // CRITICAL FIX: Filter out jam sessions when user asks for workshops
-        const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase() || "";
-        const userAskedForWorkshops = /\b(workshop|workshops|class|classes|course|courses|taller|talleres)\b/i.test(lastUserMessage);
+        const userAskedForWorkshops = /\b(workshop|workshops|class|classes|course|courses|taller|talleres)\b/i.test(lastUserMessageLower);
         
         if (userAskedForWorkshops && parsed.recommendations && Array.isArray(parsed.recommendations)) {
           const workshopKeywords = /\b(workshop|class|course|taller|masterclass|training|seminar|lesson|tutorial)\b/i;
