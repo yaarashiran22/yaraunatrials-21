@@ -1357,8 +1357,11 @@ IMPORTANT - NO DATABASE MATCHES:
       console.log("AI response (conversational):", message);
       
       // CRITICAL FIX: Detect when AI returns a raw JSON array of recommendations
-      // Pattern: message starts with "[" and contains recommendation objects
+      // Pattern 1: message starts with "[" and contains recommendation objects
+      // Pattern 2: message contains conversational text followed by a JSON array
       const trimmedMessage = message.trim();
+      
+      // Pattern 1: Pure JSON array
       if (trimmedMessage.startsWith('[') && trimmedMessage.endsWith(']')) {
         try {
           const parsedArray = JSON.parse(trimmedMessage);
@@ -1378,6 +1381,36 @@ IMPORTANT - NO DATABASE MATCHES:
         } catch (e) {
           // Not valid JSON, continue with normal processing
           console.log("Message looks like JSON array but failed to parse:", e);
+        }
+      }
+      
+      // Pattern 2: Conversational text followed by JSON array (e.g., "Here are some coupons:\n[{...}]")
+      // This catches when AI returns "Here are some coupons you might like:\n\n[...]" format
+      else if (message.includes('[') && message.includes('"type"')) {
+        const jsonArrayMatch = message.match(/\[[\s\S]*\]/);
+        if (jsonArrayMatch) {
+          try {
+            const parsedArray = JSON.parse(jsonArrayMatch[0]);
+            if (Array.isArray(parsedArray) && parsedArray.length > 0 && parsedArray[0].type) {
+              console.log("DETECTED: AI returned conversational text + JSON array. Extracting and wrapping.");
+              
+              // Extract the intro text (everything before the JSON array)
+              const introText = message.substring(0, message.indexOf('[')).trim();
+              const cleanIntro = introText.replace(/[:\n]+$/, '').trim() || (userLanguage === 'es' 
+                ? `¡Encontré ${parsedArray.length} opciones para vos!`
+                : `Found ${parsedArray.length} options for you!`);
+              
+              // Wrap in proper structure
+              message = JSON.stringify({
+                intro_message: cleanIntro,
+                recommendations: parsedArray,
+                followup_message: userLanguage === 'es' ? '¿Algo más que estés buscando?' : 'Anything else you\'re looking for?'
+              });
+              console.log("Extracted and wrapped hybrid response in proper structure");
+            }
+          } catch (e) {
+            console.log("Message contains JSON-like content but failed to parse:", e);
+          }
         }
       }
       
