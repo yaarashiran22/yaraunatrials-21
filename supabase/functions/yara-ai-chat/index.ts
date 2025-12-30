@@ -451,8 +451,8 @@ serve(async (req) => {
     }
 
     // Detect language from the current user message FIRST (before building prompts)
-    // Returns { language: string, confident: boolean } to indicate if detection was confident or defaulted
-    const detectLanguage = (text: string): { language: string, confident: boolean } => {
+    // Returns { language: string, confident: boolean, scores: Record<string, number> } for debugging
+    const detectLanguage = (text: string): { language: string, confident: boolean, scores: Record<string, number> } => {
       // Check for various language patterns
       const hebrewChars = /[\u0590-\u05FF]/g; // Hebrew Unicode range
       const arabicChars = /[\u0600-\u06FF]/g; // Arabic Unicode range
@@ -462,12 +462,16 @@ serve(async (req) => {
       const russianChars = /[\u0400-\u04FF]/g; // Cyrillic Unicode range
       const latinChars = /[a-zA-Z]/g; // Latin alphabet
       
-      // Expanded Spanish word list to catch more common words
-      const spanishWords = /\b(hola|qué|dónde|cuándo|cómo|gracias|por favor|eventos|bares|fiesta|quiero|busco|tengo|vacaciones|costa|argentina|playa|hoy|mañana|esta|noche|algo|para|hacer|que|hay|buenos|aires|en|la|el|los|las|del|una|uno|mas|más|también|donde|cuando|como|porque|todo|nada|si|sí|no|muy|bien|mal|ahora|después|antes|siempre|nunca|aquí|allí|esto|eso|ese|esta|mi|tu|su|nosotros|ustedes|ellos|año|nuevo|diciembre|enero|semana|día|dias|días|finde|fin|de)\b/i;
-      const portugueseWords = /\b(olá|obrigado|onde|quando|como|por favor|eventos|quero|procuro|tenho|praia|hoje|amanhã|esta|noite|algo|para|fazer|que|há|buenos|aires|em|a|o|os|as|do|uma|um|mais|também|porque|tudo|nada|sim|não|muito|bem|mal|agora|depois|antes|sempre|nunca|aqui|ali|isso|esse|essa|meu|tua|seu|nós|vocês|eles|ano|novo|dezembro|janeiro|semana|dia|dias)\b/i;
-      const frenchWords = /\b(bonjour|merci|où|quand|comment|s'il vous plaît|événements|je veux|cherche|aujourd'hui|demain|soir|quelque|pour|faire|qu'est|ce|qu'il|y|a|buenos|aires|en|la|le|les|du|une|un|plus|aussi|parce|tout|rien|oui|non|très|bien|mal|maintenant|après|avant|toujours|jamais|ici|là)\b/i;
-      const germanWords = /\b(hallo|danke|wo|wann|wie|bitte|veranstaltungen|ich möchte|suche|heute|morgen|abend|etwas|für|machen|was|gibt|es|buenos|aires|in|die|der|das|den|eine|ein|mehr|auch|weil|alles|nichts|ja|nein|sehr|gut|schlecht|jetzt|nach|vor|immer|nie|hier|dort)\b/i;
-      const italianWords = /\b(ciao|grazie|dove|quando|come|per favore|eventi|voglio|cerco|oggi|domani|sera|qualcosa|per|fare|che|cosa|c'è|buenos|aires|in|la|il|le|gli|del|una|uno|più|anche|perché|tutto|niente|sì|no|molto|bene|male|adesso|dopo|prima|sempre|mai|qui|là)\b/i;
+      // UNIQUE Spanish words (NOT shared with Portuguese)
+      // Removed: que, para, como, dia, dias, semana, algo, nada, bien, mal, aquí, ahora, siempre, nunca, todo, muy, año, nuevo
+      const spanishUniqueWords = ['hola', 'qué', 'dónde', 'cuándo', 'cómo', 'gracias', 'eventos', 'fiesta', 'quiero', 'busco', 'tengo', 'vacaciones', 'playa', 'hoy', 'mañana', 'noche', 'hacer', 'hay', 'buenos', 'aires', 'los', 'las', 'del', 'una', 'uno', 'más', 'también', 'donde', 'cuando', 'porque', 'sí', 'este', 'esta', 'ese', 'eso', 'nosotros', 'ustedes', 'ellos', 'diciembre', 'enero', 'finde', 'fin', 'diferente', 'salir', 'lugar', 'lugares', 'barrio', 'barrios', 'recomendás', 'recomiendas', 'podés', 'puedes', 'querés', 'quieres', 'sabés', 'sabes', 'estás', 'estas', 'vos', 'che', 'buenísimo', 'genial', 'copado', 'piola', 'joya', 'dale', 'bueno', 'listo', 'gracias', 'chau', 'besos'];
+      
+      // UNIQUE Portuguese words (NOT shared with Spanish)
+      const portugueseUniqueWords = ['olá', 'obrigado', 'obrigada', 'onde', 'quando', 'procuro', 'hoje', 'amanhã', 'noite', 'fazer', 'há', 'os', 'as', 'do', 'uma', 'um', 'mais', 'também', 'tudo', 'sim', 'não', 'muito', 'agora', 'depois', 'antes', 'sempre', 'nunca', 'ali', 'isso', 'meu', 'minha', 'tua', 'seu', 'sua', 'nós', 'vocês', 'eles', 'elas', 'dezembro', 'janeiro', 'semana', 'você', 'voce', 'oi', 'tchau', 'beijos', 'beleza', 'legal', 'massa', 'bacana', 'valeu', 'blz', 'entao', 'então', 'pra', 'pro', 'bom', 'boa', 'obg'];
+      
+      const frenchWords = ['bonjour', 'merci', 'où', 'quand', 'comment', 'événements', 'cherche', 'aujourd', 'demain', 'soir', 'quelque', 'faire', 'qu', 'oui', 'non', 'très', 'maintenant', 'après', 'avant', 'toujours', 'jamais', 'ici', 'là', 'salut', 'bonsoir'];
+      const germanWords = ['hallo', 'danke', 'wo', 'wann', 'wie', 'bitte', 'veranstaltungen', 'möchte', 'suche', 'heute', 'morgen', 'abend', 'etwas', 'für', 'machen', 'was', 'gibt', 'ja', 'nein', 'sehr', 'gut', 'schlecht', 'jetzt', 'nach', 'vor', 'immer', 'nie', 'hier', 'dort'];
+      const italianWords = ['ciao', 'grazie', 'dove', 'quando', 'come', 'favore', 'eventi', 'voglio', 'cerco', 'oggi', 'domani', 'sera', 'qualcosa', 'fare', 'cosa', 'sì', 'no', 'molto', 'bene', 'male', 'adesso', 'dopo', 'prima', 'sempre', 'mai', 'qui', 'là', 'buongiorno', 'buonasera'];
       
       // Count characters of each type to determine MAJORITY language
       const hebrewCount = (text.match(hebrewChars) || []).length;
@@ -482,25 +486,51 @@ serve(async (req) => {
       const totalNonLatin = hebrewCount + arabicCount + chineseCount + japaneseCount + koreanCount + russianCount;
       
       // Only detect non-Latin language if it's the MAJORITY of the text (more non-Latin than Latin chars)
-      // This prevents a single Arabic/Hebrew word from switching the whole response language
       if (totalNonLatin > latinCount && totalNonLatin >= 3) {
-        // Find which non-Latin script is dominant
         const maxNonLatin = Math.max(hebrewCount, arabicCount, chineseCount, japaneseCount, koreanCount, russianCount);
-        if (hebrewCount === maxNonLatin) return { language: 'he', confident: true };
-        if (arabicCount === maxNonLatin) return { language: 'ar', confident: true };
-        if (chineseCount === maxNonLatin) return { language: 'zh', confident: true };
-        if (japaneseCount === maxNonLatin) return { language: 'ja', confident: true };
-        if (koreanCount === maxNonLatin) return { language: 'ko', confident: true };
-        if (russianCount === maxNonLatin) return { language: 'ru', confident: true };
+        if (hebrewCount === maxNonLatin) return { language: 'he', confident: true, scores: { he: hebrewCount } };
+        if (arabicCount === maxNonLatin) return { language: 'ar', confident: true, scores: { ar: arabicCount } };
+        if (chineseCount === maxNonLatin) return { language: 'zh', confident: true, scores: { zh: chineseCount } };
+        if (japaneseCount === maxNonLatin) return { language: 'ja', confident: true, scores: { ja: japaneseCount } };
+        if (koreanCount === maxNonLatin) return { language: 'ko', confident: true, scores: { ko: koreanCount } };
+        if (russianCount === maxNonLatin) return { language: 'ru', confident: true, scores: { ru: russianCount } };
       }
       
-      // For Latin-based languages, check for specific words
-      if (spanishWords.test(text)) return { language: 'es', confident: true };
-      if (portugueseWords.test(text)) return { language: 'pt', confident: true };
-      if (frenchWords.test(text)) return { language: 'fr', confident: true };
-      if (germanWords.test(text)) return { language: 'de', confident: true };
-      if (italianWords.test(text)) return { language: 'it', confident: true };
-      return { language: 'en', confident: false }; // Default to English, but NOT confident
+      // For Latin-based languages, use SCORING system (count unique word matches)
+      const textLower = text.toLowerCase();
+      const words = textLower.split(/\s+/);
+      
+      const countMatches = (wordList: string[]): number => {
+        return words.filter(word => {
+          // Remove punctuation for matching
+          const cleanWord = word.replace(/[.,!?¿¡'"()]/g, '');
+          return wordList.some(w => cleanWord === w.toLowerCase());
+        }).length;
+      };
+      
+      const scores: Record<string, number> = {
+        es: countMatches(spanishUniqueWords),
+        pt: countMatches(portugueseUniqueWords),
+        fr: countMatches(frenchWords),
+        de: countMatches(germanWords),
+        it: countMatches(italianWords),
+      };
+      
+      console.log(`Language scores: ${JSON.stringify(scores)}`);
+      
+      // Find the language with the highest score
+      const maxScore = Math.max(...Object.values(scores));
+      const topLanguage = Object.entries(scores).find(([_, score]) => score === maxScore)?.[0] || 'en';
+      
+      // Only mark as confident if we have at least 1 unique word match AND it's clearly the winner
+      // (more than other languages or at least 2 matches)
+      const isConfident = maxScore >= 1 && (maxScore >= 2 || Object.values(scores).filter(s => s === maxScore).length === 1);
+      
+      if (isConfident && maxScore > 0) {
+        return { language: topLanguage, confident: true, scores };
+      }
+      
+      return { language: 'en', confident: false, scores }; // Default to English, but NOT confident
     };
 
     // Get the last user message to understand their query (reusing from earlier)
@@ -532,15 +562,16 @@ serve(async (req) => {
       console.log('Explicit Portuguese language request detected');
     } else {
       const detection = detectLanguage(lastUserMessage);
+      console.log(`Language detection result: ${JSON.stringify(detection)}`);
       
       if (detection.confident) {
         // We confidently detected a language from the message
         userLanguage = detection.language;
         shouldUpdateStoredLanguage = true;
         console.log(`Confident language detection: ${userLanguage}`);
-      } else if (storedPreferredLanguage && storedPreferredLanguage !== 'en') {
-        // Message detection defaulted to English, but user has a stored non-English preference
-        // Use their stored preference instead
+      } else if (storedPreferredLanguage) {
+        // Message detection was NOT confident - use stored preference (even if it's 'en')
+        // This prevents mid-conversation language switching for short messages
         userLanguage = storedPreferredLanguage;
         console.log(`Using stored preferred language: ${userLanguage} (message detection was not confident)`);
       } else {
