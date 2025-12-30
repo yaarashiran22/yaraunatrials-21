@@ -414,7 +414,8 @@ serve(async (req) => {
     }
 
     // Detect language from the current user message FIRST (before building prompts)
-    const detectLanguage = (text: string): string => {
+    // Returns { language: string, confident: boolean } to indicate if detection was confident or defaulted
+    const detectLanguage = (text: string): { language: string, confident: boolean } => {
       // Check for various language patterns
       const hebrewChars = /[\u0590-\u05FF]/g; // Hebrew Unicode range
       const arabicChars = /[\u0600-\u06FF]/g; // Arabic Unicode range
@@ -424,11 +425,12 @@ serve(async (req) => {
       const russianChars = /[\u0400-\u04FF]/g; // Cyrillic Unicode range
       const latinChars = /[a-zA-Z]/g; // Latin alphabet
       
-      const spanishWords = /\b(hola|qué|dónde|cuándo|cómo|gracias|por favor|eventos|bares|fiesta|quiero|busco|tengo)\b/i;
-      const portugueseWords = /\b(olá|obrigado|onde|quando|como|por favor|eventos|quero|procuro|tenho)\b/i;
-      const frenchWords = /\b(bonjour|merci|où|quand|comment|s'il vous plaît|événements|je veux|cherche)\b/i;
-      const germanWords = /\b(hallo|danke|wo|wann|wie|bitte|veranstaltungen|ich möchte|suche)\b/i;
-      const italianWords = /\b(ciao|grazie|dove|quando|come|per favore|eventi|voglio|cerco)\b/i;
+      // Expanded Spanish word list to catch more common words
+      const spanishWords = /\b(hola|qué|dónde|cuándo|cómo|gracias|por favor|eventos|bares|fiesta|quiero|busco|tengo|vacaciones|costa|argentina|playa|hoy|mañana|esta|noche|algo|para|hacer|que|hay|buenos|aires|en|la|el|los|las|del|una|uno|mas|más|también|donde|cuando|como|porque|todo|nada|si|sí|no|muy|bien|mal|ahora|después|antes|siempre|nunca|aquí|allí|esto|eso|ese|esta|mi|tu|su|nosotros|ustedes|ellos|año|nuevo|diciembre|enero|semana|día|dias|días|finde|fin|de)\b/i;
+      const portugueseWords = /\b(olá|obrigado|onde|quando|como|por favor|eventos|quero|procuro|tenho|praia|hoje|amanhã|esta|noite|algo|para|fazer|que|há|buenos|aires|em|a|o|os|as|do|uma|um|mais|também|porque|tudo|nada|sim|não|muito|bem|mal|agora|depois|antes|sempre|nunca|aqui|ali|isso|esse|essa|meu|tua|seu|nós|vocês|eles|ano|novo|dezembro|janeiro|semana|dia|dias)\b/i;
+      const frenchWords = /\b(bonjour|merci|où|quand|comment|s'il vous plaît|événements|je veux|cherche|aujourd'hui|demain|soir|quelque|pour|faire|qu'est|ce|qu'il|y|a|buenos|aires|en|la|le|les|du|une|un|plus|aussi|parce|tout|rien|oui|non|très|bien|mal|maintenant|après|avant|toujours|jamais|ici|là)\b/i;
+      const germanWords = /\b(hallo|danke|wo|wann|wie|bitte|veranstaltungen|ich möchte|suche|heute|morgen|abend|etwas|für|machen|was|gibt|es|buenos|aires|in|die|der|das|den|eine|ein|mehr|auch|weil|alles|nichts|ja|nein|sehr|gut|schlecht|jetzt|nach|vor|immer|nie|hier|dort)\b/i;
+      const italianWords = /\b(ciao|grazie|dove|quando|come|per favore|eventi|voglio|cerco|oggi|domani|sera|qualcosa|per|fare|che|cosa|c'è|buenos|aires|in|la|il|le|gli|del|una|uno|più|anche|perché|tutto|niente|sì|no|molto|bene|male|adesso|dopo|prima|sempre|mai|qui|là)\b/i;
       
       // Count characters of each type to determine MAJORITY language
       const hebrewCount = (text.match(hebrewChars) || []).length;
@@ -447,21 +449,21 @@ serve(async (req) => {
       if (totalNonLatin > latinCount && totalNonLatin >= 3) {
         // Find which non-Latin script is dominant
         const maxNonLatin = Math.max(hebrewCount, arabicCount, chineseCount, japaneseCount, koreanCount, russianCount);
-        if (hebrewCount === maxNonLatin) return 'he';
-        if (arabicCount === maxNonLatin) return 'ar';
-        if (chineseCount === maxNonLatin) return 'zh';
-        if (japaneseCount === maxNonLatin) return 'ja';
-        if (koreanCount === maxNonLatin) return 'ko';
-        if (russianCount === maxNonLatin) return 'ru';
+        if (hebrewCount === maxNonLatin) return { language: 'he', confident: true };
+        if (arabicCount === maxNonLatin) return { language: 'ar', confident: true };
+        if (chineseCount === maxNonLatin) return { language: 'zh', confident: true };
+        if (japaneseCount === maxNonLatin) return { language: 'ja', confident: true };
+        if (koreanCount === maxNonLatin) return { language: 'ko', confident: true };
+        if (russianCount === maxNonLatin) return { language: 'ru', confident: true };
       }
       
       // For Latin-based languages, check for specific words
-      if (spanishWords.test(text)) return 'es';
-      if (portugueseWords.test(text)) return 'pt';
-      if (frenchWords.test(text)) return 'fr';
-      if (germanWords.test(text)) return 'de';
-      if (italianWords.test(text)) return 'it';
-      return 'en'; // Default to English
+      if (spanishWords.test(text)) return { language: 'es', confident: true };
+      if (portugueseWords.test(text)) return { language: 'pt', confident: true };
+      if (frenchWords.test(text)) return { language: 'fr', confident: true };
+      if (germanWords.test(text)) return { language: 'de', confident: true };
+      if (italianWords.test(text)) return { language: 'it', confident: true };
+      return { language: 'en', confident: false }; // Default to English, but NOT confident
     };
 
     // Get the last user message to understand their query
@@ -472,20 +474,60 @@ serve(async (req) => {
     const explicitEnglishRequest = /\b(speak english|in english|english please|háblame en inglés|habla en inglés|en inglés)\b/i.test(lastUserMessage);
     const explicitPortugueseRequest = /\b(em português|fala em português|portuguese please|in portuguese)\b/i.test(lastUserMessage);
     
-    // Determine language: explicit request > auto-detection
+    // Get user's stored preferred language from profile (if available)
+    const storedPreferredLanguage = userProfile?.preferred_language || null;
+    
+    // Determine language: explicit request > confident detection > stored preference > default English
     let userLanguage: string;
+    let shouldUpdateStoredLanguage = false;
+    
     if (explicitSpanishRequest) {
       userLanguage = 'es';
+      shouldUpdateStoredLanguage = true;
       console.log('Explicit Spanish language request detected');
     } else if (explicitEnglishRequest) {
       userLanguage = 'en';
+      shouldUpdateStoredLanguage = true;
       console.log('Explicit English language request detected');
     } else if (explicitPortugueseRequest) {
       userLanguage = 'pt';
+      shouldUpdateStoredLanguage = true;
       console.log('Explicit Portuguese language request detected');
     } else {
-      userLanguage = detectLanguage(lastUserMessage);
+      const detection = detectLanguage(lastUserMessage);
+      
+      if (detection.confident) {
+        // We confidently detected a language from the message
+        userLanguage = detection.language;
+        shouldUpdateStoredLanguage = true;
+        console.log(`Confident language detection: ${userLanguage}`);
+      } else if (storedPreferredLanguage && storedPreferredLanguage !== 'en') {
+        // Message detection defaulted to English, but user has a stored non-English preference
+        // Use their stored preference instead
+        userLanguage = storedPreferredLanguage;
+        console.log(`Using stored preferred language: ${userLanguage} (message detection was not confident)`);
+      } else {
+        // No confident detection and no stored preference - default to English
+        userLanguage = 'en';
+        console.log('Defaulting to English (no confident detection, no stored preference)');
+      }
     }
+    
+    // Update user's preferred language in the database if we detected a new language
+    if (shouldUpdateStoredLanguage && phoneNumber && userLanguage !== storedPreferredLanguage) {
+      console.log(`Updating stored language from '${storedPreferredLanguage}' to '${userLanguage}' for ${phoneNumber}`);
+      const { error: updateError } = await supabase
+        .from('whatsapp_users')
+        .update({ preferred_language: userLanguage })
+        .eq('phone_number', phoneNumber);
+      
+      if (updateError) {
+        console.error('Failed to update preferred language:', updateError);
+      } else {
+        console.log(`Successfully updated preferred language to '${userLanguage}'`);
+      }
+    }
+    
     console.log(`Final user language: ${userLanguage} from message: "${lastUserMessage}"`);
 
     // Language map for system prompts
