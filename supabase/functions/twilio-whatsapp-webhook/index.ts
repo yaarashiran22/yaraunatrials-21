@@ -137,11 +137,31 @@ Deno.serve(async (req) => {
     );
 
     // Check if message is a greeting OR a conversation starter
-    const greetingPatterns = /^(hey|hi|hello|sup|yo|hola|what's up|whats up)[\s!?.]*$/i;
+    // IMPROVED: More robust detection to avoid treating recommendation requests as greetings
+    const bodyTrimmed = body.trim();
+    const bodyLowerTrimmed = bodyTrimmed.toLowerCase();
+    
+    // Greeting patterns - STRICT: only matches if the ENTIRE message is just a greeting
+    const greetingPatterns = /^(hey|hi|hello|sup|yo|hola|buenas|what's up|whats up)[\s!?.]*$/i;
+    
+    // Recommendation request patterns - if ANY of these appear, treat as recommendation request
+    const recommendationPatterns = /\b(what's there to do|whats there to do|what to do|things to do|what can i do|what should i do|anything to do|something to do|plans for|eventos|fiestas|parties|events|shows|concerts|clubs|bars|galleries|exhibitions|theater|teatro|música|music|recommend|recommendations|looking for|show me|find me|what are some|dame|dime|tienes|hay algo|qué hay|que hay|donde puedo|busco|quiero ir)\b/i;
+    
+    // Conversation starters that indicate the user wants something specific
     const conversationStarterPatterns =
-      /^(i'm looking for|i want|show me|find me|i need|looking for|what's|whats|tell me about|i'm into|im into|help me find)/i;
-    const isGreeting = greetingPatterns.test(body.trim());
-    const isConversationStarter = conversationStarterPatterns.test(body.trim());
+      /^(i'm looking for|i want|show me|find me|i need|looking for|what's|whats|tell me about|i'm into|im into|help me find|busco|quiero|necesito|dame)/i;
+    
+    // Determine intent
+    const isStrictGreeting = greetingPatterns.test(bodyTrimmed);
+    const hasRecommendationIntent = recommendationPatterns.test(bodyLowerTrimmed);
+    const isConversationStarter = conversationStarterPatterns.test(bodyTrimmed);
+    
+    // CRITICAL FIX: A message is only treated as a greeting if:
+    // 1. It matches the strict greeting pattern (entire message is just greeting), AND
+    // 2. It does NOT contain any recommendation-related keywords
+    const isGreeting = isStrictGreeting && !hasRecommendationIntent;
+    
+    console.log(`Intent detection: greeting=${isGreeting}, strictGreeting=${isStrictGreeting}, hasRecommendationIntent=${hasRecommendationIntent}, conversationStarter=${isConversationStarter}`);
 
     // Get or create WhatsApp user profile
     let { data: whatsappUser } = await supabase
