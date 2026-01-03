@@ -127,7 +127,10 @@ serve(async (req) => {
     const wantsBarsClubs = /\b(bar|bars|club|clubs|nightlife|drinks|cocktail|pub|bares|boliche|boliches|café|cafe|cafes|coffee)\b/i.test(lastUserMessageLower);
     const wantsTopLists = wantsBarsClubs || /\b(best|top|recommend|favorite|favourites|mejores|recomend)\b/i.test(lastUserMessageLower);
     
-    console.log(`Intent detection: wantsCoupons=${wantsCoupons}, wantsBarsClubs=${wantsBarsClubs}, wantsTopLists=${wantsTopLists}`);
+    // Detect if user is asking for local services/places (not events)
+    const wantsLocalServices = /\b(barbershop|barber|peluquería|peluqueria|hair salon|salon|spa|gym|gimnasio|dentist|dentista|doctor|médico|medico|hospital|clinic|clínica|clinica|pharmacy|farmacia|supermarket|supermercado|grocery|laundry|lavandería|lavanderia|bank|banco|atm|cajero|post office|correo|veterinarian|veterinario|vet|mechanic|mecánico|mecanico|plumber|plomero|electrician|electricista|locksmith|cerrajero|dry cleaning|tintorería|tintoreria|tailor|sastre|optician|óptica|optica|massage|masaje|nail salon|manicure|pedicure|tattoo|tatuaje|yoga|pilates|crossfit|swimming pool|piscina|driving school|autoescuela|pet shop|tienda de mascotas|florist|florería|floreria|bakery|panadería|panaderia|butcher|carnicería|carniceria|fishmonger|pescadería|pescaderia|ice cream|heladería|heladeria|bookstore|librería|libreria|hardware store|ferretería|ferreteria|electronics|electrónica|electronica|furniture|mueblería|muebleria|car wash|lavadero|parking|estacionamiento|hotel|hostel|airbnb|rental|alquiler|real estate|inmobiliaria|lawyer|abogado|accountant|contador|notary|escribano|translator|traductor|tutor|profesor|teacher|school|escuela|university|universidad|language school|instituto de idiomas|daycare|guardería|guarderia|kindergarten|jardín|jardin)\b/i.test(lastUserMessageLower);
+    
+    console.log(`Intent detection: wantsCoupons=${wantsCoupons}, wantsBarsClubs=${wantsBarsClubs}, wantsTopLists=${wantsTopLists}, wantsLocalServices=${wantsLocalServices}`);
 
     // Fetch events with database-level date filtering for performance
     // Only fetch events where date >= today OR date contains 'every' (recurring)
@@ -180,19 +183,66 @@ serve(async (req) => {
           .limit(100)
       : Promise.resolve({ data: [], error: null });
 
-    const [eventsResult, itemsResult, couponsResult, topListsResult] = await Promise.all([
+    // Google Places API call for local services
+    const googlePlacesPromise = wantsLocalServices
+      ? (async () => {
+          try {
+            const googleApiKey = Deno.env.get('GOOGLE_PLACES_API_KEY');
+            if (!googleApiKey) {
+              console.log('Google Places API key not configured - skipping local services search');
+              return { results: [] };
+            }
+            
+            // Extract the service type from the user's message
+            const searchUrl = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json');
+            searchUrl.searchParams.set('query', `${lastUserMessageRaw} in Buenos Aires, Argentina`);
+            searchUrl.searchParams.set('key', googleApiKey);
+            searchUrl.searchParams.set('language', userLanguage || 'en');
+            
+            console.log(`Google Places API: Searching for "${lastUserMessageRaw}" in Buenos Aires`);
+            
+            const response = await fetch(searchUrl.toString());
+            const data = await response.json();
+            
+            if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+              console.error('Google Places API error:', data.status, data.error_message);
+              return { results: [] };
+            }
+            
+            // Transform results
+            const results = (data.results || []).slice(0, 5).map((place: any) => ({
+              name: place.name,
+              address: place.formatted_address,
+              rating: place.rating,
+              userRatingsTotal: place.user_ratings_total,
+              openNow: place.opening_hours?.open_now,
+              googleMapsUrl: `https://www.google.com/maps/place/?q=place_id:${place.place_id}`
+            }));
+            
+            console.log(`Google Places API: Found ${results.length} results`);
+            return { results };
+          } catch (error) {
+            console.error('Google Places API error:', error);
+            return { results: [] };
+          }
+        })()
+      : Promise.resolve({ results: [] });
+
+    const [eventsResult, itemsResult, couponsResult, topListsResult, googlePlacesResult] = await Promise.all([
       eventsPromise,
       itemsPromise,
       couponsPromise,
       topListsPromise,
+      googlePlacesPromise,
     ]);
 
     let allEvents = eventsResult.data || [];
     const businesses = itemsResult.data || [];
     const coupons = couponsResult.data || [];
     const topLists = topListsResult.data || [];
+    const googlePlaces = googlePlacesResult.results || [];
     
-    console.log(`Loaded: ${allEvents.length} events, ${businesses.length} businesses, ${coupons.length} coupons, ${topLists.length} top lists`);
+    console.log(`Loaded: ${allEvents.length} events, ${businesses.length} businesses, ${coupons.length} coupons, ${topLists.length} top lists, ${googlePlaces.length} Google Places`);
 
     // Helper function to calculate next occurrence of recurring event - uses Buenos Aires time
     const getNextOccurrence = (dayName: string): string => {
@@ -330,6 +380,7 @@ serve(async (req) => {
             url: item.url,
           })),
       })),
+      googlePlaces: googlePlaces.length > 0 ? googlePlaces : undefined,
     };
 
     // Build user context - we'll inject this directly into the conversation
@@ -801,6 +852,19 @@ The "topLists" section contains curated lists created by registered users about 
 - Example: If a user asks "recommend me bars", look through top lists with category "Bars", extract the individual bar items from those lists, and recommend those specific bars with their descriptions and locations
 - You can combine these top list items with relevant events to give comprehensive recommendations
 - The items array contains: name, description, and location for each place
+
+**GOOGLE PLACES - LOCAL SERVICES:**
+${googlePlaces.length > 0 ? `
+The "googlePlaces" section contains real-time search results from Google Places for local services like barbershops, salons, gyms, pharmacies, etc.
+When recommending places from Google Places:
+- Include the place NAME, ADDRESS, RATING (if available), and GOOGLE MAPS LINK
+- Format example:
+  "📍 **[Place Name]** ⭐ [rating]/5
+  📌 [Address]
+  🔗 [Google Maps link]"
+- If the place is currently open, mention it: "Open now!"
+- These are REAL businesses with actual ratings - be helpful and recommend based on user's query
+` : ''}
 
 **LOCATION-SPECIFIC QUERIES:**
 - When users ask about events "at [venue name]" or "in [venue name]", search the events by matching the venue_name field
