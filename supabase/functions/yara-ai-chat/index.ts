@@ -569,15 +569,29 @@ serve(async (req) => {
         userLanguage = detection.language;
         shouldUpdateStoredLanguage = true;
         console.log(`Confident language detection: ${userLanguage}`);
-      } else if (storedPreferredLanguage) {
-        // Message detection was NOT confident - use stored preference (even if it's 'en')
-        // This prevents mid-conversation language switching for short messages
-        userLanguage = storedPreferredLanguage;
-        console.log(`Using stored preferred language: ${userLanguage} (message detection was not confident)`);
       } else {
-        // No confident detection and no stored preference - default to English
-        userLanguage = 'en';
-        console.log('Defaulting to English (no confident detection, no stored preference)');
+        // Message detection was NOT confident
+        // For Latin-alphabet messages with NO detected language keywords, 
+        // check if it LOOKS like English (Latin chars, no Spanish/Portuguese markers)
+        const hasLatinChars = /[a-zA-Z]{3,}/.test(lastUserMessage);
+        const hasNonLatinScript = /[\u0590-\u05FF\u0600-\u06FF\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7AF\u0400-\u04FF]/.test(lastUserMessage);
+        
+        // If the message is in Latin alphabet and we didn't detect Spanish/Portuguese,
+        // it's most likely English - don't fall back to stored preference
+        if (hasLatinChars && !hasNonLatinScript && detection.scores.es === 0 && detection.scores.pt === 0) {
+          userLanguage = 'en';
+          shouldUpdateStoredLanguage = true;
+          console.log('Latin-alphabet message with no Spanish/Portuguese markers - treating as English');
+        } else if (storedPreferredLanguage && storedPreferredLanguage !== 'pt') {
+          // Use stored preference but NEVER fall back to Portuguese for non-Portuguese messages
+          // Portuguese should only be used if explicitly detected or requested
+          userLanguage = storedPreferredLanguage;
+          console.log(`Using stored preferred language: ${userLanguage} (message detection was not confident)`);
+        } else {
+          // No confident detection and no stored preference (or stored was Portuguese) - default to English
+          userLanguage = 'en';
+          console.log('Defaulting to English (no confident detection, no valid stored preference)');
+        }
       }
     }
     
@@ -607,15 +621,29 @@ serve(async (req) => {
     };
 
     // Automatic language detection - respond in the same language the user writes in
-    const languageInstruction = `CRITICAL LANGUAGE RULE: The user is writing in ${languageMap[userLanguage] || 'English'}. You MUST:
-1. Respond in ${languageMap[userLanguage] || 'English'} ONLY
-2. TRANSLATE all event titles, descriptions, and recommendation text to ${languageMap[userLanguage] || 'English'}
-3. Even if the database contains events in Spanish or English, YOU MUST translate them to ${languageMap[userLanguage] || 'English'}
-4. Keep venue names and proper nouns (like "Niceto Club", "La Bomba de Tiempo") in their original form, but translate descriptions
-5. Do not switch languages based on conversation history - everything must be in ${languageMap[userLanguage] || 'English'}
+    const languageInstruction = `🚨🚨🚨 CRITICAL LANGUAGE RULE - READ FIRST 🚨🚨🚨
+    
+The user is writing in **${languageMap[userLanguage] || 'English'}**. 
 
-Example: If database has "Fiesta de jazz con música en vivo" and user writes in English, translate to "Jazz party with live music"
-Example: If database has "Live jazz night" and user writes in Spanish, translate to "Noche de jazz en vivo"`;
+YOU MUST RESPOND ONLY IN **${(languageMap[userLanguage] || 'English').toUpperCase()}**. NO EXCEPTIONS.
+
+FORBIDDEN:
+- NEVER respond in Portuguese unless explicitly told "em português" or the user writes in Portuguese
+- NEVER respond in Spanish unless explicitly told "en español" or the user writes in Spanish  
+- NEVER switch languages mid-response
+- NEVER mix languages in your response
+
+REQUIRED:
+1. Your ENTIRE response must be in ${languageMap[userLanguage] || 'English'}
+2. Translate ALL event titles, descriptions, and text to ${languageMap[userLanguage] || 'English'}
+3. Only keep venue names and proper nouns (like "Niceto Club") in original form
+4. If user writes "Where do me and my friend go tonight" in ENGLISH → respond in ENGLISH
+5. If user writes "Hola qué hay hoy?" in SPANISH → respond in SPANISH
+
+Example: If database has "Fiesta de jazz" and user writes in English → translate to "Jazz party"
+Example: If database has "Live jazz night" and user writes in Spanish → translate to "Noche de jazz en vivo"
+
+🚨 VIOLATING THIS RULE IS THE #1 BUG - DO NOT RESPOND IN THE WRONG LANGUAGE 🚨`;
 
     // Expand language map for more languages
     const expandedLanguageMap: Record<string, string> = {
