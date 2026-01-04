@@ -1224,7 +1224,7 @@ REQUIRED JSON FORMAT - EVERY FIELD IS MANDATORY (NO EXCEPTIONS):
       "type": "event" | "business" | "coupon" | "topListItem",
       "id": "actual-event-id-from-database OR individual item ID from top_list_items for topListItem type",
       "title": "Event Title from database OR bar/café/club name from topList items",
-      "description": "MANDATORY - For events: Location: [location]. Address: [address]. Date: [originalDate]. Time: [time]. Music Type: [music_type]. Instagram: [external_link]. For topListItem: Include '📸 Instagram: [url]' where url is from database item.url OR extracted from description",
+      "description": "MANDATORY - For events: MUST START WITH the actual event description from database, then add: Date: [originalDate]. Time: [time]. Location: [location]. Address: [address]. Music Type: [music_type]. Instagram: [external_link]. Example: 'Join us for an incredible night of live jazz with Argentina's best musicians! Date: January 5th. Time: 9:00 PM. Location: Palermo. Address: Thames 1884. Music Type: Jazz.' For topListItem: Include the item description from database + '📸 Instagram: [url]'",
       "why_recommended": "Short personalized explanation (1-2 sentences) of why this matches their request and profile.",
       "personalized_note": "CRITICAL - NEVER INCLUDE THIS FIELD for topListItem (bars/clubs/cafes). ONLY for events (type='event').",
       "url": "CRITICAL MANDATORY for topListItem. Step 1: Check if database item.url exists and has a value. Step 2: If yes, copy it exactly (e.g., 'https://www.instagram.com/underclub.bsas/?hl=en'). Step 3: If item.url is null, extract URL from item.description. ALWAYS include this field for topListItems. Leave empty ONLY for events.",
@@ -1332,8 +1332,9 @@ RECOMMENDATION OUTPUT RULES:
 - **CRITICAL**: ONLY include events/items that have an image_url field - never recommend anything without an image
 - **CRITICAL**: You MUST include the "image_url" field in EVERY recommendation in your JSON response - this is the event's photo that will be sent via WhatsApp
 - **CRITICAL FOR BARS/CLUBS**: Always include the Instagram link in the description from the "url" field (e.g., "📍 Palermo | 📸 Instagram: https://instagram.com/barname")
-- Keep description under 100 words
-- ALWAYS include in description: location, date (already formatted as 'Month DDth', use as-is), time
+- Keep description under 150 words
+- **CRITICAL FOR EVENTS**: The description field MUST START with the actual event description from the database (what the event is about - the vibe, activities, performers, etc.). NEVER skip the event content! After the event description, add: Date, Time, Location, Address, Music Type, Instagram.
+- Example structure: "[Actual event description from database]. Date: January 5th. Time: 9:00 PM. Location: Palermo. Music Type: Jazz."
 - ALSO include if available: address, music_type, external_link (Instagram)
 - Format external_link as "Instagram: [link]" in the description
 - DO NOT include price or venue_size in description - these can be provided later if user asks for more details
