@@ -3,19 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Yara BA - Database Export</title>
+  <title>Yara BA - Complete Database Export</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; }
     body { 
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      max-width: 800px; 
+      max-width: 900px; 
       margin: 0 auto; 
       padding: 20px;
       background: #1a1a2e;
       color: #eee;
     }
     h1 { color: #00d4ff; }
+    h2 { color: #00d4ff; margin-top: 32px; }
     .btn {
       background: #00d4ff;
       color: #1a1a2e;
@@ -29,6 +30,15 @@
     }
     .btn:hover { background: #00b8e6; }
     .btn:disabled { background: #666; cursor: not-allowed; }
+    .btn-primary {
+      background: linear-gradient(135deg, #00d4ff, #00ff88);
+      font-size: 18px;
+      padding: 16px 32px;
+    }
+    .btn-secondary {
+      background: #4a4a6e;
+      color: #fff;
+    }
     .status { 
       background: #2a2a4e; 
       padding: 16px; 
@@ -36,34 +46,58 @@
       margin: 16px 0;
       white-space: pre-wrap;
       font-family: monospace;
-      font-size: 14px;
-      max-height: 400px;
+      font-size: 13px;
+      max-height: 500px;
       overflow-y: auto;
     }
-    .section { margin: 24px 0; }
+    .section { margin: 24px 0; padding: 20px; background: #2a2a4e; border-radius: 12px; }
     .warning { color: #ffcc00; }
+    .success { color: #00ff88; }
+    .error { color: #ff6b6b; }
+    .info { color: #00d4ff; font-size: 14px; margin: 8px 0; }
+    .progress-bar {
+      width: 100%;
+      height: 20px;
+      background: #1a1a2e;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 16px 0;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00d4ff, #00ff88);
+      transition: width 0.3s ease;
+    }
   </style>
 </head>
 <body>
-  <h1>🗄️ Yara BA Database Export</h1>
+  <h1>🗄️ Yara BA Complete Database Export</h1>
   
   <div class="section">
-    <h2>Export Tables as SQL</h2>
-    <p>Click a button to generate and download SQL INSERT statements for each table.</p>
+    <h2>🚀 Complete Database Backup</h2>
+    <p>Generate a full SQL backup including schema, functions, policies, and data.</p>
+    <p class="info">This creates a restoration-ready SQL file with proper dependency ordering.</p>
     
-    <button class="btn" onclick="exportTable('events')">📅 Export Events (311 rows)</button>
-    <button class="btn" onclick="exportTable('whatsapp_users')">👥 Export WhatsApp Users (454 rows)</button>
-    <button class="btn" onclick="exportTable('whatsapp_conversations')">💬 Export Conversations (5,079 rows)</button>
-    <button class="btn" onclick="exportTable('top_list_items')">📋 Export Top List Items (103 rows)</button>
-    <button class="btn" onclick="exportTable('expired_events')">📦 Export Expired Events (56 rows)</button>
+    <button class="btn btn-primary" onclick="exportCompleteDatabase()">📦 Generate Complete Backup</button>
+    
+    <div class="progress-bar" id="progress-container" style="display: none;">
+      <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+    </div>
   </div>
 
   <div class="section">
-    <h2>Export All Tables</h2>
-    <button class="btn" onclick="exportAllTables()">📦 Export Complete Database</button>
+    <h2>📋 Individual Table Exports</h2>
+    <p>Export data from specific tables as SQL INSERT statements.</p>
+    
+    <button class="btn btn-secondary" onclick="exportTable('events')">📅 Events</button>
+    <button class="btn btn-secondary" onclick="exportTable('whatsapp_users')">👥 WhatsApp Users</button>
+    <button class="btn btn-secondary" onclick="exportTable('whatsapp_conversations')">💬 Conversations</button>
+    <button class="btn btn-secondary" onclick="exportTable('top_list_items')">📋 Top List Items</button>
+    <button class="btn btn-secondary" onclick="exportTable('expired_events')">📦 Expired Events</button>
+    <button class="btn btn-secondary" onclick="exportTable('profiles')">👤 Profiles</button>
   </div>
 
-  <div id="status" class="status">Ready to export...</div>
+  <div id="status" class="status">Ready to export...\nClick "Generate Complete Backup" for a full database restoration script.</div>
 
   <script>
     const SUPABASE_URL = 'https://nxtfugcmatkiqjzxucgh.supabase.co';
@@ -71,6 +105,8 @@
     
     let supabaseClient = null;
     const statusEl = document.getElementById('status');
+    const progressContainer = document.getElementById('progress-container');
+    const progressFill = document.getElementById('progress-fill');
 
     // Initialize Supabase client when page loads
     document.addEventListener('DOMContentLoaded', function() {
@@ -87,11 +123,17 @@
       statusEl.scrollTop = statusEl.scrollHeight;
     }
 
+    function setProgress(percent) {
+      progressContainer.style.display = 'block';
+      progressFill.style.width = percent + '%';
+    }
+
     function escapeSQL(val) {
       if (val === null || val === undefined) return 'NULL';
       if (typeof val === 'boolean') return val ? 'TRUE' : 'FALSE';
       if (typeof val === 'number') return val.toString();
       if (Array.isArray(val)) {
+        if (val.length === 0) return 'ARRAY[]::text[]';
         return `ARRAY[${val.map(v => `'${String(v).replace(/'/g, "''")}'`).join(', ')}]::text[]`;
       }
       if (typeof val === 'object') {
@@ -104,17 +146,14 @@
       if (!rows.length) return `-- No data in ${tableName}\n`;
       
       const columns = Object.keys(rows[0]).filter(c => !excludeColumns.includes(c));
-      let sql = `-- =====================================================\n`;
-      sql += `-- TABLE: ${tableName} (${rows.length} rows)\n`;
-      sql += `-- Exported: ${new Date().toISOString()}\n`;
-      sql += `-- =====================================================\n\n`;
+      let sql = `-- TABLE DATA: ${tableName} (${rows.length} rows)\n`;
       
       for (const row of rows) {
         const values = columns.map(col => escapeSQL(row[col]));
         sql += `INSERT INTO public.${tableName} (${columns.join(', ')}) VALUES (${values.join(', ')}) ON CONFLICT (id) DO NOTHING;\n`;
       }
       
-      return sql;
+      return sql + '\n';
     }
 
     async function fetchAllRows(tableName) {
@@ -136,7 +175,6 @@
         if (!data || data.length === 0) break;
         
         allRows = allRows.concat(data);
-        log(`Fetched ${allRows.length} rows from ${tableName}...`);
         
         if (data.length < limit) break;
         offset += limit;
@@ -150,7 +188,7 @@
         statusEl.textContent = `Exporting ${tableName}...`;
         
         const rows = await fetchAllRows(tableName);
-        log(`Total: ${rows.length} rows`);
+        log(`Fetched ${rows.length} rows from ${tableName}`);
         
         const sql = generateInsertSQL(tableName, rows);
         
@@ -168,46 +206,1197 @@
       }
     }
 
-    async function exportAllTables() {
-      const tables = [
-        'profiles', 'events', 'items', 'top_lists', 'top_list_items',
-        'whatsapp_users', 'whatsapp_conversations', 'whatsapp_user_interactions',
-        'expired_events', 'event_rsvps', 'join_requests', 'chatbot_errors',
-        'communities', 'notifications', 'posts', 'user_coupons', 
-        'user_following', 'user_friends', 'user_locations', 'profile_photos'
-      ];
-      
-      statusEl.textContent = 'Exporting all tables...';
-      let fullSQL = `-- =====================================================\n`;
-      fullSQL += `-- YARA BA COMPLETE DATABASE BACKUP\n`;
-      fullSQL += `-- Exported: ${new Date().toISOString()}\n`;
-      fullSQL += `-- =====================================================\n\n`;
-      
-      for (const table of tables) {
-        try {
-          log(`Exporting ${table}...`);
-          const rows = await fetchAllRows(table);
-          fullSQL += generateInsertSQL(table, rows);
-          fullSQL += '\n';
-        } catch (err) {
-          log(`⚠️ Skipped ${table}: ${err.message}`);
+    async function exportCompleteDatabase() {
+      try {
+        statusEl.textContent = '🚀 Starting complete database export...\n';
+        setProgress(0);
+        
+        let fullSQL = `-- =====================================================
+-- YARA BA COMPLETE DATABASE BACKUP
+-- Generated: ${new Date().toISOString()}
+-- This script is designed for one-shot restoration
+-- =====================================================
+
+-- =====================================================
+-- SECTION 1: EXTENSIONS
+-- =====================================================
+-- Note: Some extensions require superuser privileges
+-- Run these manually if they fail during restoration
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "pg_net";
+CREATE EXTENSION IF NOT EXISTS "vector";
+
+`;
+
+        log('📦 Section 1: Extensions added');
+        setProgress(5);
+
+        // Section 2: Custom Types
+        fullSQL += `-- =====================================================
+-- SECTION 2: CUSTOM TYPES (ENUMS)
+-- =====================================================
+
+-- App Role enum for user roles system
+DO $$ BEGIN
+  CREATE TYPE public.app_role AS ENUM ('admin', 'moderator', 'user');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+`;
+
+        log('📦 Section 2: Custom types added');
+        setProgress(10);
+
+        // Section 3: Table Definitions
+        fullSQL += `-- =====================================================
+-- SECTION 3: TABLE DEFINITIONS (DDL)
+-- =====================================================
+-- Tables are created in dependency order
+
+-- Profiles table (no dependencies)
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID PRIMARY KEY,
+  name TEXT,
+  profile_image_url TEXT,
+  bio TEXT,
+  location TEXT,
+  mobile_number TEXT,
+  interests TEXT[],
+  username TEXT,
+  avatar_url TEXT,
+  specialties TEXT[],
+  email TEXT,
+  origin TEXT,
+  profile_type TEXT,
+  whatsapp_number TEXT,
+  open_to_connecting BOOLEAN DEFAULT true,
+  age INTEGER,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Communities table
+CREATE TABLE IF NOT EXISTS public.communities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  tagline TEXT,
+  description TEXT,
+  category TEXT,
+  subcategory TEXT,
+  access_type TEXT DEFAULT 'open',
+  logo_url TEXT,
+  cover_image_url TEXT,
+  is_active BOOLEAN DEFAULT true,
+  creator_id UUID,
+  member_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Events table
+CREATE TABLE IF NOT EXISTS public.events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  title TEXT NOT NULL,
+  description TEXT,
+  date TEXT,
+  time TEXT,
+  location TEXT,
+  price TEXT,
+  image_url TEXT,
+  video_url TEXT,
+  external_link TEXT,
+  event_type TEXT DEFAULT 'event',
+  mood TEXT,
+  market TEXT,
+  target_audience TEXT,
+  music_type TEXT,
+  venue_size TEXT,
+  price_range TEXT,
+  venue_name TEXT,
+  address TEXT,
+  ticket_link TEXT,
+  embedding vector(1536),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Expired Events (archive) table
+CREATE TABLE IF NOT EXISTS public.expired_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  original_event_id UUID,
+  user_id UUID,
+  title TEXT NOT NULL,
+  description TEXT,
+  date TEXT,
+  time TEXT,
+  location TEXT,
+  price TEXT,
+  image_url TEXT,
+  video_url TEXT,
+  external_link TEXT,
+  event_type TEXT,
+  mood TEXT,
+  market TEXT,
+  target_audience TEXT,
+  music_type TEXT,
+  venue_size TEXT,
+  price_range TEXT,
+  venue_name TEXT,
+  address TEXT,
+  ticket_link TEXT,
+  original_created_at TIMESTAMPTZ,
+  original_updated_at TIMESTAMPTZ,
+  archived_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Items table
+CREATE TABLE IF NOT EXISTS public.items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  title TEXT NOT NULL,
+  description TEXT,
+  category TEXT,
+  location TEXT,
+  mobile_number TEXT,
+  image_url TEXT,
+  market TEXT,
+  status TEXT DEFAULT 'active',
+  meetup_date TEXT,
+  meetup_time TEXT,
+  price NUMERIC,
+  embedding vector(1536),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Top Lists table
+CREATE TABLE IF NOT EXISTS public.top_lists (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Top List Items table
+CREATE TABLE IF NOT EXISTS public.top_list_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  list_id UUID NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  location TEXT,
+  image_url TEXT,
+  url TEXT,
+  display_order INTEGER DEFAULT 0,
+  embedding vector(1536),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- WhatsApp Users table
+CREATE TABLE IF NOT EXISTS public.whatsapp_users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  phone_number TEXT NOT NULL UNIQUE,
+  name TEXT,
+  age INTEGER,
+  budget_preference TEXT,
+  favorite_neighborhoods TEXT[],
+  interests TEXT[],
+  activity_frequency TEXT,
+  music_preferences TEXT[],
+  preferred_language TEXT DEFAULT 'en',
+  recommendation_count INTEGER DEFAULT 0,
+  wants_ai_recommendations BOOLEAN DEFAULT true,
+  preferences_asked BOOLEAN DEFAULT false,
+  first_day_followup_sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- WhatsApp Conversations table
+CREATE TABLE IF NOT EXISTS public.whatsapp_conversations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  phone_number TEXT NOT NULL,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- WhatsApp User Interactions table
+CREATE TABLE IF NOT EXISTS public.whatsapp_user_interactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  phone_number TEXT NOT NULL,
+  item_id UUID NOT NULL,
+  item_type TEXT NOT NULL,
+  interaction_type TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- WhatsApp Event Uploads table
+CREATE TABLE IF NOT EXISTS public.whatsapp_event_uploads (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  phone_number TEXT NOT NULL,
+  state TEXT NOT NULL DEFAULT 'awaiting_intent',
+  title TEXT,
+  description TEXT,
+  date TEXT,
+  time TEXT,
+  instagram_handle TEXT,
+  image_url TEXT,
+  expires_at TIMESTAMPTZ DEFAULT (now() + interval '1 hour'),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Event RSVPs table
+CREATE TABLE IF NOT EXISTS public.event_rsvps (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  event_id UUID,
+  status TEXT DEFAULT 'going',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Event Companion Requests table
+CREATE TABLE IF NOT EXISTS public.event_companion_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id UUID,
+  user_id UUID,
+  status TEXT DEFAULT 'pending',
+  message TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Join Requests table
+CREATE TABLE IF NOT EXISTS public.join_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id UUID,
+  phone_number TEXT NOT NULL,
+  name TEXT NOT NULL,
+  age INTEGER,
+  photo_url TEXT,
+  description TEXT,
+  additional_photos TEXT[] DEFAULT ARRAY[]::text[],
+  expires_at TIMESTAMPTZ DEFAULT (now() + interval '8 hours'),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- User Coupons table
+CREATE TABLE IF NOT EXISTS public.user_coupons (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  title TEXT NOT NULL,
+  description TEXT,
+  business_name TEXT,
+  discount_amount TEXT,
+  valid_until TEXT,
+  neighborhood TEXT,
+  image_url TEXT,
+  coupon_code TEXT,
+  is_active BOOLEAN DEFAULT true,
+  embedding vector(1536),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- User Coupon Claims table
+CREATE TABLE IF NOT EXISTS public.user_coupon_claims (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  perk_id UUID,
+  qr_code_data TEXT,
+  coupon_code TEXT,
+  is_used BOOLEAN DEFAULT false,
+  claimed_at TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- User Following table
+CREATE TABLE IF NOT EXISTS public.user_following (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  follower_id UUID NOT NULL,
+  following_id UUID NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(follower_id, following_id)
+);
+
+-- User Friends table
+CREATE TABLE IF NOT EXISTS public.user_friends (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  friend_id UUID NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- User Locations table
+CREATE TABLE IF NOT EXISTS public.user_locations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  latitude NUMERIC,
+  longitude NUMERIC,
+  status TEXT DEFAULT 'open',
+  status_expires_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Posts table
+CREATE TABLE IF NOT EXISTS public.posts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  content TEXT,
+  image_url TEXT,
+  video_url TEXT,
+  location TEXT,
+  mood TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Profile Photos table
+CREATE TABLE IF NOT EXISTS public.profile_photos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  photo_url TEXT NOT NULL,
+  display_order INTEGER NOT NULL DEFAULT 1,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Notifications table
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  type TEXT,
+  title TEXT,
+  message TEXT,
+  is_read BOOLEAN DEFAULT false,
+  related_user_id UUID,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Friends Picture Galleries table
+CREATE TABLE IF NOT EXISTS public.friends_picture_galleries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  title TEXT,
+  image_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Recommendation Agreements table
+CREATE TABLE IF NOT EXISTS public.recommendation_agreements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  recommendation_id UUID NOT NULL,
+  agreement_type TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Tracked Instagram Pages table
+CREATE TABLE IF NOT EXISTS public.tracked_instagram_pages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  instagram_handle TEXT NOT NULL UNIQUE,
+  page_name TEXT,
+  page_type TEXT,
+  notes TEXT,
+  is_active BOOLEAN DEFAULT true,
+  last_scanned_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Chatbot Errors table
+CREATE TABLE IF NOT EXISTS public.chatbot_errors (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  function_name TEXT NOT NULL,
+  error_message TEXT NOT NULL,
+  error_stack TEXT,
+  user_query TEXT,
+  phone_number TEXT,
+  context JSONB,
+  notes TEXT,
+  resolved BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Processed WhatsApp Messages table
+CREATE TABLE IF NOT EXISTS public.processed_whatsapp_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_sid TEXT NOT NULL,
+  phone_number TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+`;
+
+        log('📦 Section 3: Table definitions added');
+        setProgress(20);
+
+        // Section 4: Indexes
+        fullSQL += `-- =====================================================
+-- SECTION 4: INDEXES
+-- =====================================================
+
+CREATE INDEX IF NOT EXISTS idx_events_date ON public.events(date);
+CREATE INDEX IF NOT EXISTS idx_events_event_type ON public.events(event_type);
+CREATE INDEX IF NOT EXISTS idx_events_mood ON public.events(mood);
+CREATE INDEX IF NOT EXISTS idx_events_location ON public.events(location);
+CREATE INDEX IF NOT EXISTS idx_items_category ON public.items(category);
+CREATE INDEX IF NOT EXISTS idx_items_status ON public.items(status);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_users_phone ON public.whatsapp_users(phone_number);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_conversations_phone ON public.whatsapp_conversations(phone_number);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_conversations_created ON public.whatsapp_conversations(created_at);
+CREATE INDEX IF NOT EXISTS idx_top_list_items_list ON public.top_list_items(list_id);
+CREATE INDEX IF NOT EXISTS idx_event_rsvps_event ON public.event_rsvps(event_id);
+CREATE INDEX IF NOT EXISTS idx_event_rsvps_user ON public.event_rsvps(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON public.notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_posts_user ON public.posts(user_id);
+CREATE INDEX IF NOT EXISTS idx_profile_photos_user ON public.profile_photos(user_id);
+
+`;
+
+        log('📦 Section 4: Indexes added');
+        setProgress(25);
+
+        // Section 5: Functions
+        fullSQL += `-- =====================================================
+-- SECTION 5: FUNCTIONS
+-- =====================================================
+
+-- Function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Function to handle new user creation (auto-create profile)
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, name, username, bio, location, profile_image_url, interests, specialties, open_to_connecting)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'name', NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    ARRAY[]::text[],
+    ARRAY[]::text[],
+    true
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    name = COALESCE(profiles.name, EXCLUDED.name),
+    updated_at = now();
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Function to generate unique coupon codes
+CREATE OR REPLACE FUNCTION public.generate_coupon_code()
+RETURNS TEXT AS $$
+DECLARE
+  code TEXT;
+  code_exists BOOLEAN;
+BEGIN
+  LOOP
+    code := upper(substring(md5(random()::text || clock_timestamp()::text) from 1 for 8));
+    SELECT EXISTS(SELECT 1 FROM user_coupons WHERE coupon_code = code) INTO code_exists;
+    EXIT WHEN NOT code_exists;
+  END LOOP;
+  RETURN code;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Function to delete past events
+CREATE OR REPLACE FUNCTION public.delete_past_events()
+RETURNS VOID AS $$
+BEGIN
+  DELETE FROM events WHERE date < CURRENT_DATE::text;
+  RAISE NOTICE 'Deleted past events';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Function to cleanup old processed messages
+CREATE OR REPLACE FUNCTION public.cleanup_old_processed_messages()
+RETURNS TRIGGER AS $$
+BEGIN
+  DELETE FROM public.processed_whatsapp_messages
+  WHERE created_at < NOW() - INTERVAL '1 hour';
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Function to update community membership status
+CREATE OR REPLACE FUNCTION public.update_community_membership_status(membership_id uuid, new_status text)
+RETURNS json AS $$
+BEGIN
+  UPDATE community_members 
+  SET status = new_status
+  WHERE id = membership_id;
+  RETURN json_build_object('success', true);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Function to update meetup join status
+CREATE OR REPLACE FUNCTION public.update_meetup_join_status(rsvp_id uuid, new_status text)
+RETURNS json AS $$
+BEGIN
+  UPDATE meetup_join_requests 
+  SET status = new_status
+  WHERE id = rsvp_id;
+  RETURN json_build_object('success', true);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- Vector similarity search function for events
+CREATE OR REPLACE FUNCTION public.match_events(
+  query_embedding vector(1536),
+  match_threshold double precision DEFAULT 0.5,
+  match_count integer DEFAULT 10
+)
+RETURNS TABLE(id uuid, title text, description text, similarity double precision) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    events.id,
+    events.title,
+    events.description,
+    1 - (events.embedding <=> query_embedding) as similarity
+  FROM events
+  WHERE events.embedding IS NOT NULL
+    AND 1 - (events.embedding <=> query_embedding) > match_threshold
+  ORDER BY events.embedding <=> query_embedding
+  LIMIT match_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, extensions;
+
+-- Main document matching function for semantic search
+CREATE OR REPLACE FUNCTION public.match_documents(
+  query_embedding vector(1536),
+  match_count integer DEFAULT 10,
+  filter jsonb DEFAULT '{}'::jsonb
+)
+RETURNS TABLE(id uuid, content text, metadata jsonb, similarity double precision) AS $$
+DECLARE
+  table_filter text;
+  location_filter text;
+  mood_filter text;
+  event_type_filter text;
+  date_filter text;
+  neighborhood_filter text;
+  category_filter text;
+  venue_name_filter text;
+  age_filter integer;
+BEGIN
+  table_filter := filter->>'table';
+  location_filter := filter->>'location';
+  mood_filter := filter->>'mood';
+  event_type_filter := filter->>'event_type';
+  date_filter := filter->>'date';
+  neighborhood_filter := filter->>'neighborhood';
+  category_filter := filter->>'category';
+  venue_name_filter := filter->>'venue_name';
+  age_filter := (filter->>'age')::integer;
+  
+  IF location_filter = '*' THEN location_filter := NULL; END IF;
+  IF mood_filter = '*' THEN mood_filter := NULL; END IF;
+  IF event_type_filter = '*' THEN event_type_filter := NULL; END IF;
+  IF neighborhood_filter = '*' THEN neighborhood_filter := NULL; END IF;
+  IF category_filter = '*' THEN category_filter := NULL; END IF;
+  IF venue_name_filter = '*' THEN venue_name_filter := NULL; END IF;
+  
+  IF table_filter = 'events' OR table_filter IS NULL THEN
+    RETURN QUERY
+    SELECT
+      e.id,
+      COALESCE(e.title, '') || ' ' || COALESCE(e.description, '') as content,
+      jsonb_build_object(
+        'title', e.title, 'description', e.description, 'date', e.date, 'time', e.time,
+        'location', e.location, 'address', e.address, 'image_url', e.image_url,
+        'video_url', e.video_url, 'external_link', e.external_link, 'ticket_link', e.ticket_link,
+        'price', e.price, 'price_range', e.price_range, 'event_type', e.event_type,
+        'mood', e.mood, 'music_type', e.music_type, 'venue_name', e.venue_name,
+        'venue_size', e.venue_size, 'target_audience', e.target_audience,
+        'market', e.market, 'table_name', 'events'
+      ) as metadata,
+      1 - (e.embedding <=> query_embedding) as similarity
+    FROM events e
+    WHERE e.embedding IS NOT NULL
+      AND 1 - (e.embedding <=> query_embedding) > 0.3
+      AND (location_filter IS NULL OR e.location ILIKE '%' || location_filter || '%' OR e.address ILIKE '%' || location_filter || '%')
+      AND (mood_filter IS NULL OR e.mood ILIKE '%' || mood_filter || '%')
+      AND (event_type_filter IS NULL OR e.event_type ILIKE '%' || event_type_filter || '%')
+      AND (date_filter IS NULL OR e.date = date_filter)
+      AND (venue_name_filter IS NULL OR e.venue_name ILIKE '%' || venue_name_filter || '%')
+      AND (age_filter IS NULL OR e.target_audience IS NULL OR (
+        CASE
+          WHEN e.target_audience ~ '^\\d+-\\d+$' THEN
+            age_filter >= split_part(e.target_audience, '-', 1)::integer
+            AND age_filter <= split_part(e.target_audience, '-', 2)::integer
+          WHEN e.target_audience ~ '^\\d+\\+$' THEN
+            age_filter >= replace(e.target_audience, '+', '')::integer
+          ELSE true
+        END
+      ))
+    ORDER BY e.embedding <=> query_embedding
+    LIMIT match_count;
+  ELSIF table_filter = 'user_coupons' THEN
+    RETURN QUERY
+    SELECT c.id,
+      COALESCE(c.title, '') || ' ' || COALESCE(c.description, '') as content,
+      jsonb_build_object(
+        'title', c.title, 'description', c.description, 'business_name', c.business_name,
+        'neighborhood', c.neighborhood, 'image_url', c.image_url, 'discount_amount', c.discount_amount,
+        'valid_until', c.valid_until, 'coupon_code', c.coupon_code, 'is_active', c.is_active,
+        'table_name', 'user_coupons'
+      ) as metadata,
+      1 - (c.embedding <=> query_embedding) as similarity
+    FROM user_coupons c
+    WHERE c.embedding IS NOT NULL
+      AND 1 - (c.embedding <=> query_embedding) > 0.3
+      AND (neighborhood_filter IS NULL OR c.neighborhood ILIKE '%' || neighborhood_filter || '%')
+    ORDER BY c.embedding <=> query_embedding
+    LIMIT match_count;
+  ELSIF table_filter = 'items' THEN
+    RETURN QUERY
+    SELECT i.id,
+      COALESCE(i.title, '') || ' ' || COALESCE(i.description, '') as content,
+      jsonb_build_object(
+        'title', i.title, 'description', i.description, 'category', i.category,
+        'location', i.location, 'image_url', i.image_url, 'price', i.price,
+        'mobile_number', i.mobile_number, 'market', i.market, 'status', i.status,
+        'meetup_date', i.meetup_date, 'meetup_time', i.meetup_time, 'table_name', 'items'
+      ) as metadata,
+      1 - (i.embedding <=> query_embedding) as similarity
+    FROM items i
+    WHERE i.embedding IS NOT NULL
+      AND 1 - (i.embedding <=> query_embedding) > 0.3
+      AND (location_filter IS NULL OR i.location ILIKE '%' || location_filter || '%')
+      AND (category_filter IS NULL OR i.category ILIKE '%' || category_filter || '%')
+    ORDER BY i.embedding <=> query_embedding
+    LIMIT match_count;
+  ELSIF table_filter = 'top_list_items' THEN
+    RETURN QUERY
+    SELECT t.id,
+      COALESCE(t.name, '') || ' ' || COALESCE(t.description, '') as content,
+      jsonb_build_object(
+        'name', t.name, 'description', t.description, 'location', t.location,
+        'image_url', t.image_url, 'url', t.url, 'display_order', t.display_order,
+        'list_id', t.list_id, 'table_name', 'top_list_items'
+      ) as metadata,
+      1 - (t.embedding <=> query_embedding) as similarity
+    FROM top_list_items t
+    WHERE t.embedding IS NOT NULL
+      AND 1 - (t.embedding <=> query_embedding) > 0.3
+      AND (location_filter IS NULL OR t.location ILIKE '%' || location_filter || '%')
+    ORDER BY t.embedding <=> query_embedding
+    LIMIT match_count;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, extensions;
+
+`;
+
+        log('📦 Section 5: Functions added');
+        setProgress(35);
+
+        // Section 6: Triggers
+        fullSQL += `-- =====================================================
+-- SECTION 6: TRIGGERS
+-- =====================================================
+
+-- Auto-create profile on user signup
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+
+-- Update timestamps triggers
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
+CREATE TRIGGER update_profiles_updated_at
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_events_updated_at ON public.events;
+CREATE TRIGGER update_events_updated_at
+  BEFORE UPDATE ON public.events
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_items_updated_at ON public.items;
+CREATE TRIGGER update_items_updated_at
+  BEFORE UPDATE ON public.items
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_whatsapp_users_updated_at ON public.whatsapp_users;
+CREATE TRIGGER update_whatsapp_users_updated_at
+  BEFORE UPDATE ON public.whatsapp_users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+`;
+
+        log('📦 Section 6: Triggers added');
+        setProgress(40);
+
+        // Section 7: Row Level Security
+        fullSQL += `-- =====================================================
+-- SECTION 7: ROW LEVEL SECURITY (RLS)
+-- =====================================================
+
+-- Enable RLS on all tables
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.expired_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.top_lists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.top_list_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.communities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_rsvps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.event_companion_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.join_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_coupons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_coupon_claims ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_following ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_friends ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_locations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profile_photos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.friends_picture_galleries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.recommendation_agreements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tracked_instagram_pages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.whatsapp_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.whatsapp_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.whatsapp_user_interactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.whatsapp_event_uploads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chatbot_errors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.processed_whatsapp_messages ENABLE ROW LEVEL SECURITY;
+
+-- =====================================================
+-- SECTION 8: RLS POLICIES
+-- =====================================================
+
+-- Profiles policies
+DROP POLICY IF EXISTS "Profiles are viewable by everyone" ON public.profiles;
+CREATE POLICY "Profiles are viewable by everyone" ON public.profiles FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
+CREATE POLICY "Users can insert their own profile" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
+CREATE POLICY "Users can update their own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
+-- Events policies
+DROP POLICY IF EXISTS "Events are viewable by everyone" ON public.events;
+CREATE POLICY "Events are viewable by everyone" ON public.events FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Anyone can create events" ON public.events;
+CREATE POLICY "Anyone can create events" ON public.events FOR INSERT WITH CHECK ((auth.uid() IS NULL) OR (auth.uid() = user_id));
+
+DROP POLICY IF EXISTS "Users can update their own events" ON public.events;
+CREATE POLICY "Users can update their own events" ON public.events FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own events" ON public.events;
+CREATE POLICY "Users can delete their own events" ON public.events FOR DELETE USING (auth.uid() = user_id);
+
+-- Expired Events policies
+DROP POLICY IF EXISTS "Expired events are viewable by everyone" ON public.expired_events;
+CREATE POLICY "Expired events are viewable by everyone" ON public.expired_events FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Service role can manage expired events" ON public.expired_events;
+CREATE POLICY "Service role can manage expired events" ON public.expired_events FOR ALL USING (true) WITH CHECK (true);
+
+-- Items policies
+DROP POLICY IF EXISTS "Items are viewable by everyone" ON public.items;
+CREATE POLICY "Items are viewable by everyone" ON public.items FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can create their own items" ON public.items;
+CREATE POLICY "Users can create their own items" ON public.items FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own items" ON public.items;
+CREATE POLICY "Users can update their own items" ON public.items FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own items" ON public.items;
+CREATE POLICY "Users can delete their own items" ON public.items FOR DELETE USING (auth.uid() = user_id);
+
+-- Top Lists policies
+DROP POLICY IF EXISTS "Top lists are viewable by everyone" ON public.top_lists;
+CREATE POLICY "Top lists are viewable by everyone" ON public.top_lists FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can create their own top lists" ON public.top_lists;
+CREATE POLICY "Users can create their own top lists" ON public.top_lists FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own top lists" ON public.top_lists;
+CREATE POLICY "Users can update their own top lists" ON public.top_lists FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own top lists" ON public.top_lists;
+CREATE POLICY "Users can delete their own top lists" ON public.top_lists FOR DELETE USING (auth.uid() = user_id);
+
+-- Top List Items policies
+DROP POLICY IF EXISTS "Top list items are viewable by everyone" ON public.top_list_items;
+CREATE POLICY "Top list items are viewable by everyone" ON public.top_list_items FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can create items for their own lists" ON public.top_list_items;
+CREATE POLICY "Users can create items for their own lists" ON public.top_list_items FOR INSERT 
+  WITH CHECK (EXISTS (SELECT 1 FROM top_lists WHERE top_lists.id = top_list_items.list_id AND top_lists.user_id = auth.uid()));
+
+DROP POLICY IF EXISTS "Users can update items in their own lists" ON public.top_list_items;
+CREATE POLICY "Users can update items in their own lists" ON public.top_list_items FOR UPDATE 
+  USING (EXISTS (SELECT 1 FROM top_lists WHERE top_lists.id = top_list_items.list_id AND top_lists.user_id = auth.uid()));
+
+DROP POLICY IF EXISTS "Users can delete items from their own lists" ON public.top_list_items;
+CREATE POLICY "Users can delete items from their own lists" ON public.top_list_items FOR DELETE 
+  USING (EXISTS (SELECT 1 FROM top_lists WHERE top_lists.id = top_list_items.list_id AND top_lists.user_id = auth.uid()));
+
+-- Communities policies
+DROP POLICY IF EXISTS "Communities are viewable by everyone" ON public.communities;
+CREATE POLICY "Communities are viewable by everyone" ON public.communities FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Authenticated users can create communities" ON public.communities;
+CREATE POLICY "Authenticated users can create communities" ON public.communities FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "Authenticated users can update communities" ON public.communities;
+CREATE POLICY "Authenticated users can update communities" ON public.communities FOR UPDATE USING (auth.uid() IS NOT NULL);
+
+-- Posts policies
+DROP POLICY IF EXISTS "Posts are viewable by everyone" ON public.posts;
+CREATE POLICY "Posts are viewable by everyone" ON public.posts FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can create their own posts" ON public.posts;
+CREATE POLICY "Users can create their own posts" ON public.posts FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own posts" ON public.posts;
+CREATE POLICY "Users can update their own posts" ON public.posts FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own posts" ON public.posts;
+CREATE POLICY "Users can delete their own posts" ON public.posts FOR DELETE USING (auth.uid() = user_id);
+
+-- Notifications policies
+DROP POLICY IF EXISTS "Users can view their own notifications" ON public.notifications;
+CREATE POLICY "Users can view their own notifications" ON public.notifications FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Authenticated users can create notifications" ON public.notifications;
+CREATE POLICY "Authenticated users can create notifications" ON public.notifications FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+DROP POLICY IF EXISTS "Users can update their own notifications" ON public.notifications;
+CREATE POLICY "Users can update their own notifications" ON public.notifications FOR UPDATE USING (auth.uid() = user_id);
+
+-- Event RSVPs policies
+DROP POLICY IF EXISTS "Event RSVPs are viewable by everyone" ON public.event_rsvps;
+CREATE POLICY "Event RSVPs are viewable by everyone" ON public.event_rsvps FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can create their own RSVPs" ON public.event_rsvps;
+CREATE POLICY "Users can create their own RSVPs" ON public.event_rsvps FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own RSVPs" ON public.event_rsvps;
+CREATE POLICY "Users can update their own RSVPs" ON public.event_rsvps FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own RSVPs" ON public.event_rsvps;
+CREATE POLICY "Users can delete their own RSVPs" ON public.event_rsvps FOR DELETE USING (auth.uid() = user_id);
+
+-- Event Companion Requests policies
+DROP POLICY IF EXISTS "Event companion requests are viewable by everyone" ON public.event_companion_requests;
+CREATE POLICY "Event companion requests are viewable by everyone" ON public.event_companion_requests FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can create companion requests" ON public.event_companion_requests;
+CREATE POLICY "Users can create companion requests" ON public.event_companion_requests FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own requests" ON public.event_companion_requests;
+CREATE POLICY "Users can update their own requests" ON public.event_companion_requests FOR UPDATE USING (auth.uid() = user_id);
+
+-- Join Requests policies
+DROP POLICY IF EXISTS "Anyone can view active join requests" ON public.join_requests;
+CREATE POLICY "Anyone can view active join requests" ON public.join_requests FOR SELECT USING (expires_at > now());
+
+DROP POLICY IF EXISTS "Service role can create join requests" ON public.join_requests;
+CREATE POLICY "Service role can create join requests" ON public.join_requests FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Users can update their own join requests" ON public.join_requests;
+CREATE POLICY "Users can update their own join requests" ON public.join_requests FOR UPDATE USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Users can delete their own join requests" ON public.join_requests;
+CREATE POLICY "Users can delete their own join requests" ON public.join_requests FOR DELETE USING (true);
+
+-- User Coupons policies
+DROP POLICY IF EXISTS "Users can view their own coupons" ON public.user_coupons;
+CREATE POLICY "Users can view their own coupons" ON public.user_coupons FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can create their own coupons" ON public.user_coupons;
+CREATE POLICY "Users can create their own coupons" ON public.user_coupons FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own coupons" ON public.user_coupons;
+CREATE POLICY "Users can update their own coupons" ON public.user_coupons FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own coupons" ON public.user_coupons;
+CREATE POLICY "Users can delete their own coupons" ON public.user_coupons FOR DELETE USING (auth.uid() = user_id);
+
+-- User Coupon Claims policies
+DROP POLICY IF EXISTS "Users can view their own coupon claims" ON public.user_coupon_claims;
+CREATE POLICY "Users can view their own coupon claims" ON public.user_coupon_claims FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can create their own coupon claims" ON public.user_coupon_claims;
+CREATE POLICY "Users can create their own coupon claims" ON public.user_coupon_claims FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own coupon claims" ON public.user_coupon_claims;
+CREATE POLICY "Users can update their own coupon claims" ON public.user_coupon_claims FOR UPDATE USING (auth.uid() = user_id);
+
+-- User Following policies
+DROP POLICY IF EXISTS "Users can view all followings" ON public.user_following;
+CREATE POLICY "Users can view all followings" ON public.user_following FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can create their own followings" ON public.user_following;
+CREATE POLICY "Users can create their own followings" ON public.user_following FOR INSERT WITH CHECK (auth.uid() = follower_id);
+
+DROP POLICY IF EXISTS "Users can delete their own followings" ON public.user_following;
+CREATE POLICY "Users can delete their own followings" ON public.user_following FOR DELETE USING (auth.uid() = follower_id);
+
+-- User Friends policies
+DROP POLICY IF EXISTS "Users can view their own friendships" ON public.user_friends;
+CREATE POLICY "Users can view their own friendships" ON public.user_friends FOR SELECT USING ((auth.uid() = user_id) OR (auth.uid() = friend_id));
+
+DROP POLICY IF EXISTS "Users can create friend requests" ON public.user_friends;
+CREATE POLICY "Users can create friend requests" ON public.user_friends FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own friendships" ON public.user_friends;
+CREATE POLICY "Users can update their own friendships" ON public.user_friends FOR UPDATE USING ((auth.uid() = user_id) OR (auth.uid() = friend_id));
+
+DROP POLICY IF EXISTS "Users can delete their own friendships" ON public.user_friends;
+CREATE POLICY "Users can delete their own friendships" ON public.user_friends FOR DELETE USING ((auth.uid() = user_id) OR (auth.uid() = friend_id));
+
+-- User Locations policies
+DROP POLICY IF EXISTS "User locations are viewable by everyone" ON public.user_locations;
+CREATE POLICY "User locations are viewable by everyone" ON public.user_locations FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can create their own locations" ON public.user_locations;
+CREATE POLICY "Users can create their own locations" ON public.user_locations FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own locations" ON public.user_locations;
+CREATE POLICY "Users can update their own locations" ON public.user_locations FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own locations" ON public.user_locations;
+CREATE POLICY "Users can delete their own locations" ON public.user_locations FOR DELETE USING (auth.uid() = user_id);
+
+-- Profile Photos policies
+DROP POLICY IF EXISTS "Users can view all profile photos" ON public.profile_photos;
+CREATE POLICY "Users can view all profile photos" ON public.profile_photos FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can manage their own profile photos" ON public.profile_photos;
+CREATE POLICY "Users can manage their own profile photos" ON public.profile_photos FOR ALL USING (auth.uid() = user_id);
+
+-- Friends Picture Galleries policies
+DROP POLICY IF EXISTS "Friend galleries are viewable by everyone" ON public.friends_picture_galleries;
+CREATE POLICY "Friend galleries are viewable by everyone" ON public.friends_picture_galleries FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can create their own friend galleries" ON public.friends_picture_galleries;
+CREATE POLICY "Users can create their own friend galleries" ON public.friends_picture_galleries FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own friend galleries" ON public.friends_picture_galleries;
+CREATE POLICY "Users can update their own friend galleries" ON public.friends_picture_galleries FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own friend galleries" ON public.friends_picture_galleries;
+CREATE POLICY "Users can delete their own friend galleries" ON public.friends_picture_galleries FOR DELETE USING (auth.uid() = user_id);
+
+-- Recommendation Agreements policies
+DROP POLICY IF EXISTS "Users can view all recommendation agreements" ON public.recommendation_agreements;
+CREATE POLICY "Users can view all recommendation agreements" ON public.recommendation_agreements FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Users can create their own agreements" ON public.recommendation_agreements;
+CREATE POLICY "Users can create their own agreements" ON public.recommendation_agreements FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own agreements" ON public.recommendation_agreements;
+CREATE POLICY "Users can delete their own agreements" ON public.recommendation_agreements FOR DELETE USING (auth.uid() = user_id);
+
+-- Tracked Instagram Pages policies
+DROP POLICY IF EXISTS "Instagram pages are viewable by everyone" ON public.tracked_instagram_pages;
+CREATE POLICY "Instagram pages are viewable by everyone" ON public.tracked_instagram_pages FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Authenticated users can manage Instagram pages" ON public.tracked_instagram_pages;
+CREATE POLICY "Authenticated users can manage Instagram pages" ON public.tracked_instagram_pages FOR ALL 
+  USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+
+-- WhatsApp tables (service role access)
+DROP POLICY IF EXISTS "Service role can manage whatsapp users" ON public.whatsapp_users;
+CREATE POLICY "Service role can manage whatsapp users" ON public.whatsapp_users FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Service role can manage whatsapp conversations" ON public.whatsapp_conversations;
+CREATE POLICY "Service role can manage whatsapp conversations" ON public.whatsapp_conversations FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Service role can manage whatsapp interactions" ON public.whatsapp_user_interactions;
+CREATE POLICY "Service role can manage whatsapp interactions" ON public.whatsapp_user_interactions FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Service role can manage event uploads" ON public.whatsapp_event_uploads;
+CREATE POLICY "Service role can manage event uploads" ON public.whatsapp_event_uploads FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Service role can manage chatbot errors" ON public.chatbot_errors;
+CREATE POLICY "Service role can manage chatbot errors" ON public.chatbot_errors FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Service role can manage processed messages" ON public.processed_whatsapp_messages;
+CREATE POLICY "Service role can manage processed messages" ON public.processed_whatsapp_messages FOR ALL USING (true) WITH CHECK (true);
+
+`;
+
+        log('📦 Section 7-8: RLS and Policies added');
+        setProgress(50);
+
+        // Section 9: Views
+        fullSQL += `-- =====================================================
+-- SECTION 9: VIEWS
+-- =====================================================
+
+CREATE OR REPLACE VIEW public.events_no_embedding AS
+SELECT id, user_id, created_at, updated_at, title, description, date, time, 
+       location, price, image_url, video_url, external_link, event_type, 
+       mood, market, target_audience, music_type, venue_size, price_range, 
+       venue_name, address, ticket_link
+FROM public.events;
+
+CREATE OR REPLACE VIEW public.items_no_embedding AS
+SELECT id, user_id, created_at, updated_at, price, title, description, 
+       category, location, mobile_number, image_url, market, status, 
+       meetup_date, meetup_time
+FROM public.items;
+
+CREATE OR REPLACE VIEW public.top_list_items_no_embedding AS
+SELECT id, list_id, created_at, display_order, name, description, 
+       location, image_url, url
+FROM public.top_list_items;
+
+CREATE OR REPLACE VIEW public.user_coupons_no_embedding AS
+SELECT id, user_id, created_at, updated_at, is_active, title, description, 
+       business_name, discount_amount, valid_until, neighborhood, 
+       image_url, coupon_code
+FROM public.user_coupons;
+
+`;
+
+        log('📦 Section 9: Views added');
+        setProgress(55);
+
+        // Section 10: Data exports
+        fullSQL += `-- =====================================================
+-- SECTION 10: DATA (INSERT STATEMENTS)
+-- =====================================================
+
+`;
+
+        const tables = [
+          'profiles', 'communities', 'top_lists', 'events', 'expired_events', 
+          'items', 'top_list_items', 'whatsapp_users', 'whatsapp_conversations',
+          'whatsapp_user_interactions', 'whatsapp_event_uploads', 
+          'event_rsvps', 'event_companion_requests', 'join_requests',
+          'user_coupons', 'user_coupon_claims', 'user_following', 'user_friends',
+          'user_locations', 'posts', 'profile_photos', 'notifications',
+          'friends_picture_galleries', 'recommendation_agreements',
+          'tracked_instagram_pages', 'chatbot_errors', 'processed_whatsapp_messages'
+        ];
+
+        const totalTables = tables.length;
+        let completedTables = 0;
+
+        for (const table of tables) {
+          try {
+            log(`📊 Fetching data from ${table}...`);
+            const rows = await fetchAllRows(table);
+            if (rows.length > 0) {
+              fullSQL += generateInsertSQL(table, rows);
+              log(`   ✅ ${rows.length} rows exported`);
+            } else {
+              fullSQL += `-- No data in ${table}\n\n`;
+              log(`   ⏭️ No data`);
+            }
+          } catch (err) {
+            fullSQL += `-- Error exporting ${table}: ${err.message}\n\n`;
+            log(`   ⚠️ Skipped: ${err.message}`);
+          }
+          
+          completedTables++;
+          setProgress(55 + Math.floor((completedTables / totalTables) * 40));
         }
+
+        // Section 11: Storage buckets
+        fullSQL += `-- =====================================================
+-- SECTION 11: STORAGE BUCKETS
+-- =====================================================
+
+INSERT INTO storage.buckets (id, name, public) VALUES ('item-images', 'item-images', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('photos', 'photos', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('videos', 'videos', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('profile-images', 'profile-images', true) ON CONFLICT (id) DO NOTHING;
+
+-- Storage policies
+CREATE POLICY "Public read access for item-images" ON storage.objects FOR SELECT USING (bucket_id = 'item-images');
+CREATE POLICY "Authenticated upload for item-images" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'item-images' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Public read access for photos" ON storage.objects FOR SELECT USING (bucket_id = 'photos');
+CREATE POLICY "Authenticated upload for photos" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'photos' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Public read access for videos" ON storage.objects FOR SELECT USING (bucket_id = 'videos');
+CREATE POLICY "Authenticated upload for videos" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'videos' AND auth.role() = 'authenticated');
+
+CREATE POLICY "Public read access for profile-images" ON storage.objects FOR SELECT USING (bucket_id = 'profile-images');
+CREATE POLICY "Authenticated upload for profile-images" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'profile-images' AND auth.role() = 'authenticated');
+
+`;
+
+        log('📦 Section 11: Storage buckets added');
+        setProgress(98);
+
+        // Final section
+        fullSQL += `-- =====================================================
+-- BACKUP COMPLETE
+-- Generated: ${new Date().toISOString()}
+-- =====================================================
+
+-- To restore:
+-- 1. Create a new Supabase project
+-- 2. Run this SQL in the SQL Editor
+-- 3. Note: Some extensions may require manual enabling
+-- 4. Note: Auth triggers on auth.users may need adjustment
+
+`;
+
+        // Download the file
+        const blob = new Blob([fullSQL], { type: 'text/sql' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `yara_ba_complete_backup_${new Date().toISOString().split('T')[0]}.sql`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        setProgress(100);
+        log('\n✅ COMPLETE BACKUP DOWNLOADED!');
+        log(`📄 File size: ~${(fullSQL.length / 1024 / 1024).toFixed(2)} MB`);
+
+      } catch (err) {
+        log(`\n❌ Export failed: ${err.message}`);
+        console.error(err);
       }
-      
-      const blob = new Blob([fullSQL], { type: 'text/sql' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `yara_ba_full_backup_${new Date().toISOString().split('T')[0]}.sql`;
-      a.click();
-      URL.revokeObjectURL(url);
-      
-      log(`\n✅ Complete backup downloaded!`);
     }
 
     // Make functions globally available
     window.exportTable = exportTable;
-    window.exportAllTables = exportAllTables;
+    window.exportCompleteDatabase = exportCompleteDatabase;
   </script>
 </body>
 </html>
