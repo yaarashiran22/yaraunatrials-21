@@ -69,8 +69,18 @@
     const SUPABASE_URL = 'https://nxtfugcmatkiqjzxucgh.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im54dGZ1Z2NtYXRraXFqenh1Y2doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMTYwMDksImV4cCI6MjA3MzY5MjAwOX0.e_n6yYVOCU6eRV0WS9BmogxgqN_ZPViBBmEkfI2ZI_s';
     
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let supabaseClient = null;
     const statusEl = document.getElementById('status');
+
+    // Initialize Supabase client when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      if (window.supabase && window.supabase.createClient) {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        log('✅ Supabase client initialized');
+      } else {
+        log('❌ Error: Supabase library not loaded. Please refresh the page.');
+      }
+    });
 
     function log(msg) {
       statusEl.textContent += '\n' + msg;
@@ -108,12 +118,16 @@
     }
 
     async function fetchAllRows(tableName) {
+      if (!supabaseClient) {
+        throw new Error('Supabase client not initialized. Please refresh the page.');
+      }
+      
       let allRows = [];
       let offset = 0;
       const limit = 1000;
       
       while (true) {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
           .from(tableName)
           .select('*')
           .range(offset, offset + limit - 1);
@@ -190,6 +204,10 @@
       
       log(`\n✅ Complete backup downloaded!`);
     }
+
+    // Make functions globally available
+    window.exportTable = exportTable;
+    window.exportAllTables = exportAllTables;
   </script>
 </body>
 </html>
