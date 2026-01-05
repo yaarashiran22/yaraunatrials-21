@@ -588,9 +588,10 @@ serve(async (req) => {
     const lastUserMessage = lastUserMessageRaw;
     
     // Check for EXPLICIT language switch requests FIRST (highest priority)
-    const explicitSpanishRequest = /\b(háblame en español|habla en español|en español|responde en español|spanish please|in spanish)\b/i.test(lastUserMessage);
-    const explicitEnglishRequest = /\b(speak english|in english|english please|háblame en inglés|habla en inglés|en inglés)\b/i.test(lastUserMessage);
-    const explicitPortugueseRequest = /\b(em português|fala em português|portuguese please|in portuguese)\b/i.test(lastUserMessage);
+    // Also detect "do you [speak] X" pattern as a language preference indicator
+    const explicitSpanishRequest = /\b(háblame en español|habla en español|en español|responde en español|spanish please|in spanish|do you\s*(?:speak\s*)?spanish|speak spanish|hablas español|hablas espanol)\b/i.test(lastUserMessage);
+    const explicitEnglishRequest = /\b(speak english|in english|english please|háblame en inglés|habla en inglés|en inglés|do you\s*(?:speak\s*)?english|fala inglês|falas ingles)\b/i.test(lastUserMessage);
+    const explicitPortugueseRequest = /\b(em português|fala em português|portuguese please|in portuguese|do you\s*(?:speak\s*)?portuguese|falas português|fala portugues)\b/i.test(lastUserMessage);
     
     // Get user's stored preferred language from profile (if available)
     const storedPreferredLanguage = userProfile?.preferred_language || null;
