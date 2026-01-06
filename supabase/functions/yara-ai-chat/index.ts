@@ -338,6 +338,12 @@ serve(async (req) => {
     const todayFormatted = formatDate(today); // e.g., "December 28th"
     const tomorrowFormatted = formatDate(tomorrowDate); // e.g., "December 29th"
     
+    // Count events for today to help debugging
+    const eventsForToday = ageFilteredEvents.filter(e => e.date === today);
+    const eventsForTomorrow = ageFilteredEvents.filter(e => e.date === tomorrowDate);
+    console.log(`Events for today (${today}): ${eventsForToday.length} - ${eventsForToday.map(e => e.title).join(', ')}`);
+    console.log(`Events for tomorrow (${tomorrowDate}): ${eventsForTomorrow.length}`);
+    
     console.log(`Today formatted: ${todayFormatted}, Tomorrow formatted: ${tomorrowFormatted}`);
     
     const contextData = {
@@ -824,6 +830,12 @@ YOU ALREADY KNOW ALL DATES - NEVER ASK FOR DATE CLARIFICATION!
 - Events in the data have two date fields: "date" (formatted like "${todayFormatted}") and "rawDate" (like "${today}")
 - To find today's events, look for events where rawDate = "${today}" OR date = "${todayFormatted}"
 - To find tomorrow's events, look for events where rawDate = "${tomorrowDate}" OR date = "${tomorrowFormatted}"
+
+**🚨 EXPLICIT LIST OF TODAY'S EVENTS (${todayFormatted}) - USE THESE FOR "tonight"/"today" QUERIES:**
+${eventsForToday.length > 0 ? eventsForToday.map(e => `- "${e.title}" at ${e.time || 'TBD'} in ${e.location || 'Buenos Aires'}${e.originalDate?.includes('every') ? ` (recurring: ${e.originalDate})` : ''}`).join('\n') : 'No events for today.'}
+
+When user asks "what events tonight" or "what's happening today", recommend from the list above!
+These ${eventsForToday.length} events ARE in the database for today - they exist!
 
 **LOCATION MATCHING - CRITICAL:**
 - When user asks for events "in Palermo" or "in [neighborhood]", match against BOTH the "location" AND "address" fields
