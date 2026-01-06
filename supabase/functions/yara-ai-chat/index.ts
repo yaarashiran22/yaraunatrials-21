@@ -135,14 +135,25 @@ serve(async (req) => {
     // Fetch events with database-level date filtering for performance
     // Only fetch events where date >= today OR date contains 'every' (recurring)
     // OPTIMIZATION: Only fetch coupons and topLists when user asks for them
-    const eventsPromise = supabase
+    // Fetch dated events and recurring events separately to ensure we don't miss recurring ones
+    // The limit(100) was cutting off Tuesday events because of alphabetical ordering
+    const datedEventsPromise = supabase
       .from("events")
       .select(
         "id, title, description, date, time, location, address, venue_name, price, mood, music_type, venue_size, external_link, ticket_link, image_url, target_audience",
       )
-      .or(`date.gte.${today},date.ilike.%every%`)
+      .gte("date", today)
+      .not("date", "ilike", "%every%")
       .order("date", { ascending: true })
-      .limit(100);
+      .limit(80);
+    
+    const recurringEventsPromise = supabase
+      .from("events")
+      .select(
+        "id, title, description, date, time, location, address, venue_name, price, mood, music_type, venue_size, external_link, ticket_link, image_url, target_audience",
+      )
+      .ilike("date", "%every%")
+      .limit(50);
     
     const itemsPromise = supabase
       .from("items")
@@ -228,21 +239,25 @@ serve(async (req) => {
         })()
       : Promise.resolve({ results: [] });
 
-    const [eventsResult, itemsResult, couponsResult, topListsResult, googlePlacesResult] = await Promise.all([
-      eventsPromise,
+    const [datedEventsResult, recurringEventsResult, itemsResult, couponsResult, topListsResult, googlePlacesResult] = await Promise.all([
+      datedEventsPromise,
+      recurringEventsPromise,
       itemsPromise,
       couponsPromise,
       topListsPromise,
       googlePlacesPromise,
     ]);
 
-    let allEvents = eventsResult.data || [];
+    // Merge dated and recurring events
+    const datedEvents = datedEventsResult.data || [];
+    const recurringEvents = recurringEventsResult.data || [];
+    let allEvents = [...datedEvents, ...recurringEvents];
     const businesses = itemsResult.data || [];
     const coupons = couponsResult.data || [];
     const topLists = topListsResult.data || [];
     const googlePlaces = googlePlacesResult.results || [];
     
-    console.log(`Loaded: ${allEvents.length} events, ${businesses.length} businesses, ${coupons.length} coupons, ${topLists.length} top lists, ${googlePlaces.length} Google Places`);
+    console.log(`Loaded: ${datedEvents.length} dated events + ${recurringEvents.length} recurring events = ${allEvents.length} total, ${businesses.length} businesses, ${coupons.length} coupons, ${topLists.length} top lists, ${googlePlaces.length} Google Places`);
 
     // Helper function to calculate next occurrence of recurring event - uses Buenos Aires time
     const getNextOccurrence = (dayName: string): string => {
