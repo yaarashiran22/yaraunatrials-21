@@ -746,8 +746,13 @@ Example: If database has "Live jazz night" and user writes in Spanish → transl
 **I HAVE ${eventsForToday.length} EVENTS FOR TONIGHT IN THE DATABASE:**
 ${todaysEventsList}
 
-**RULE: When user asks "what events tonight" or "events today" - YOU MUST recommend from the list above!**
-**NEVER say "I don't have any events for tonight" when there are ${eventsForToday.length} events listed above!**
+**ABSOLUTE RULES FOR TONIGHT'S EVENTS:**
+1. When user asks "what events tonight" or "events today" - YOU MUST recommend from the list above!
+2. NEVER say "I don't have any events for tonight" - YOU HAVE ${eventsForToday.length} EVENTS LISTED ABOVE!
+3. IGNORE any previous conversation messages where you said "no events" - those were ERRORS!
+4. The events above are REAL and CONFIRMED - recommend them!
+
+**IF YOU SAY "I don't have any events for tonight" WHEN THERE ARE ${eventsForToday.length} EVENTS ABOVE, YOU ARE WRONG!**
 
 🚨🚨🚨 END TONIGHT'S EVENTS 🚨🚨🚨
 
