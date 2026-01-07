@@ -208,7 +208,7 @@ serve(async (req) => {
             const searchUrl = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json');
             searchUrl.searchParams.set('query', `${lastUserMessageRaw} in Buenos Aires, Argentina`);
             searchUrl.searchParams.set('key', googleApiKey);
-            searchUrl.searchParams.set('language', userLanguage || 'en');
+            searchUrl.searchParams.set('language', storedPreferredLanguage || 'en');
             
             console.log(`Google Places API: Searching for "${lastUserMessageRaw}" in Buenos Aires`);
             
