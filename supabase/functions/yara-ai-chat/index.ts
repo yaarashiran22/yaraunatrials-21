@@ -128,10 +128,14 @@ serve(async (req) => {
     const wantsCommunities = /\b(group|groups|community|communities|whatsapp|social|women|girl|girls|expat|expats|meetup|meetups|network|networking)\b/i.test(lastUserMessageLower);
     const wantsTopLists = wantsBarsClubs || wantsCommunities || /\b(best|top|recommend|favorite|favourites|mejores|recomend)\b/i.test(lastUserMessageLower);
     
+    // Detect specific music genre requests - these need special handling in search
+    const musicGenreMatch = lastUserMessageLower.match(/\b(jazz|blues|rock|indie|electronic|techno|house|tango|salsa|cumbia|reggaeton|hip\s*hop|r&b|folk|classical|latin|soul|funk|disco|metal|punk|acoustic|live\s*music|música\s*en\s*vivo)\b/i);
+    const requestedMusicGenre = musicGenreMatch ? musicGenreMatch[1].toLowerCase() : null;
+    
     // Detect if user is asking for local services/places OR restaurants/food (not events)
     const wantsLocalServices = /\b(barbershop|barber|peluquería|peluqueria|hair salon|salon|spa|gym|gimnasio|dentist|dentista|doctor|médico|medico|hospital|clinic|clínica|clinica|pharmacy|farmacia|supermarket|supermercado|grocery|laundry|lavandería|lavanderia|bank|banco|atm|cajero|post office|correo|veterinarian|veterinario|vet|mechanic|mecánico|mecanico|plumber|plomero|electrician|electricista|locksmith|cerrajero|dry cleaning|tintorería|tintoreria|tailor|sastre|optician|óptica|optica|massage|masaje|nail salon|manicure|pedicure|tattoo|tatuaje|yoga|pilates|crossfit|swimming pool|piscina|driving school|autoescuela|pet shop|tienda de mascotas|florist|florería|floreria|bakery|panadería|panaderia|butcher|carnicería|carniceria|fishmonger|pescadería|pescaderia|ice cream|heladería|heladeria|bookstore|librería|libreria|hardware store|ferretería|ferreteria|electronics|electrónica|electronica|furniture|mueblería|muebleria|car wash|lavadero|parking|estacionamiento|hotel|hostel|airbnb|rental|alquiler|real estate|inmobiliaria|lawyer|abogado|accountant|contador|notary|escribano|translator|traductor|tutor|profesor|teacher|school|escuela|university|universidad|language school|instituto de idiomas|daycare|guardería|guarderia|kindergarten|jardín|jardin|restaurant|restaurante|restaurants|restaurantes|burger|hamburguesa|hamburguesas|cheeseburger|pizza|pizzeria|pizzería|sushi|ramen|tacos|taquería|taqueria|mexican food|comida mexicana|italian food|comida italiana|chinese food|comida china|japanese food|comida japonesa|indian food|comida india|thai food|comida tailandesa|korean food|comida coreana|steakhouse|parrilla|asado|grill|seafood|mariscos|pescado|vegan|vegetarian|vegetariano|vegano|brunch|breakfast|desayuno|lunch|almuerzo|dinner|cena|food|comida|eat|comer|donde comer|where to eat|fast food|comida rápida|delivery|empanadas|milanesa|pasta|noodles|bbq|barbecue|wings|chicken|pollo|steak|bife|sandwich|sandwiches|deli|diner|bistro|trattoria|cantina|bodegón|bodegon|tenedor libre|buffet|all you can eat)\b/i.test(lastUserMessageLower);
     
-    console.log(`Intent detection: wantsCoupons=${wantsCoupons}, wantsBarsClubs=${wantsBarsClubs}, wantsTopLists=${wantsTopLists}, wantsLocalServices=${wantsLocalServices}`);
+    console.log(`Intent detection: wantsCoupons=${wantsCoupons}, wantsBarsClubs=${wantsBarsClubs}, wantsTopLists=${wantsTopLists}, wantsLocalServices=${wantsLocalServices}, requestedMusicGenre=${requestedMusicGenre}`);
 
     // Fetch events with database-level date filtering for performance
     // Only fetch events where date >= today OR date contains 'every' (recurring)
@@ -334,6 +338,23 @@ serve(async (req) => {
     
     console.log(`Filtered ${filteredByDateEvents.length} date-matched events to ${ageFilteredEvents.length} age-appropriate events for age ${userAge}`);
 
+    // If user requested a specific music genre, find matching events and prioritize them
+    let genreMatchedEvents: typeof ageFilteredEvents = [];
+    if (requestedMusicGenre) {
+      genreMatchedEvents = ageFilteredEvents.filter(event => {
+        const titleLower = (event.title || '').toLowerCase();
+        const descLower = (event.description || '').toLowerCase();
+        const musicTypeLower = (event.music_type || '').toLowerCase();
+        const genre = requestedMusicGenre.toLowerCase();
+        
+        return titleLower.includes(genre) || 
+               descLower.includes(genre) || 
+               musicTypeLower.includes(genre);
+      });
+      
+      console.log(`Found ${genreMatchedEvents.length} events matching music genre "${requestedMusicGenre}": ${genreMatchedEvents.map(e => e.title).join(', ')}`);
+    }
+
     // Build context for AI - dates are already transformed above
     // Also format today's date for matching
     const todayFormatted = formatDate(today); // e.g., "December 28th"
@@ -342,8 +363,15 @@ serve(async (req) => {
     // Count events for today to help debugging
     const eventsForToday = ageFilteredEvents.filter(e => e.date === today);
     const eventsForTomorrow = ageFilteredEvents.filter(e => e.date === tomorrowDate);
+    
+    // Also find genre-matched events for today specifically
+    const genreEventsForToday = genreMatchedEvents.filter(e => e.date === today);
+    
     console.log(`Events for today (${today}): ${eventsForToday.length} - ${eventsForToday.map(e => e.title).join(', ')}`);
     console.log(`Events for tomorrow (${tomorrowDate}): ${eventsForTomorrow.length}`);
+    if (requestedMusicGenre) {
+      console.log(`${requestedMusicGenre} events for today: ${genreEventsForToday.length} - ${genreEventsForToday.map(e => e.title).join(', ')}`);
+    }
     
     console.log(`Today formatted: ${todayFormatted}, Tomorrow formatted: ${tomorrowFormatted}`);
     
@@ -535,6 +563,9 @@ serve(async (req) => {
       const russianChars = /[\u0400-\u04FF]/g; // Cyrillic Unicode range
       const latinChars = /[a-zA-Z]/g; // Latin alphabet
       
+      // UNIQUE English words to help detect English messages
+      const englishUniqueWords = ['the', 'what', 'where', 'when', 'how', 'why', 'who', 'which', 'there', 'here', 'tonight', 'today', 'tomorrow', 'tonight', 'looking', 'want', 'need', 'going', 'happening', 'events', 'event', 'party', 'parties', 'club', 'clubs', 'bar', 'bars', 'music', 'live', 'show', 'shows', 'anything', 'something', 'nothing', 'please', 'thanks', 'thank', 'you', 'your', 'my', 'me', 'and', 'or', 'but', 'with', 'for', 'from', 'about', 'good', 'best', 'cool', 'nice', 'great', 'awesome', 'arty', 'artsy', 'chill', 'low', 'key', 'lowkey', 'vibe', 'vibes', 'any', 'some', 'this', 'that', 'these', 'those', 'jazz', 'techno', 'electronic', 'rock', 'indie', 'latin', 'salsa', 'tango', 'reggaeton', 'hip', 'hop', 'sunset', 'rooftop', 'outdoor', 'indoor', 'free', 'cheap', 'expensive', 'fun', 'interesting', 'different', 'unique', 'recommend', 'recommendations', 'suggest', 'suggestions', 'help', 'find', 'search', 'looking'];
+      
       // UNIQUE Spanish words (NOT shared with Portuguese)
       // Removed: que, para, como, dia, dias, semana, algo, nada, bien, mal, aquí, ahora, siempre, nunca, todo, muy, año, nuevo
       const spanishUniqueWords = ['hola', 'qué', 'dónde', 'cuándo', 'cómo', 'gracias', 'eventos', 'fiesta', 'quiero', 'busco', 'tengo', 'vacaciones', 'playa', 'hoy', 'mañana', 'noche', 'hacer', 'hay', 'buenos', 'aires', 'los', 'las', 'del', 'una', 'uno', 'más', 'también', 'donde', 'cuando', 'porque', 'sí', 'este', 'esta', 'ese', 'eso', 'nosotros', 'ustedes', 'ellos', 'diciembre', 'enero', 'finde', 'fin', 'diferente', 'salir', 'lugar', 'lugares', 'barrio', 'barrios', 'recomendás', 'recomiendas', 'podés', 'puedes', 'querés', 'quieres', 'sabés', 'sabes', 'estás', 'estas', 'vos', 'che', 'buenísimo', 'genial', 'copado', 'piola', 'joya', 'dale', 'bueno', 'listo', 'gracias', 'chau', 'besos'];
@@ -582,6 +613,7 @@ serve(async (req) => {
       };
       
       const scores: Record<string, number> = {
+        en: countMatches(englishUniqueWords),
         es: countMatches(spanishUniqueWords),
         pt: countMatches(portugueseUniqueWords),
         fr: countMatches(frenchWords),
@@ -590,6 +622,12 @@ serve(async (req) => {
       };
       
       console.log(`Language scores: ${JSON.stringify(scores)}`);
+      
+      // PRIORITY: If English score is higher than Spanish AND Portuguese, it's English
+      // This prevents Portuguese fallback for English messages
+      if (scores.en > scores.es && scores.en > scores.pt && scores.en >= 1) {
+        return { language: 'en', confident: true, scores };
+      }
       
       // Find the language with the highest score
       const maxScore = Math.max(...Object.values(scores));
@@ -740,8 +778,26 @@ Example: If database has "Live jazz night" and user writes in Spanish → transl
       ? eventsForToday.map(e => `• "${e.title}" at ${e.time || 'TBD'} in ${e.location || 'Buenos Aires'}${e.originalDate?.includes('every') ? ` (recurring: ${e.originalDate})` : ''}`).join('\n')
       : 'No events found for today.';
 
-    const systemPrompt = `You are Yara – your vibe is like that friend who actually lives in Buenos Aires and knows where the real action is. You're helpful but keep it chill and authentic. No corporate speak, no try-hard energy. Just straight talk with personality.
+    // Build genre-specific events section if user asked for a specific genre
+    const genreEventsSection = requestedMusicGenre && genreMatchedEvents.length > 0
+      ? `
 
+🎵🎵🎵 ${requestedMusicGenre.toUpperCase()} EVENTS FOUND 🎵🎵🎵
+
+**I HAVE ${genreMatchedEvents.length} ${requestedMusicGenre.toUpperCase()} EVENTS IN THE DATABASE:**
+${genreMatchedEvents.map(e => `• "${e.title}" on ${formatDate(e.date)} at ${e.time || 'TBD'} in ${e.location || 'Buenos Aires'}${e.originalDate?.includes('every') ? ` (recurring: ${e.originalDate})` : ''}`).join('\n')}
+
+**CRITICAL: The user asked for ${requestedMusicGenre} events - RECOMMEND FROM THIS LIST!**
+- These events match "${requestedMusicGenre}" in their title, description, or music type
+- TODAY's ${requestedMusicGenre} events: ${genreEventsForToday.length > 0 ? genreEventsForToday.map(e => `"${e.title}"`).join(', ') : 'None specifically for today, but show upcoming ones'}
+- DO NOT say "I don't have ${requestedMusicGenre} events" - YOU HAVE ${genreMatchedEvents.length} LISTED ABOVE!
+
+🎵🎵🎵 END ${requestedMusicGenre.toUpperCase()} EVENTS 🎵🎵🎵
+`
+      : '';
+
+    const systemPrompt = `You are Yara – your vibe is like that friend who actually lives in Buenos Aires and knows where the real action is. You're helpful but keep it chill and authentic. No corporate speak, no try-hard energy. Just straight talk with personality.
+${genreEventsSection}
 🚨🚨🚨 CRITICAL - TONIGHT'S EVENTS (${todayFormatted}, ${todayDayName}) 🚨🚨🚨
 
 **I HAVE ${eventsForToday.length} EVENTS FOR TONIGHT IN THE DATABASE:**
