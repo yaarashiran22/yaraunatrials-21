@@ -132,10 +132,14 @@ serve(async (req) => {
     const musicGenreMatch = lastUserMessageLower.match(/\b(jazz|blues|rock|indie|electronic|techno|house|tango|salsa|cumbia|reggaeton|hip\s*hop|r&b|folk|classical|latin|soul|funk|disco|metal|punk|acoustic|live\s*music|música\s*en\s*vivo)\b/i);
     const requestedMusicGenre = musicGenreMatch ? musicGenreMatch[1].toLowerCase() : null;
     
+    // Detect nomad/expat/remote worker related keywords - these need special handling
+    const nomadKeywordMatch = lastUserMessageLower.match(/\b(nomad|nomads|digital\s*nomad|digital\s*nomads|expat|expats|expatriate|remote\s*worker|remote\s*workers|nómada|nómadas|working\s*remotely|freelancer|freelancers|coworking|co-working)\b/i);
+    const requestedNomadKeyword = nomadKeywordMatch ? nomadKeywordMatch[1].toLowerCase() : null;
+    
     // Detect if user is asking for local services/places OR restaurants/food (not events)
     const wantsLocalServices = /\b(barbershop|barber|peluquería|peluqueria|hair salon|salon|spa|gym|gimnasio|dentist|dentista|doctor|médico|medico|hospital|clinic|clínica|clinica|pharmacy|farmacia|supermarket|supermercado|grocery|laundry|lavandería|lavanderia|bank|banco|atm|cajero|post office|correo|veterinarian|veterinario|vet|mechanic|mecánico|mecanico|plumber|plomero|electrician|electricista|locksmith|cerrajero|dry cleaning|tintorería|tintoreria|tailor|sastre|optician|óptica|optica|massage|masaje|nail salon|manicure|pedicure|tattoo|tatuaje|yoga|pilates|crossfit|swimming pool|piscina|driving school|autoescuela|pet shop|tienda de mascotas|florist|florería|floreria|bakery|panadería|panaderia|butcher|carnicería|carniceria|fishmonger|pescadería|pescaderia|ice cream|heladería|heladeria|bookstore|librería|libreria|hardware store|ferretería|ferreteria|electronics|electrónica|electronica|furniture|mueblería|muebleria|car wash|lavadero|parking|estacionamiento|hotel|hostel|airbnb|rental|alquiler|real estate|inmobiliaria|lawyer|abogado|accountant|contador|notary|escribano|translator|traductor|tutor|profesor|teacher|school|escuela|university|universidad|language school|instituto de idiomas|daycare|guardería|guarderia|kindergarten|jardín|jardin|restaurant|restaurante|restaurants|restaurantes|burger|hamburguesa|hamburguesas|cheeseburger|pizza|pizzeria|pizzería|sushi|ramen|tacos|taquería|taqueria|mexican food|comida mexicana|italian food|comida italiana|chinese food|comida china|japanese food|comida japonesa|indian food|comida india|thai food|comida tailandesa|korean food|comida coreana|steakhouse|parrilla|asado|grill|seafood|mariscos|pescado|vegan|vegetarian|vegetariano|vegano|brunch|breakfast|desayuno|lunch|almuerzo|dinner|cena|food|comida|eat|comer|donde comer|where to eat|fast food|comida rápida|delivery|empanadas|milanesa|pasta|noodles|bbq|barbecue|wings|chicken|pollo|steak|bife|sandwich|sandwiches|deli|diner|bistro|trattoria|cantina|bodegón|bodegon|tenedor libre|buffet|all you can eat)\b/i.test(lastUserMessageLower);
     
-    console.log(`Intent detection: wantsCoupons=${wantsCoupons}, wantsBarsClubs=${wantsBarsClubs}, wantsTopLists=${wantsTopLists}, wantsLocalServices=${wantsLocalServices}, requestedMusicGenre=${requestedMusicGenre}`);
+    console.log(`Intent detection: wantsCoupons=${wantsCoupons}, wantsBarsClubs=${wantsBarsClubs}, wantsTopLists=${wantsTopLists}, wantsLocalServices=${wantsLocalServices}, requestedMusicGenre=${requestedMusicGenre}, requestedNomadKeyword=${requestedNomadKeyword}`);
 
     // Fetch events with database-level date filtering for performance
     // Only fetch events where date >= today OR date contains 'every' (recurring)
@@ -353,6 +357,24 @@ serve(async (req) => {
       });
       
       console.log(`Found ${genreMatchedEvents.length} events matching music genre "${requestedMusicGenre}": ${genreMatchedEvents.map(e => e.title).join(', ')}`);
+    }
+
+    // If user requested nomad/expat related content, find matching events and prioritize them
+    let nomadMatchedEvents: typeof ageFilteredEvents = [];
+    if (requestedNomadKeyword) {
+      // Keywords to search for in event titles/descriptions
+      const nomadSearchTerms = ['nomad', 'nomads', 'digital nomad', 'expat', 'expats', 'remote', 'freelancer', 'coworking', 'co-working', 'nómada', 'nómadas'];
+      
+      nomadMatchedEvents = ageFilteredEvents.filter(event => {
+        const titleLower = (event.title || '').toLowerCase();
+        const descLower = (event.description || '').toLowerCase();
+        
+        return nomadSearchTerms.some(term => 
+          titleLower.includes(term) || descLower.includes(term)
+        );
+      });
+      
+      console.log(`Found ${nomadMatchedEvents.length} events matching nomad keyword "${requestedNomadKeyword}": ${nomadMatchedEvents.map(e => e.title).join(', ')}`);
     }
 
     // Build context for AI - dates are already transformed above
@@ -796,8 +818,26 @@ ${genreMatchedEvents.map(e => `• "${e.title}" on ${formatDate(e.date)} at ${e.
 `
       : '';
 
+    // Build nomad/expat-specific events section if user asked for nomad-related content
+    const nomadEventsSection = requestedNomadKeyword && nomadMatchedEvents.length > 0
+      ? `
+
+🌍🌍🌍 NOMAD/EXPAT EVENTS FOUND 🌍🌍🌍
+
+**I HAVE ${nomadMatchedEvents.length} NOMAD/EXPAT EVENTS IN THE DATABASE:**
+${nomadMatchedEvents.map(e => `• "${e.title}" on ${formatDate(e.date)} at ${e.time || 'TBD'} in ${e.location || 'Buenos Aires'}${e.originalDate?.includes('every') ? ` (recurring: ${e.originalDate})` : ''}`).join('\n')}
+
+**CRITICAL: The user asked for nomad/expat events - RECOMMEND FROM THIS LIST!**
+- These events match "nomad", "expat", "digital nomad", "remote worker", etc.
+- DO NOT say "I don't have nomad events" - YOU HAVE ${nomadMatchedEvents.length} LISTED ABOVE!
+- If user asks for a specific day (e.g., "this friday"), filter by date from the list above
+
+🌍🌍🌍 END NOMAD/EXPAT EVENTS 🌍🌍🌍
+`
+      : '';
+
     const systemPrompt = `You are Yara – your vibe is like that friend who actually lives in Buenos Aires and knows where the real action is. You're helpful but keep it chill and authentic. No corporate speak, no try-hard energy. Just straight talk with personality.
-${genreEventsSection}
+${genreEventsSection}${nomadEventsSection}
 🚨🚨🚨 CRITICAL - TONIGHT'S EVENTS (${todayFormatted}, ${todayDayName}) 🚨🚨🚨
 
 **I HAVE ${eventsForToday.length} EVENTS FOR TONIGHT IN THE DATABASE:**
