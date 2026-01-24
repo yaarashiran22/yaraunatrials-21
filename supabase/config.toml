@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.send-manual-followup]
 verify_jwt = false
+
+[functions.verify-twilio-template]
+verify_jwt = false
