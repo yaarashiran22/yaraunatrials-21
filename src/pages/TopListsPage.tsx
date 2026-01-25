@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Trash2, Edit, Download } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, Trash2, Edit, Download, Upload, X, Image as ImageIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import BottomNavigation from "@/components/BottomNavigation";
@@ -25,6 +25,9 @@ const TopListsPage = () => {
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [editingListId, setEditingListId] = useState<string | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const newItemFileRef = useRef<HTMLInputElement>(null);
+  const editItemFileRef = useRef<HTMLInputElement>(null);
   const [newList, setNewList] = useState({
     title: "",
     category: "",
@@ -290,6 +293,51 @@ const TopListsPage = () => {
       toast.error("Failed to update item");
     },
   });
+
+  const handleImageUpload = async (file: File, target: 'new' | 'edit') => {
+    if (!file) return;
+    
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Please upload a valid image (JPG, PNG, WebP, or GIF)");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `top-list-items/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('photos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('photos')
+        .getPublicUrl(filePath);
+
+      if (target === 'new') {
+        setNewItem({ ...newItem, image_url: publicUrl });
+      } else {
+        setEditItem({ ...editItem, image_url: publicUrl });
+      }
+      
+      toast.success("Image uploaded!");
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const handleCreateList = () => {
     if (!user) {
@@ -613,9 +661,19 @@ const TopListsPage = () => {
                     className="group bg-muted/30 rounded-lg p-5 border border-border hover:border-primary/50 hover:bg-muted/50 transition-all"
                   >
                     <div className="flex gap-4">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center font-bold text-sm text-primary">
-                        {index + 1}
-                      </div>
+                      {item.image_url ? (
+                        <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-muted">
+                          <img 
+                            src={item.image_url} 
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center font-bold text-sm text-primary">
+                          {index + 1}
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-lg text-foreground mb-1">{item.name}</h4>
                         {item.location && (
@@ -728,6 +786,48 @@ const TopListsPage = () => {
               />
             </div>
             <div>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Image (optional)</label>
+              <input
+                type="file"
+                ref={newItemFileRef}
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleImageUpload(file, 'new');
+                }}
+                className="hidden"
+              />
+              {newItem.image_url ? (
+                <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-border">
+                  <img src={newItem.image_url} alt="Preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setNewItem({ ...newItem, image_url: "" })}
+                    className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => newItemFileRef.current?.click()}
+                  disabled={uploadingImage}
+                  className="h-11 gap-2"
+                >
+                  {uploadingImage ? (
+                    <span className="animate-pulse">Uploading...</span>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      Upload Image
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+            <div>
               <label className="text-sm font-semibold text-foreground mb-2 block">Instagram Link (optional)</label>
               <Input
                 value={newItem.url}
@@ -738,7 +838,7 @@ const TopListsPage = () => {
             </div>
             <Button
               onClick={handleAddItem}
-              disabled={!newItem.name}
+              disabled={!newItem.name || uploadingImage}
               className="w-full h-11"
               size="lg"
             >
@@ -842,6 +942,48 @@ const TopListsPage = () => {
               />
             </div>
             <div>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Image (optional)</label>
+              <input
+                type="file"
+                ref={editItemFileRef}
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleImageUpload(file, 'edit');
+                }}
+                className="hidden"
+              />
+              {editItem.image_url ? (
+                <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-border">
+                  <img src={editItem.image_url} alt="Preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setEditItem({ ...editItem, image_url: "" })}
+                    className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => editItemFileRef.current?.click()}
+                  disabled={uploadingImage}
+                  className="h-11 gap-2"
+                >
+                  {uploadingImage ? (
+                    <span className="animate-pulse">Uploading...</span>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      Upload Image
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+            <div>
               <label className="text-sm font-semibold text-foreground mb-2 block">Instagram Link (optional)</label>
               <Input
                 value={editItem.url}
@@ -852,7 +994,7 @@ const TopListsPage = () => {
             </div>
             <Button
               onClick={handleUpdateItem}
-              disabled={!editItem.name}
+              disabled={!editItem.name || uploadingImage}
               className="w-full h-11"
               size="lg"
             >
