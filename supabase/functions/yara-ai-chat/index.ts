@@ -993,15 +993,34 @@ ${userContext}
 Available data:
 ${JSON.stringify(contextData, null, 2)}
 
+**🎫🎫🎫 AVAILABLE DISCOUNTS & DEALS - USE THESE! 🎫🎫🎫**
+
+${(() => {
+  const discountList = contextData.topLists.find((list: any) => list.category === 'Discounts');
+  if (discountList && discountList.items && discountList.items.length > 0) {
+    return `YOU HAVE ${discountList.items.length} DISCOUNT(S) IN THE DATABASE:
+${discountList.items.map((item: any, i: number) => `${i + 1}. **${item.name}**
+   📍 Location: ${item.location || 'Buenos Aires'}
+   📝 Description: ${item.description || 'Special discount'}
+   🔗 Link: ${item.url || 'No link'}`).join('\n\n')}
+
+**WHEN USER ASKS ABOUT DISCOUNTS/DEALS/OFFERS:**
+- YOU MUST recommend from the discounts listed above!
+- NEVER say "I don't have any discounts" - YOU HAVE ${discountList.items.length} DISCOUNT(S) LISTED ABOVE!
+- Include the discount name, description, location, and link in your response`;
+  }
+  return 'No discounts currently available in the database.';
+})()}
+
+🎫🎫🎫 END DISCOUNTS 🎫🎫🎫
+
 **CURATED TOP LISTS - COMMUNITY RECOMMENDATIONS:**
 The "topLists" section contains curated lists created by registered users about the best places in Buenos Aires. Each list has items with name, description, location, and url:
-- **WHEN USERS ASK FOR DISCOUNTS/DEALS/OFFERS**: Look through top lists with category "Discounts" and recommend the specific discount items. Include the discount name, description, location, and url/link.
 - **WHEN USERS ASK FOR BARS**: Recommend individual bars FROM the items in bar-related top lists. Don't just recommend the list - recommend the actual bars listed in the items.
 - **WHEN USERS ASK FOR CLUBS**: Recommend individual clubs FROM the items in club-related top lists
 - **WHEN USERS ASK FOR CAFÉS**: Recommend individual cafés FROM the items in café-related top lists
 - **WHEN USERS ASK FOR ART CENTERS**: Recommend individual art centers FROM the items in art center-related top lists
 - **WHEN USERS ASK FOR WORKSHOPS**: Recommend individual workshops FROM the items in workshop-related top lists
-- Example: If a user asks "what discounts are there?", look through top lists with category "Discounts", extract the individual discount items from those lists, and recommend those specific deals with their descriptions and locations
 - You can combine these top list items with relevant events to give comprehensive recommendations
 - The items array contains: name, description, location, and url for each place
 
