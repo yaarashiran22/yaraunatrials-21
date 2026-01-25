@@ -57,7 +57,8 @@ const TopListsPage = () => {
     "Workshops",
     "Cafés",
     "Communities",
-    "Coworks"
+    "Coworks",
+    "Discounts"
   ];
 
   // Fetch all top lists
