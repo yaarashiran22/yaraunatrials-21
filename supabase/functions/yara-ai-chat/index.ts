@@ -126,7 +126,7 @@ serve(async (req) => {
     const wantsCoupons = /\b(coupon|discount|deal|offer|descuento|oferta|cupón|cupon|promo|promotion|%\s*off|off\s*%)\b/i.test(lastUserMessageLower);
     const wantsBarsClubs = /\b(bar|bars|club|clubs|nightlife|drinks|cocktail|pub|bares|boliche|boliches|café|cafe|cafes|coffee)\b/i.test(lastUserMessageLower);
     const wantsCommunities = /\b(group|groups|community|communities|whatsapp|social|women|girl|girls|expat|expats|meetup|meetups|network|networking)\b/i.test(lastUserMessageLower);
-    const wantsTopLists = wantsBarsClubs || wantsCommunities || /\b(best|top|recommend|favorite|favourites|mejores|recomend)\b/i.test(lastUserMessageLower);
+    const wantsTopLists = wantsBarsClubs || wantsCommunities || wantsCoupons || /\b(best|top|recommend|favorite|favourites|mejores|recomend)\b/i.test(lastUserMessageLower);
     
     // Detect specific music genre requests - these need special handling in search
     const musicGenreMatch = lastUserMessageLower.match(/\b(jazz|blues|rock|indie|electronic|techno|house|tango|salsa|cumbia|reggaeton|hip\s*hop|r&b|folk|classical|latin|soul|funk|disco|metal|punk|acoustic|live\s*music|música\s*en\s*vivo)\b/i);
