@@ -456,6 +456,10 @@ serve(async (req) => {
       })),
       googlePlaces: googlePlaces.length > 0 ? googlePlaces : undefined,
     };
+    
+    // Debug: Log topLists with Discounts category
+    const discountLists = contextData.topLists.filter((list: any) => list.category === 'Discounts');
+    console.log(`TopLists with Discounts category: ${discountLists.length}, items: ${JSON.stringify(discountLists)}`);
 
     // Build user context - we'll inject this directly into the conversation
     let userProfileInfo: string[] = [];
