@@ -452,6 +452,7 @@ serve(async (req) => {
             description: item.description,
             location: item.location,
             url: item.url,
+            image_url: item.image_url,
           })),
       })),
       googlePlaces: googlePlaces.length > 0 ? googlePlaces : undefined,
@@ -1002,12 +1003,14 @@ ${(() => {
 ${discountList.items.map((item: any, i: number) => `${i + 1}. **${item.name}**
    📍 Location: ${item.location || 'Buenos Aires'}
    📝 Description: ${item.description || 'Special discount'}
-   🔗 Link: ${item.url || 'No link'}`).join('\n\n')}
+   🔗 Link: ${item.url || 'No link'}
+   🖼️ Image: ${item.image_url || 'No image'}`).join('\n\n')}
 
 **WHEN USER ASKS ABOUT DISCOUNTS/DEALS/OFFERS:**
 - YOU MUST recommend from the discounts listed above!
 - NEVER say "I don't have any discounts" - YOU HAVE ${discountList.items.length} DISCOUNT(S) LISTED ABOVE!
-- Include the discount name, description, location, and link in your response`;
+- Include the discount name, description, location, link, AND image_url in your response
+- When returning JSON recommendations, include the image_url field so it can be displayed in WhatsApp`;
   }
   return 'No discounts currently available in the database.';
 })()}
