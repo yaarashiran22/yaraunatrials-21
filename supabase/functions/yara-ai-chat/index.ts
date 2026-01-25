@@ -198,6 +198,7 @@ serve(async (req) => {
               description,
               location,
               url,
+              image_url,
               display_order
             )
           `)
