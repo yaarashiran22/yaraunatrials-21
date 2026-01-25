@@ -122,8 +122,10 @@ serve(async (req) => {
     const lastUserMessageRaw = messages[messages.length - 1]?.content || "";
     const lastUserMessageLower = lastUserMessageRaw.toLowerCase();
     
+    console.log(`Last user message for intent: "${lastUserMessageLower}"`);
+    
     // Intent detection for conditional data loading
-    const wantsCoupons = /\b(coupon|discount|deal|offer|descuento|oferta|cupón|cupon|promo|promotion|%\s*off|off\s*%)\b/i.test(lastUserMessageLower);
+    const wantsCoupons = /\b(coupon|discounts?|deals?|offers?|descuento|oferta|cupón|cupon|promo|promotion|%\s*off|off\s*%)\b/i.test(lastUserMessageLower);
     const wantsBarsClubs = /\b(bar|bars|club|clubs|nightlife|drinks|cocktail|pub|bares|boliche|boliches|café|cafe|cafes|coffee)\b/i.test(lastUserMessageLower);
     const wantsCommunities = /\b(group|groups|community|communities|whatsapp|social|women|girl|girls|expat|expats|meetup|meetups|network|networking)\b/i.test(lastUserMessageLower);
     const wantsTopLists = wantsBarsClubs || wantsCommunities || wantsCoupons || /\b(best|top|recommend|favorite|favourites|mejores|recomend)\b/i.test(lastUserMessageLower);
@@ -988,15 +990,16 @@ Available data:
 ${JSON.stringify(contextData, null, 2)}
 
 **CURATED TOP LISTS - COMMUNITY RECOMMENDATIONS:**
-The "topLists" section contains curated lists created by registered users about the best places in Buenos Aires. Each list has items with name, description, and location:
+The "topLists" section contains curated lists created by registered users about the best places in Buenos Aires. Each list has items with name, description, location, and url:
+- **WHEN USERS ASK FOR DISCOUNTS/DEALS/OFFERS**: Look through top lists with category "Discounts" and recommend the specific discount items. Include the discount name, description, location, and url/link.
 - **WHEN USERS ASK FOR BARS**: Recommend individual bars FROM the items in bar-related top lists. Don't just recommend the list - recommend the actual bars listed in the items.
 - **WHEN USERS ASK FOR CLUBS**: Recommend individual clubs FROM the items in club-related top lists
 - **WHEN USERS ASK FOR CAFÉS**: Recommend individual cafés FROM the items in café-related top lists
 - **WHEN USERS ASK FOR ART CENTERS**: Recommend individual art centers FROM the items in art center-related top lists
 - **WHEN USERS ASK FOR WORKSHOPS**: Recommend individual workshops FROM the items in workshop-related top lists
-- Example: If a user asks "recommend me bars", look through top lists with category "Bars", extract the individual bar items from those lists, and recommend those specific bars with their descriptions and locations
+- Example: If a user asks "what discounts are there?", look through top lists with category "Discounts", extract the individual discount items from those lists, and recommend those specific deals with their descriptions and locations
 - You can combine these top list items with relevant events to give comprehensive recommendations
-- The items array contains: name, description, and location for each place
+- The items array contains: name, description, location, and url for each place
 
 **GOOGLE PLACES - LOCAL SERVICES:**
 ${googlePlaces.length > 0 ? `
