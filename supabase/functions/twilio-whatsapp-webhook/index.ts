@@ -864,17 +864,42 @@ Deno.serve(async (req) => {
       // CRITICAL FIX: If the message looks like it contains JSON but failed to parse,
       // strip out any JSON-like content to avoid sending raw code to user
       else if (cleanedMessage.includes('"recommendations"') || cleanedMessage.includes('"type":') || 
-               cleanedMessage.includes('"intro_message"') || cleanedMessage.includes('"title":')) {
+               cleanedMessage.includes('"intro_message"') || cleanedMessage.includes('"title":') ||
+               (cleanedMessage.trim().startsWith('[') && cleanedMessage.includes('"id":'))) {
         console.log("WARNING: Response contains JSON-like content but failed to parse. Stripping it.");
-        // Extract only the human-readable text before any JSON
-        const jsonPatternStart = cleanedMessage.search(/[\[{]/);
-        if (jsonPatternStart > 0) {
-          assistantMessage = cleanedMessage.substring(0, jsonPatternStart).trim();
-          console.log("Stripped JSON, remaining text:", assistantMessage);
+        
+        // CRITICAL FIX: Try to manually extract and re-parse the JSON array
+        // This handles cases where the AI returns a raw array that failed initial parsing
+        const rawArrayMatch = cleanedMessage.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        if (rawArrayMatch) {
+          try {
+            const manualParsed = JSON.parse(rawArrayMatch[0]);
+            if (Array.isArray(manualParsed) && manualParsed.length > 0) {
+              console.log("Successfully manually parsed JSON array with", manualParsed.length, "items");
+              parsedResponse = {
+                intro_message: null,
+                recommendations: manualParsed
+              };
+              // Don't fall through to text stripping - we recovered the data!
+            }
+          } catch (manualParseError) {
+            console.log("Manual JSON array parsing also failed:", manualParseError.message);
+          }
         }
-        // If the entire message is JSON-like, send a fallback
-        if (!assistantMessage || assistantMessage.length < 10) {
-          assistantMessage = "I found some options for you! Let me format those properly...";
+        
+        // If we couldn't recover the JSON, strip it out
+        if (!parsedResponse) {
+          // Extract only the human-readable text before any JSON
+          const jsonPatternStart = cleanedMessage.search(/[\[{]/);
+          if (jsonPatternStart > 0) {
+            assistantMessage = cleanedMessage.substring(0, jsonPatternStart).trim();
+            console.log("Stripped JSON, remaining text:", assistantMessage);
+          }
+          // If the entire message is JSON-like (starts with [ or {), use fallback
+          if (!assistantMessage || assistantMessage.length < 10 || jsonPatternStart === 0) {
+            assistantMessage = "I found some options for you! Let me format those properly...";
+            console.log("Entire message was JSON-like, using fallback text");
+          }
         }
       }
     }
