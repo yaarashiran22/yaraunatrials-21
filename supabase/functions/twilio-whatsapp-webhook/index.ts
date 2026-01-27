@@ -1045,22 +1045,100 @@ Deno.serve(async (req) => {
       /give me a moment/i,
       /let me (check|look|find|search)/i,
       /one moment/i,
+      /moment away/i,
+      /technical glitch/i,
+      /thanks for your patience/i,
+      /be back with/i,
+      /in a flash/i,
       /un momento/i,
       /dame un momento/i,
       /just a sec/i,
       /looking (for|up)/i,
       /I'll get back to you/i,
+      /I'll be back/i,
       /please wait/i,
       /checking now/i,
       /searching for/i,
+      /working on it/i,
+      /processing/i,
+      /fetching/i,
+      /small (technical )?glitch/i,
+      /bear with me/i,
+      /hang tight/i,
     ];
     
     const isTeaserMessage = teaserPatterns.some(pattern => pattern.test(assistantMessage.trim()));
-    const isRecommendationQuery = /\b(event|events|party|parties|bar|bars|club|clubs|tonight|today|tomorrow|weekend|happening|recommend|fiesta|show me|what's on)\b/i.test(body);
+    const isRecommendationQuery = /\b(event|events|party|parties|bar|bars|club|clubs|tonight|today|tomorrow|weekend|happening|recommend|fiesta|show me|what's on|mañana|hoy|esta noche)\b/i.test(body);
     
     if (isTeaserMessage && isRecommendationQuery) {
-      console.log("WARNING: Detected teaser/placeholder message for recommendation query. Sending helpful fallback.");
-      // Don't send the teaser - send a helpful message instead
+      console.log("WARNING: Detected teaser/placeholder message for recommendation query. Fetching events directly.");
+      
+      // Instead of asking user to retry, fetch events directly from database
+      try {
+        const today = new Date();
+        const buenosAiresOffset = -3 * 60;
+        const localTime = new Date(today.getTime() + (today.getTimezoneOffset() + buenosAiresOffset) * 60000);
+        
+        // Check if query is for tomorrow
+        const isTomorrowQuery = /\b(tomorrow|mañana)\b/i.test(body);
+        const targetDate = new Date(localTime);
+        if (isTomorrowQuery) {
+          targetDate.setDate(targetDate.getDate() + 1);
+        }
+        const targetDateStr = targetDate.toISOString().split('T')[0];
+        
+        // Fetch events for the target date
+        const { data: events } = await supabase
+          .from('events')
+          .select('id, title, description, date, time, location, venue_name, image_url, external_link')
+          .or(`date.eq.${targetDateStr},date.ilike.every ${targetDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()}`)
+          .limit(5);
+        
+        if (events && events.length > 0) {
+          console.log(`Found ${events.length} events for fallback. Sending via send-whatsapp-recommendations`);
+          
+          // Format as recommendations and send via the recommendation function
+          const recommendations = events.map(e => ({
+            id: e.id,
+            type: 'event',
+            title: e.title,
+            description: e.description || '',
+            time: e.time,
+            location: e.location || e.venue_name,
+            image_url: e.image_url,
+            external_link: e.external_link
+          }));
+          
+          const dateLabel = isTomorrowQuery 
+            ? (userLanguage === 'es' ? 'mañana' : 'tomorrow')
+            : (userLanguage === 'es' ? 'hoy' : 'today');
+          
+          const introMessage = userLanguage === 'es'
+            ? `¡Encontré ${events.length} eventos para ${dateLabel}! 🎉`
+            : `Found ${events.length} events for ${dateLabel}! 🎉`;
+          
+          // Call send-whatsapp-recommendations in background
+          supabase.functions.invoke('send-whatsapp-recommendations', {
+            body: {
+              phoneNumber: from,
+              introMessage,
+              recommendations
+            }
+          }).catch(err => console.error('Error sending fallback recommendations:', err));
+          
+          // Return empty TwiML since recommendations will be sent separately
+          const emptyTwiml = `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`;
+          console.log("Returning empty TwiML (fallback recommendations being sent)");
+          return new Response(emptyTwiml, {
+            headers: { ...corsHeaders, "Content-Type": "text/xml" },
+            status: 200,
+          });
+        }
+      } catch (fallbackError) {
+        console.error("Fallback event fetch failed:", fallbackError);
+      }
+      
+      // If fallback also failed, send retry message
       assistantMessage = userLanguage === 'es' 
         ? "Hmm, parece que algo salió mal. ¿Podés preguntarme de nuevo qué eventos te interesan? 🎯" 
         : "Hmm, something went wrong. Could you ask me again about what events you're looking for? 🎯";
