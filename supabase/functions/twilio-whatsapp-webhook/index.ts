@@ -770,8 +770,20 @@ Deno.serve(async (req) => {
       console.log("Extracted JSON from markdown block:", cleanedMessage.substring(0, 200) + "...");
     } else {
       // Try to extract JSON from the response without markdown wrapper
-      // Look for a JSON object starting with { and ending with }
-      const jsonMatch = cleanedMessage.match(/\{[\s\S]*\}/);
+      // Look for a JSON object starting with { and ending with } OR JSON array starting with [ and ending with ]
+      const jsonObjectMatch = cleanedMessage.match(/\{[\s\S]*\}/);
+      const jsonArrayMatch = cleanedMessage.match(/\[[\s\S]*\]/);
+      
+      // Use whichever match comes first in the message
+      let jsonMatch = null;
+      if (jsonObjectMatch && jsonArrayMatch) {
+        const objectIndex = cleanedMessage.indexOf(jsonObjectMatch[0]);
+        const arrayIndex = cleanedMessage.indexOf(jsonArrayMatch[0]);
+        jsonMatch = objectIndex < arrayIndex ? jsonObjectMatch : jsonArrayMatch;
+      } else {
+        jsonMatch = jsonObjectMatch || jsonArrayMatch;
+      }
+      
       if (jsonMatch) {
         // Capture any text before the JSON (intro text like "Here are some events...")
         const jsonStartIndex = cleanedMessage.indexOf(jsonMatch[0]);
@@ -792,6 +804,15 @@ Deno.serve(async (req) => {
         parsedResponse.recommendations?.length || 0,
         "recommendations",
       );
+      
+      // CRITICAL FIX: Handle raw JSON array (AI sometimes returns [...] instead of {intro_message, recommendations: [...]})
+      if (Array.isArray(parsedResponse)) {
+        console.log("AI returned raw JSON array instead of object. Converting to proper format.");
+        parsedResponse = {
+          intro_message: prefixText || null,
+          recommendations: parsedResponse
+        };
+      }
       
       // CRITICAL FIX: If we successfully parsed JSON with recommendations, 
       // do NOT fall through to conversational path
