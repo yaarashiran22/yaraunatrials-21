@@ -1037,6 +1037,35 @@ Deno.serve(async (req) => {
     // Regular conversational response (no recommendations)
     console.log("Sending conversational response");
 
+    // CRITICAL FIX: Detect TEASER/PLACEHOLDER messages that should never be sent
+    // The AI sometimes outputs these instead of actual recommendations
+    const teaserPatterns = [
+      /^got$/i,
+      /^ok$/i,
+      /give me a moment/i,
+      /let me (check|look|find|search)/i,
+      /one moment/i,
+      /un momento/i,
+      /dame un momento/i,
+      /just a sec/i,
+      /looking (for|up)/i,
+      /I'll get back to you/i,
+      /please wait/i,
+      /checking now/i,
+      /searching for/i,
+    ];
+    
+    const isTeaserMessage = teaserPatterns.some(pattern => pattern.test(assistantMessage.trim()));
+    const isRecommendationQuery = /\b(event|events|party|parties|bar|bars|club|clubs|tonight|today|tomorrow|weekend|happening|recommend|fiesta|show me|what's on)\b/i.test(body);
+    
+    if (isTeaserMessage && isRecommendationQuery) {
+      console.log("WARNING: Detected teaser/placeholder message for recommendation query. Sending helpful fallback.");
+      // Don't send the teaser - send a helpful message instead
+      assistantMessage = userLanguage === 'es' 
+        ? "Hmm, parece que algo salió mal. ¿Podés preguntarme de nuevo qué eventos te interesan? 🎯" 
+        : "Hmm, something went wrong. Could you ask me again about what events you're looking for? 🎯";
+    }
+
     // CRITICAL SAFETY CHECK: Never store or send raw JSON/markdown code blocks to users
     // This is a final fallback to catch any edge cases
     const hasRawJson = assistantMessage.includes('```json') || 
