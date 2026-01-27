@@ -125,7 +125,7 @@ serve(async (req) => {
     console.log(`Last user message for intent: "${lastUserMessageLower}"`);
     
     // Intent detection for conditional data loading
-    const wantsCoupons = /\b(coupon|discounts?|deals?|offers?|descuento|oferta|cupón|cupon|promo|promotion|%\s*off|off\s*%)\b/i.test(lastUserMessageLower);
+    const wantsCoupons = /\b(coupon|discounts?|deals?|offers?|descuentos?|ofertas?|cupón|cupon|cupones|promo|promotion|promoción|promociones|%\s*off|off\s*%)\b/i.test(lastUserMessageLower);
     const wantsBarsClubs = /\b(bar|bars|club|clubs|nightlife|drinks|cocktail|pub|bares|boliche|boliches|café|cafe|cafes|coffee)\b/i.test(lastUserMessageLower);
     const wantsCommunities = /\b(group|groups|community|communities|whatsapp|social|women|girl|girls|expat|expats|meetup|meetups|network|networking)\b/i.test(lastUserMessageLower);
     const wantsTopLists = wantsBarsClubs || wantsCommunities || wantsCoupons || /\b(best|top|recommend|favorite|favourites|mejores|recomend)\b/i.test(lastUserMessageLower);
