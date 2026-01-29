@@ -282,8 +282,8 @@ Deno.serve(async (req) => {
         // Special welcome message for first-time users
         greetingMessage =
           userLanguage === "es"
-            ? "Hola 👋 Bienvenido a underground BA. Soy tu guía de IA para todo lo boutique, indie y local, que no aparece en Google 😉 ¿Qué estás buscando?"
-            : "Hey 👋 Welcome to underground BA. I'm your AI guide for anything boutique, indie, and local, that doesn't show up on Google 😉 What are you looking for?";
+            ? "Hola 👋 Bienvenido a Yara. Soy tu guía de IA para los mejores eventos, fiestas y... descuentos exclusivos de Yara AI en Buenos Aires. Contame- ¿qué estás buscando?"
+            : "Hey 👋 Welcome to Yara. I'm your AI guide for Buenos Aires' best events, parties and... exclusive Yara AI discounts. Tell me- what are you looking for?";
       } else if (whatsappUser?.name) {
         // Personalized greeting for known users
         greetingMessage =
