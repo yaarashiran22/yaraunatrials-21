@@ -1844,11 +1844,48 @@ IMPORTANT - NO DATABASE MATCHES:
         console.error("AI returned placeholder instead of actual recommendations! Message:", message);
         console.log("Building fallback recommendations from database...");
         
-        // Check if user was asking about events
+        // Check if user was asking about discounts/deals FIRST - prioritize discount fallback
         const lastUserMsgLower = lastUserMessage.toLowerCase();
-        const isTodayQuery = lastUserMsgLower.includes("tonight") || lastUserMsgLower.includes("today") || 
-                            lastUserMsgLower.includes("esta noche") || lastUserMsgLower.includes("hoy");
-        const isTomorrowQuery = lastUserMsgLower.includes("tomorrow") || lastUserMsgLower.includes("mañana");
+        const isDiscountQuery = /\b(coupon|discounts?|deals?|offers?|descuentos?|ofertas?|cupón|cupon|cupones|promo|promotion|promoción|promociones)\b/i.test(lastUserMsgLower);
+        
+        if (isDiscountQuery && topLists.length > 0) {
+          console.log("User asked for discounts - building discount fallback from topLists");
+          
+          // Find the Discounts category from topLists
+          const discountList = topLists.find(list => list.category === 'Discounts');
+          const discountItems = discountList?.top_list_items || [];
+          
+          if (discountItems.length > 0) {
+            const recommendations = discountItems.map((item: any) => ({
+              type: "coupon",
+              id: item.id,
+              title: item.name,
+              description: `${item.description || ''}\n📍 ${item.location || 'Buenos Aires'}`,
+              why_recommended: userLanguage === 'es' 
+                ? "Descuento exclusivo de Yara AI"
+                : "Exclusive Yara AI discount",
+              image_url: item.image_url,
+              url: item.url,
+              external_link: item.url
+            }));
+            
+            message = JSON.stringify({
+              intro_message: userLanguage === 'es' 
+                ? `¡Aquí tienes ${discountItems.length} descuentos exclusivos de Yara AI! 🎁`
+                : `Here are ${discountItems.length} exclusive Yara AI discounts! 🎁`,
+              recommendations,
+              followup_message: userLanguage === 'es' ? '¿Algo más que estés buscando?' : 'Anything else you\'re looking for?'
+            });
+            console.log(`Built ${discountItems.length} discount recommendations from database`);
+          }
+        }
+        
+        // Only proceed to event fallback if this wasn't a discount query OR discount fallback didn't work
+        if (!isDiscountQuery || !message.includes('"recommendations"')) {
+          // Check if user was asking about events
+          const isTodayQuery = lastUserMsgLower.includes("tonight") || lastUserMsgLower.includes("today") || 
+                              lastUserMsgLower.includes("esta noche") || lastUserMsgLower.includes("hoy");
+          const isTomorrowQuery = lastUserMsgLower.includes("tomorrow") || lastUserMsgLower.includes("mañana");
         
         // CRITICAL: Detect special occasions/dates (New Year's Eve, Christmas, etc.)
         const occasionPatterns: Record<string, { dates: string[], keywords: string[] }> = {
@@ -2205,6 +2242,7 @@ ${descriptionsToTranslate.map(d => `${d.id}: "${d.text}"`).join('\n')}`;
             ? `No encontré eventos ${timeDescription}. ¿Querés que busque para otra fecha? 📅`
             : `I couldn't find events ${timeDescription}. Want me to search for another date? 📅`;
         }
+        } // Close the !isDiscountQuery block
       }
       
       // SAFETY CHECK: If AI returned empty content, check if user was asking about events and provide relevant fallback
