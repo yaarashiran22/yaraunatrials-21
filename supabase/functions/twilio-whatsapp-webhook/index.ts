@@ -1000,9 +1000,11 @@ Deno.serve(async (req) => {
       // Prepare the intro message
       const introMessage = parsedResponse.intro_message || "Here are some recommendations for you! 🎯";
 
-      // CRITICAL FIX: Store a human-readable version instead of raw JSON
-      // This prevents users from seeing JSON if background function fails
-      const humanReadableContent = `${introMessage}\n\n[${parsedResponse.recommendations.length} recommendations sent]`;
+      // CRITICAL FIX: Store ONLY the intro message without the "[X recommendations sent]" suffix
+      // The AI sees conversation history and was copying this placeholder pattern, causing it to output
+      // "Here are some discounts you might like:\n\n[4 recommendations sent]" instead of actual JSON
+      // By storing only the clean intro message, the AI won't learn this bad pattern
+      const humanReadableContent = introMessage;
       
       await supabase.from("whatsapp_conversations").insert({
         phone_number: from,
@@ -1114,80 +1116,139 @@ Deno.serve(async (req) => {
     ];
     
     const isTeaserMessage = teaserPatterns.some(pattern => pattern.test(assistantMessage.trim()));
-    const isRecommendationQuery = /\b(event|events|party|parties|bar|bars|club|clubs|tonight|today|tomorrow|weekend|happening|recommend|fiesta|show me|what's on|mañana|hoy|esta noche)\b/i.test(body);
+    const isRecommendationQuery = /\b(event|events|party|parties|bar|bars|club|clubs|tonight|today|tomorrow|weekend|happening|recommend|fiesta|show me|what's on|mañana|hoy|esta noche|discount|discounts|descuento|descuentos|coupon|coupons|cupon|cupones|deals?|ofertas?)\b/i.test(body);
     
     if (isTeaserMessage && isRecommendationQuery) {
-      console.log("WARNING: Detected teaser/placeholder message for recommendation query. Fetching events directly.");
+      // Check if user is asking for discounts/deals/coupons
+      const isDiscountQuery = /\b(discount|discounts|descuento|descuentos|coupon|coupons|cupon|cupones|deals?|ofertas?)\b/i.test(body);
       
-      // Instead of asking user to retry, fetch events directly from database
-      try {
-        const today = new Date();
-        const buenosAiresOffset = -3 * 60;
-        const localTime = new Date(today.getTime() + (today.getTimezoneOffset() + buenosAiresOffset) * 60000);
+      if (isDiscountQuery) {
+        console.log("WARNING: Detected teaser/placeholder message for DISCOUNT query. Fetching discounts directly.");
         
-        // Check if query is for tomorrow
-        const isTomorrowQuery = /\b(tomorrow|mañana)\b/i.test(body);
-        const targetDate = new Date(localTime);
-        if (isTomorrowQuery) {
-          targetDate.setDate(targetDate.getDate() + 1);
+        try {
+          // Fetch discounts from top_lists with Discounts category
+          const { data: discountLists } = await supabase
+            .from('top_lists')
+            .select(`
+              id, title,
+              top_list_items (id, name, description, location, url, image_url)
+            `)
+            .eq('category', 'Discounts')
+            .limit(1);
+          
+          const discountItems = discountLists?.[0]?.top_list_items || [];
+          
+          if (discountItems.length > 0) {
+            console.log(`Found ${discountItems.length} discounts for fallback. Sending via send-whatsapp-recommendations`);
+            
+            const recommendations = discountItems.map((d: any) => ({
+              id: d.id,
+              type: 'coupon',
+              title: d.name,
+              description: d.description || '',
+              location: d.location,
+              image_url: d.image_url,
+              url: d.url,
+              external_link: d.url
+            }));
+            
+            const introMessage = userLanguage === 'es'
+              ? `¡Aquí tienes ${discountItems.length} descuentos exclusivos de Yara AI! 🎁`
+              : `Here are ${discountItems.length} exclusive Yara AI discounts! 🎁`;
+            
+            // Call send-whatsapp-recommendations in background
+            supabase.functions.invoke('send-whatsapp-recommendations', {
+              body: {
+                recommendations,
+                toNumber: from,
+                introText: introMessage
+              }
+            }).catch(err => console.error('Error sending fallback discounts:', err));
+            
+            // Return empty TwiML since discounts will be sent separately
+            const emptyTwiml = `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`;
+            console.log("Returning empty TwiML (fallback discounts being sent)");
+            return new Response(emptyTwiml, {
+              headers: { ...corsHeaders, "Content-Type": "text/xml" },
+              status: 200,
+            });
+          }
+        } catch (fallbackError) {
+          console.error("Fallback discount fetch failed:", fallbackError);
         }
-        const targetDateStr = targetDate.toISOString().split('T')[0];
+      } else {
+        console.log("WARNING: Detected teaser/placeholder message for recommendation query. Fetching events directly.");
         
-        // Fetch events for the target date
-        const { data: events } = await supabase
-          .from('events')
-          .select('id, title, description, date, time, location, venue_name, image_url, external_link')
-          .or(`date.eq.${targetDateStr},date.ilike.every ${targetDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()}`)
-          .limit(5);
-        
-        if (events && events.length > 0) {
-          console.log(`Found ${events.length} events for fallback. Sending via send-whatsapp-recommendations`);
+        // Instead of asking user to retry, fetch events directly from database
+        try {
+          const today = new Date();
+          const buenosAiresOffset = -3 * 60;
+          const localTime = new Date(today.getTime() + (today.getTimezoneOffset() + buenosAiresOffset) * 60000);
           
-          // Format as recommendations and send via the recommendation function
-          const recommendations = events.map(e => ({
-            id: e.id,
-            type: 'event',
-            title: e.title,
-            description: e.description || '',
-            time: e.time,
-            location: e.location || e.venue_name,
-            image_url: e.image_url,
-            external_link: e.external_link
-          }));
+          // Check if query is for tomorrow
+          const isTomorrowQuery = /\b(tomorrow|mañana)\b/i.test(body);
+          const targetDate = new Date(localTime);
+          if (isTomorrowQuery) {
+            targetDate.setDate(targetDate.getDate() + 1);
+          }
+          const targetDateStr = targetDate.toISOString().split('T')[0];
           
-          const dateLabel = isTomorrowQuery 
-            ? (userLanguage === 'es' ? 'mañana' : 'tomorrow')
-            : (userLanguage === 'es' ? 'hoy' : 'today');
+          // Fetch events for the target date
+          const { data: events } = await supabase
+            .from('events')
+            .select('id, title, description, date, time, location, venue_name, image_url, external_link')
+            .or(`date.eq.${targetDateStr},date.ilike.every ${targetDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()}`)
+            .limit(5);
           
-          const introMessage = userLanguage === 'es'
-            ? `¡Encontré ${events.length} eventos para ${dateLabel}! 🎉`
-            : `Found ${events.length} events for ${dateLabel}! 🎉`;
-          
-          // Call send-whatsapp-recommendations in background
-          supabase.functions.invoke('send-whatsapp-recommendations', {
-            body: {
-              phoneNumber: from,
-              introMessage,
-              recommendations
-            }
-          }).catch(err => console.error('Error sending fallback recommendations:', err));
-          
-          // Return empty TwiML since recommendations will be sent separately
-          const emptyTwiml = `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`;
-          console.log("Returning empty TwiML (fallback recommendations being sent)");
-          return new Response(emptyTwiml, {
-            headers: { ...corsHeaders, "Content-Type": "text/xml" },
-            status: 200,
-          });
+          if (events && events.length > 0) {
+            console.log(`Found ${events.length} events for fallback. Sending via send-whatsapp-recommendations`);
+            
+            // Format as recommendations and send via the recommendation function
+            const recommendations = events.map(e => ({
+              id: e.id,
+              type: 'event',
+              title: e.title,
+              description: e.description || '',
+              time: e.time,
+              location: e.location || e.venue_name,
+              image_url: e.image_url,
+              external_link: e.external_link
+            }));
+            
+            const dateLabel = isTomorrowQuery 
+              ? (userLanguage === 'es' ? 'mañana' : 'tomorrow')
+              : (userLanguage === 'es' ? 'hoy' : 'today');
+            
+            const introMessage = userLanguage === 'es'
+              ? `¡Encontré ${events.length} eventos para ${dateLabel}! 🎉`
+              : `Found ${events.length} events for ${dateLabel}! 🎉`;
+            
+            // Call send-whatsapp-recommendations in background
+            supabase.functions.invoke('send-whatsapp-recommendations', {
+              body: {
+                phoneNumber: from,
+                introMessage,
+                recommendations
+              }
+            }).catch(err => console.error('Error sending fallback recommendations:', err));
+            
+            // Return empty TwiML since recommendations will be sent separately
+            const emptyTwiml = `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`;
+            console.log("Returning empty TwiML (fallback recommendations being sent)");
+            return new Response(emptyTwiml, {
+              headers: { ...corsHeaders, "Content-Type": "text/xml" },
+              status: 200,
+            });
+          }
+        } catch (fallbackError) {
+          console.error("Fallback event fetch failed:", fallbackError);
         }
-      } catch (fallbackError) {
-        console.error("Fallback event fetch failed:", fallbackError);
       }
       
       // If fallback also failed, send retry message
       assistantMessage = userLanguage === 'es' 
-        ? "Hmm, parece que algo salió mal. ¿Podés preguntarme de nuevo qué eventos te interesan? 🎯" 
-        : "Hmm, something went wrong. Could you ask me again about what events you're looking for? 🎯";
+        ? "Hmm, parece que algo salió mal. ¿Podés preguntarme de nuevo qué te interesa? 🎯" 
+        : "Hmm, something went wrong. Could you ask me again about what you're looking for? 🎯";
     }
 
     // CRITICAL SAFETY CHECK: Never store or send raw JSON/markdown code blocks to users
