@@ -1091,7 +1091,8 @@ Deno.serve(async (req) => {
       /^got$/i,
       /^ok$/i,
       /give me a moment/i,
-      /let me (check|look|find|search)/i,
+      /let me (check|look|find|search|format)/i,
+      /format those properly/i,
       /one moment/i,
       /moment away/i,
       /technical glitch/i,
@@ -1113,6 +1114,7 @@ Deno.serve(async (req) => {
       /small (technical )?glitch/i,
       /bear with me/i,
       /hang tight/i,
+      /I found some options/i,
     ];
     
     const isTeaserMessage = teaserPatterns.some(pattern => pattern.test(assistantMessage.trim()));
