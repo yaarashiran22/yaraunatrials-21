@@ -211,6 +211,12 @@ Deno.serve(async (req) => {
       
       let messageBody = `*${title}*\n\n${formattedDescription}`;
       
+      // Add location/address if available and not already in description
+      const location = rec.location || rec.address;
+      if (location && !formattedDescription.toLowerCase().includes(location.toLowerCase())) {
+        messageBody += `\n\n📍 ${location}`;
+      }
+      
       // Add URL/Instagram link if available
       // Check multiple fields: url (for top list items), external_link (for events), ticket_link
       const linkUrl = rec.url || rec.external_link;
