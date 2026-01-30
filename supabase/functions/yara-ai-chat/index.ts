@@ -1578,7 +1578,7 @@ IMPORTANT - NO DATABASE MATCHES:
     const requestBody: any = {
       model: "google/gemini-2.5-flash",
       messages: [{ role: "system", content: systemPrompt }, ...enrichedMessages],
-      max_completion_tokens: 4000,
+      max_completion_tokens: 5000,
     };
     if (isLikelyRecommendation && !stream) {
       // Use structured output with tool calling to guarantee all fields including image_url
